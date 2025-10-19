@@ -1,0 +1,144 @@
+.service-page {
+  font-family: Inter, sans-serif;
+}
+
+.service-page .top-con {
+  border-bottom: 1px solid #64748b33;
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+}
+.service-page .top-con h1 {
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 22px;
+  line-height: 36px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #121212;
+  margin: 0;
+}
+.service-page .top-con p {
+  color: #64748b;
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  margin: 0;
+}
+.service-page .add-new-btn-wrap {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.service-page .add-new-btn-wrap p {
+  color: #64748b;
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+}
+.service-page .servies-card-list {
+  margin-top: 60px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 19px;
+}
+.service-page .servies-card-list .cardd {
+  border: 1px solid #64748b33;
+  border-radius: 12px;
+  box-shadow: 0px 1px 2px 0px #0000000d;
+  padding: 28px 20px;
+  background-color: #f9faff;
+}
+.service-page .servies-card-list .cardd .top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.service-page .servies-card-list .top .wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.service-page .servies-card-list .top .wrap span {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  background-color: #f19b11;
+  border-radius: 50%;
+}
+.service-page .servies-card-list .top .wrap h2 {
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 18px;
+  line-height: 28px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  margin: 0;
+  color: #121212;
+}
+.service-page .servies-card-list .bottom {
+  margin-top: 30px;
+}
+.service-page .servies-card-list .bottom .wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.service-page .servies-card-list .bottom .wrap span {
+  font-family: Inter;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: #64748b;
+}
+.service-page .servies-card-list .bottom .wrap:nth-child(2) {
+  margin-bottom: 0px;
+}
+
+/* RESPONSIVE */
+@media screen and (max-width: 1180px) {
+}
+@media screen and (max-width: 991px) {
+  .service-page {
+    margin-top: 42px;
+  }
+  .service-page .top-con {
+    margin-bottom: 20px;
+  }
+}
+@media screen and (max-width: 1001px) {
+}
+@media screen and (max-width: 768px) {
+  .service-page .servies-card-list {
+    margin-top: 20px;
+    grid-template-columns: repeat(1, 1fr);
+  }
+  .service-page .servies-card-list .cardd{
+    padding: 20px;
+  }
+  .service-page .servies-card-list .bottom{
+    margin-top: 12px;
+  }
+  .service-page .servies-card-list .bottom .wrap{
+    margin-bottom: 8px;
+  }
+  .service-page .top-con h1{
+    font-size: 18px;
+  }
+}

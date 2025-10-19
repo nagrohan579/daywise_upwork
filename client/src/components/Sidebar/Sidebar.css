@@ -1,0 +1,222 @@
+/****************************************** SIDEBAR CSS *************************************/
+/* ========================================================================= */
+/* 1. Mobile-First (Hamburger Menu & Overlay) */
+/* ========================================================================= */
+:root {
+  --sidebar-width-mobile: 240px;
+  --sidebar-width-desktop: 240px;
+  --primary-blue: #006aff;
+  --gray-bg: #f7f9fc;
+  --text-color: #64748b;
+  --border-color: #e5e7eb;
+}
+
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  /* background-color: var(--gray-bg); */
+}
+
+.main-content-area {
+  flex-grow: 1;
+  padding: 50px 40px 40px 40px;
+  transition: margin-left 0.3s;
+}
+
+/* --- Sidebar Container (Mobile Default: Hidden) --- */
+.sidebar-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 93vh;
+  width: var(--sidebar-width-mobile);
+  background-color: #f9faff;
+  z-index: 50;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease-in-out;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-container.is-open {
+  transform: translateX(0);
+}
+
+/* --- Mobile Overlay --- */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* background-color: rgba(0, 0, 0, 0.5); */
+  z-index: 40;
+  display: none; /* Hidden by default */
+}
+
+.sidebar-container.is-open + .sidebar-overlay {
+  display: block; /* Visible only when sidebar is open */
+}
+
+/* --- Hamburger Button (Visible on Mobile) --- */
+.hamburger-button {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  z-index: 60;
+  background: transparent;
+  border-radius: 4px;
+  padding: 8px;
+  cursor: pointer;
+  display: flex; /* Visible on mobile */
+  border: none;
+  align-items: center;
+  gap: 20px;
+}
+
+/* ========================================================================= */
+/* 2. Sidebar Content Styling */
+/* ========================================================================= */
+
+.sidebar-header {
+  padding: 40px 30px 40px 50px;
+}
+.sidebar-header img {
+  width: 150px;
+  height: 30px;
+}
+.sidebar-nav {
+  flex-grow: 1; /* Pushes logout to the bottom */
+  padding: 10px 0;
+  list-style: none;
+}
+.sidebar-nav ul {
+  padding: 0px;
+}
+.sidebar-nav .nav-item {
+  padding: 0 24px;
+  list-style: none !important;
+}
+
+.sidebar-nav .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 16px;
+  margin: 4px 0;
+  color: var(--text-color);
+  text-decoration: none;
+  border-radius: 6px;
+  transition: background-color 0.2s, color 0.2s;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  font-family: Inter, sans-serif;
+}
+
+.sidebar-nav .nav-link:hover {
+  background-color: #f0f4ff;
+}
+
+.sidebar-nav .nav-link.is-active {
+  background-color: #e0edff; /* Active background */
+  color: var(--primary-blue);
+  font-weight: 600;
+}
+
+.sidebar-container .logout-container {
+  padding: 20px 24px;
+}
+
+.sidebar-container .logout-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  color: var(--text-color);
+  text-decoration: none;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  font-family: Inter, sans-serif;
+}
+
+.sidebar-container .logout-link:hover {
+  /* background-color: #fef2f2;
+  color: #ef4444; */
+  background-color: #f0f4ff;
+  color: #121212;
+}
+
+@media (max-width: 768px) {
+  .sidebar-nav .nav-link {
+    line-height: 17px;
+    font-size: 13px;
+  }
+}
+@media (max-width: 991px) {
+  .sidebar-header {
+    margin-top: 40px;
+  }
+  .main-content-area {
+    padding: 20px;
+  }
+  .sidebar-header {
+    padding: 0px;
+    padding-bottom: 30px;
+  }
+  .sidebar-header a {
+    display: none;
+  }
+  .sidebar-nav .nav-item {
+    padding: 0 16px;
+  }
+}
+/* ========================================================================= */
+/* 3. Desktop View (Media Query) - FIX APPLIED HERE */
+/* ========================================================================= */
+@media (min-width: 992px) {
+  .sidebar-container {
+    /* FIX: Change position from 'static' to 'fixed' */
+    position: fixed;
+    top: 0;
+    left: 0;
+
+    /* Ensure it takes the full viewport height */
+    height: 100vh;
+
+    /* Keep other desktop styles */
+    transform: translateX(0);
+    width: var(--sidebar-width-desktop);
+    box-shadow: none;
+    flex-shrink: 0;
+
+    /* You may want to remove the border-right here if it was defined globally
+       and you want it only for the fixed desktop state. */
+    border-right: 1px solid var(--border-color);
+  }
+
+  .sidebar-overlay {
+    display: none;
+  }
+
+  .hamburger-button {
+    display: none;
+  }
+
+  .main-content-area {
+    /*
+      CRITICAL CHANGE: Add a margin-left to the main content area 
+      to compensate for the fixed sidebar's width. Without this, 
+      the content will flow underneath the sidebar.
+    */
+    margin-left: var(--sidebar-width-desktop);
+    padding: 50px 40px 40px 40px; /* Keep your existing padding */
+  }
+  .sidebar-container .logout-container {
+    margin-bottom: 8px;
+  }
+}

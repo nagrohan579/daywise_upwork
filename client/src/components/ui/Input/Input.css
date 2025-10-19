@@ -1,0 +1,347 @@
+.input-group-comp {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 16px;
+  font-family: Inter, sans-serif;
+}
+
+.input-group-comp .input-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #121212;
+  font-family: Inter;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+}
+
+.input-group-comp .input-field {
+  padding: 10px 14px;
+  border: 1px solid #64748b33;
+  min-height: 44px;
+  border-radius: 12px;
+  outline: none;
+  font-size: 14px;
+  font-weight: 400;
+  color: #121212;
+  background-color: #f9faff;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.input-group-comp .input-field::placeholder {
+  color: #64748b;
+}
+
+.input-group-comp .input-field:focus {
+  border-color: #0053f1; /* focus border */
+}
+
+.input-group-comp .input-error {
+  border-color: #e63946 !important; /* red for errors */
+}
+
+.input-group-comp .input-error-text {
+  font-size: 12px;
+  color: #e63946;
+  margin-top: 2px;
+  margin-bottom: 0px;
+}
+
+/* TEXTAREA */
+
+.textarea-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.textarea-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #121212;
+}
+
+.textarea-field {
+  padding: 10px 14px;
+  border: 1px solid #64748b33; /* default border */
+  border-radius: 6px;
+  outline: none;
+  font-size: 14px;
+  color: #121212;
+  transition: border-color 0.2s ease-in-out;
+  resize: none;
+  background-color: #f9faff;
+}
+
+.textarea-field::placeholder {
+  color: #64748b;
+}
+
+.textarea-field:focus {
+  border-color: #0053f1; /* focus border */
+}
+
+.textarea-error {
+  border-color: #e63946 !important; /* red for errors */
+}
+
+.textarea-error-text {
+  font-size: 12px;
+  color: #e63946;
+  margin-top: 2px;
+}
+
+/* SELECTION INPUT */
+.select-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+  position: relative;
+}
+.select-group .wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.select-group .wrap .timezone-text {
+  margin: 0px;
+  color: #121212;
+  font-family: Inter;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+}
+.select-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #121212;
+}
+
+.select-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border: 1px solid #64748b33;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s ease-in-out;
+}
+.select-box:focus {
+  border-color: #0053f1;
+}
+.select-box:hover {
+  /* border-color: #0053f1; */
+}
+
+.select-text {
+  color: #121212;
+}
+
+.select-placeholder {
+  color: #64748b;
+}
+
+.select-icon {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.select-dropdown {
+  margin-top: 4px;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #64748b33;
+  border-radius: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  padding-left: 0px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.select-option {
+  padding: 10px 14px;
+  list-style: none;
+  font-size: 14px;
+  cursor: pointer;
+  color: #121212;
+  transition: background 0.2s ease-in-out;
+}
+
+.select-option:hover {
+  background: #f5f7fa;
+}
+
+.select-option.disabled {
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.select-error {
+  border-color: #e63946 !important;
+}
+
+.select-error-text {
+  font-size: 12px;
+  color: #e63946;
+  margin-top: 2px;
+}
+
+/* CHECKBOX */
+.checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  position: relative;
+  font-size: 14px;
+  user-select: none;
+  margin-top: 24px;
+}
+
+.checkbox-input {
+  display: none;
+}
+
+.checkbox-custom {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #64748b33; /* default border */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease-in-out;
+  background: white;
+  padding: 3px;
+  box-sizing: border-box;
+}
+
+.checkbox-input:checked + .checkbox-custom {
+  border-color: #0053f1;
+  background-color: #0053f1;
+}
+
+.checkbox-input:checked + .checkbox-custom::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px; 
+  height: 10px;
+  transform: translate(-50%, -50%);
+  background-image: url("/assets/images/checkbox-tick.svg");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.checkbox-label {
+  color: #121212;
+  font-weight: 500;
+}
+
+/* TOGGLE INPUT SWITCH */
+
+/* The switch container */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px; /* Width of the switch container */
+  height: 24px; /* Height of the switch container */
+  margin: 0;
+}
+
+/* Hide default checkbox */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider (the visible part of the switch) */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc; /* Background when OFF */
+  transition: 0.4s;
+}
+
+/* The knob (the circular element) */
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px; /* Knob size */
+  width: 18px; /* Knob size */
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.4s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); /* Subtle shadow for 3D effect */
+}
+
+/* Change background color when ON (checked) */
+input:checked + .slider {
+  /* Blue color from the image */
+  background-color: #2563eb;
+}
+
+/* Move the knob when ON (checked) */
+input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+/* Rounded sliders (the typical switch appearance) */
+.slider.round {
+  border-radius: 24px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+@media (max-width: 991px) {
+  .input-group-comp .input-field {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    display: none;
+    -webkit-appearance: none;
+  }
+  input {
+    -webkit-appearance: none;
+  }
+
+  input[type="date"]::-moz-calendar-picker-indicator,
+  input[type="time"]::-moz-calendar-picker-indicator {
+    display: none;
+  }
+
+  input[type="date"]::-ms-clear,
+  input[type="time"]::-ms-clear {
+    display: none;
+  }
+}

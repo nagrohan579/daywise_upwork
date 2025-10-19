@@ -1,0 +1,464 @@
+.booking-steps-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 40px 0px;
+}
+.booking-steps-container .main-wrapper {
+  border: 1px solid #64748b33;
+  max-width: 1060px;
+  margin-inline: auto;
+  border-radius: 20px;
+  width: 100%;
+  height: 100%;
+}
+.booking-steps-container .main-wrapper .steps-one {
+  display: flex;
+  width: 100%;
+}
+.booking-steps-container .main-wrapper .steps-one .left {
+  flex: 0.5;
+  padding: 30px;
+  border-right: 1px solid #64748b33;
+}
+.booking-steps-container .main-wrapper .steps-one .left .daywise-branding {
+  margin-bottom: 21px;
+}
+.booking-steps-container .daywise-branding button {
+  font-size: 11px;
+  line-height: 16px;
+  width: 136px;
+  height: 30px;
+  font-weight: 500;
+}
+.booking-steps-container .main-wrapper .steps-one .left .profile-con {
+}
+
+.steps-one .left .profile-con .profile-wrapper {
+  margin-bottom: 21px;
+}
+
+.steps-one .left .profile-con .profile-wrapper img {
+  width: 49px;
+  height: 49px;
+  object-fit: contain;
+  margin-bottom: 6px;
+}
+
+.steps-one .left .profile-con .profile-wrapper h5 {
+  margin: 0;
+  color: #121212;
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 14px;
+  line-height: 20px;
+  vertical-align: middle;
+}
+.steps-one .left .business-wrapper {
+  margin-bottom: 65px;
+}
+.steps-one .left .business-wrapper h2 {
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 22px;
+  line-height: 36px;
+  vertical-align: middle;
+  color: #121212;
+  margin-bottom: 6px;
+}
+.steps-one .left .business-wrapper p {
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  vertical-align: middle;
+  color: #64748b;
+  margin: 0;
+}
+.steps-one .left .select-con {
+  margin-bottom: 30px;
+}
+.steps-one .left .select-con h4 {
+  font-family: Inter;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 18px;
+  line-height: 28px;
+  vertical-align: middle;
+  color: #121212;
+}
+.steps-one .left .description {
+  color: #64748b;
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  vertical-align: middle;
+  margin: 0;
+}
+
+.booking-steps-container .main-wrapper .steps-one .right {
+  flex: 1;
+  padding: 30px;
+}
+.booking-steps-container {
+}
+
+.booking-steps-container .step-two {
+  display: flex;
+}
+.booking-steps-container .step-two .left {
+  flex: 0.5;
+  padding: 30px;
+  border-right: 1px solid #64748b33;
+}
+.booking-steps-container .step-two .left .back-arrow {
+  margin-bottom: 22px;
+}
+.booking-steps-container .step-two .left .back-arrow img {
+  width: 25px;
+  height: 25px;
+  cursor: pointer;
+}
+.booking-steps-container .step-two .left .daywise-branding {
+  margin-bottom: 21px;
+}
+.booking-steps-container .step-two .left .appointment-wrapper {
+  margin-bottom: 33px;
+}
+.booking-steps-container .step-two .left .appointment-wrapper h2 {
+  margin-bottom: 12px;
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 22px;
+  line-height: 36px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: #121212;
+}
+.booking-steps-container .step-two .left .appointment-wrapper p {
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  margin: 0;
+  color: #64748b;
+}
+.booking-steps-container .step-two .left .booking-details {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.booking-steps-container .step-two .left .booking-details .wrap {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+.booking-steps-container .step-two .left .booking-details .wrap h4 {
+  font-family: Inter, sans-serif;
+  font-weight: 500;
+  font-style: Medium;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  margin: 0px;
+  color: #64748b;
+}
+.booking-steps-container .step-two .right {
+  flex: 1;
+  padding: 30px;
+}
+
+.booking-steps-container .step-two .right h1 {
+  color: #121212;
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 18px;
+  line-height: 28px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  margin-bottom: 46px;
+  margin-top: 55px;
+}
+
+.booking-steps-container .step-two .right .input-group-comp {
+  margin-bottom: 27px;
+}
+.booking-steps-container .step-two .right .terms-con-desc {
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: #64748b;
+  margin-bottom: 46px;
+}
+.booking-steps-container .step-two .right .terms-con-desc a {
+  color: #64748b;
+}
+
+.booking-steps-container .step-three {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 25px;
+  min-height: 100vh;
+}
+.booking-steps-container .step-three .containerr {
+}
+.booking-steps-container .step-three .containerr .heading-container {
+  margin-bottom: 25px;
+}
+.booking-steps-container .step-three .containerr .heading-container .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+.booking-steps-container .step-three .containerr .heading-container .wrap img {
+  width: 19px;
+  height: 19px;
+  object-fit: contain;
+}
+.booking-steps-container .step-three .containerr .heading-container .wrap h3 {
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 22px;
+  line-height: 36px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: #121212;
+  margin: 0;
+}
+.booking-steps-container .step-three .containerr .heading-container p {
+  color: #64748b;
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  vertical-align: middle;
+  margin: 0px;
+}
+.booking-steps-container .step-three .containerr .appointment-container {
+  border: 1px solid #64748b33;
+  padding: 20px;
+  border-radius: 20px;
+  min-width: 390px;
+  height: 263px;
+}
+
+.step-three .containerr .appointment-container .daywise-branding {
+  margin-bottom: 21px;
+}
+.step-three .containerr .appointment-container .booking-details {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.step-three .containerr .appointment-container .booking-details h1 {
+  color: #121212;
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 22px;
+  line-height: 36px;
+  vertical-align: middle;
+  margin: 0;
+}
+.step-three .containerr .appointment-container .booking-details .wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.step-three .containerr .appointment-container .booking-details .wrap h4 {
+  margin: 0;
+  color: #64748b;
+
+  font-family: Inter, sans-serif;
+  font-weight: 500;
+  font-style: Medium;
+  font-size: 14px;
+  line-height: 20px;
+  vertical-align: middle;
+}
+.step-two-mobile {
+}
+.step-two-mobile .containerr {
+}
+.step-two-mobile .containerr .top {
+  border-bottom: 1px solid #64748b33;
+  padding-bottom: 20px;
+}
+.step-two-mobile .containerr .top .back-arrow img {
+  width: 25px;
+  height: 25px;
+  cursor: pointer;
+}
+.step-two-mobile .containerr .top .back-arrow {
+  margin-bottom: 25px;
+}
+.step-two-mobile .containerr .heading-con {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: -50px;
+}
+.step-two-mobile .containerr .heading-con .appoint-name {
+  margin: 0px;
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 16px;
+  line-height: 23.17px;
+  text-align: center;
+  vertical-align: middle;
+  color: #121212;
+}
+.step-two-mobile .containerr .heading-con p {
+  margin: 0px;
+  color: #121212;
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  vertical-align: middle;
+}
+.step-two-mobile .containerr .heading-con .select-group{
+  width: 100%;
+}
+.step-two-mobile .bottom {
+  margin-top: 30px;
+}
+.step-two-mobile .time-slot-wrapper {
+  border: 1px solid #64748b33;
+  padding: 20px;
+  border-radius: 20px;
+}
+.step-two-mobile .time-slot-wrapper .time-slot-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-width: 225px;
+  gap: 10px;
+  position: relative;
+}
+.step-two-mobile .time-slot-wrapper .time-slot-container .time-slot-btn {
+  border: 1px solid #0053f1;
+  outline: none;
+  cursor: pointer;
+  background-color: transparent;
+  color: #0053f1;
+  border-radius: 4px;
+  padding: 12px 20px;
+  text-align: center;
+  height: 52px;
+  width: 100%;
+  transition: all 0.25s ease;
+  &:hover {
+    background-color: #0053f1;
+    color: #fff;
+  }
+}
+@media (max-width: 1100px) {
+  .booking-steps-container .main-wrapper {
+    max-width: 95%;
+  }
+
+  .booking-steps-container .step-two .left {
+    padding: 20px;
+  }
+  .booking-steps-container .step-two .right {
+    padding: 20px;
+  }
+  .booking-steps-container .main-wrapper .steps-one .left {
+    padding: 20px 20px;
+  }
+  .booking-steps-container .main-wrapper .steps-one .right {
+    padding: 40px 20px;
+  }
+  .booking-steps-container {
+    height: auto;
+    min-height: auto;
+    align-items: start;
+    margin: 10px 0px 40px 0px;
+  }
+}
+@media (max-width: 999px) {
+  .booking-steps-container .main-wrapper.border-hide {
+    border: none;
+  }
+  .booking-steps-container .step-two .left .back-arrow{
+    /* display: none; */
+  }
+}
+@media (max-width: 768px) {
+  .booking-steps-container .main-wrapper .steps-one {
+    flex-direction: column;
+  }
+  .steps-one .left .business-wrapper {
+    margin-bottom: 20px;
+  }
+  .booking-steps-container .main-wrapper {
+    max-width: none;
+    margin: 20px;
+  }
+
+  .booking-steps-container .main-wrapper .steps-one .right {
+    padding: 0px 20px 40px 20px;
+  }
+  .booking-steps-container .main-wrapper .steps-one .left {
+    border-right: none;
+  }
+  .booking-steps-container .step-two {
+    flex-direction: column;
+  }
+  .booking-steps-container .step-two .left {
+    border-right: none;
+  }
+  .booking-steps-container .step-two .right h1 {
+    margin-top: 0px;
+    margin-bottom: 20px;
+  }
+
+  .booking-steps-container .step-three .containerr .heading-container .wrap h3 {
+    font-size: 20px;
+  }
+  .step-three .containerr .appointment-container .booking-details h1 {
+    font-size: 16px;
+    line-height: 23px;
+  }
+  .booking-steps-container .main-wrapper.border-hide {
+    border: none;
+  }
+  .booking-steps-container .step-three {
+    width: 100%;
+    min-height: 100dvh;
+  }
+  .booking-steps-container .step-three .containerr{
+    width: 100%;
+  }
+  .booking-steps-container .step-three .containerr .appointment-container {
+    min-width: 0px;
+  }
+}

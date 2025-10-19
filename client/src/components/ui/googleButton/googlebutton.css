@@ -1,0 +1,22 @@
+.google-btn {
+  outline: none;
+  border: 1px solid #e2e8f0;
+  padding: 10px 12px;
+  border-radius: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  background-color: transparent;
+  cursor: pointer;
+  width: 100%;
+
+  font-family: Inter;
+  font-weight: 500;
+  font-style: Medium;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  text-align: center;
+  vertical-align: middle;
+}

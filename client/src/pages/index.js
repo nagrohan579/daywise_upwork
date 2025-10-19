@@ -1,0 +1,27 @@
+import BookingsPage from "./Booking/Booking";
+import Home from "./Home/Home";
+import Service from "./Service/Service";
+import Availability from "./Availability/Availability";
+import Branding from "./Branding/Branding";
+import MyLink from "./MyLink/MyLink";
+import Setting from "./Setting/Setting";
+import Account from "./Account/Account";
+import Billing from "./BillingAndSubscription/Billing";
+import Terms from "./Terms/Terms";
+import PrivacyPolicy from "./PrivacyPolicy/PrivacyPolicy";
+import BookingSteps from "./BookingSteps/BookingSteps";
+
+export {
+  Home,
+  BookingsPage,
+  Service,
+  Availability,
+  Branding,
+  MyLink,
+  Setting,
+  Account,
+  Billing,
+  Terms,
+  PrivacyPolicy,
+  BookingSteps,
+};

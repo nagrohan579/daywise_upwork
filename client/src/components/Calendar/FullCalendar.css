@@ -1,0 +1,489 @@
+/* --- TIMEGRID STYLING OVERRIDES --- */
+
+/* Default cleanup for both views */
+.fc .fc-timegrid-axis {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* -----------------------------------
+   1️⃣ WEEK VIEW (Flat look — no times)
+----------------------------------- */
+/* .fc-timeGridWeek-view .fc-timegrid-slot-label,
+.fc-timeGridWeek-view .fc-timegrid-axis {
+  display: none !important;
+  width: 0 !important;
+}
+
+.fc-timeGridWeek-view .fc-timegrid-slots {
+  display: none !important;
+} */
+
+.fc-timeGridWeek-view .fc-timegrid-col {
+  width: 100% !important;
+}
+
+.fc-timeGridWeek-view .fc-timegrid-body {
+  width: 100% !important;
+  min-width: unset !important;
+}
+
+/* -----------------------------------
+   2️⃣ DAY VIEW (Normal time slots visible)
+----------------------------------- */
+.fc-timeGridDay-view .fc-timegrid-slot-label,
+.fc-timeGridDay-view .fc-timegrid-axis,
+.fc-timeGridDay-view .fc-timegrid-slots {
+  display: block !important;
+}
+
+.fc-timeGridDay-view .fc-timegrid-slot {
+  border-top: 1px solid #e0e9fe !important;
+}
+
+.fc-timeGridDay-view .fc-timegrid-col-frame {
+  background: #fff !important;
+}
+
+/* -----------------------------------
+   3️⃣ BORDER & CORNER STYLES
+----------------------------------- */
+.fc-view-harness {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e0e9fe;
+}
+
+.fc-scrollgrid-section-header {
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+}
+
+.fc-theme-standard td,
+.fc-theme-standard th {
+  border-top: 1px solid #64748b33;
+  border-right: 1px solid #64748b33;
+  border-left: none;
+}
+
+.fc-scrollgrid-section-body {
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+/* -----------------------------------
+   4️⃣ UNAVAILABLE COLUMN COLORATION
+----------------------------------- */
+.fc .fc-timegrid-col.fc-unavailable-day {
+  background-color: #fff5f5 !important;
+}
+
+.fc .fc-col-header-cell.fc-unavailable-day {
+  background-color: #fff5f5 !important;
+}
+
+/* -----------------------------------
+   5️⃣ HEADER & TEXT STYLING
+----------------------------------- */
+.fc .fc-col-header-cell-cushion {
+  text-decoration: none;
+  color: #64748b;
+}
+
+.fc .fc-daygrid-day-number {
+  text-decoration: none;
+  color: #121212;
+}
+
+.fc-scrollgrid-sync-inner {
+  background-color: #f9faff;
+  padding: 15px 4px;
+}
+
+/* Align date numbers */
+.fc .fc-daygrid-day-top {
+  flex-direction: row;
+}
+
+.fc .fc-daygrid-day-frame {
+  background-color: #fff;
+}
+
+.fc .fc-daygrid-day-number {
+  font-size: 14px;
+  color: #121212;
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  line-height: 20px;
+  vertical-align: middle;
+}
+
+/* -----------------------------------
+   6️⃣ EVENT STYLING
+----------------------------------- */
+.fc-h-event .fc-event-title-container {
+  height: max-content;
+  padding: 5px 0px;
+}
+
+.fc-daygrid-block-event .fc-event-title {
+  font-family: Inter, sans-serif;
+  font-weight: 500;
+  font-size: 10px;
+  line-height: 14px;
+  text-align: center;
+  display: block !important;
+  height: 100%;
+  padding: 0 4px;
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+  text-overflow: clip !important;
+}
+
+.fc .fc-daygrid-body-natural .fc-daygrid-day-events {
+  margin-bottom: 0px;
+}
+
+/* -----------------------------------
+   7️⃣ CUSTOM TOOLBAR
+----------------------------------- */
+.fc-custom-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-family: Inter, sans-serif;
+}
+
+/* Buttons */
+.fc-btn {
+  background: #fff;
+  border: 1px solid #e0e9fe;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.fc-btn:hover {
+  background: #f7f7f7;
+}
+
+/* Current day button */
+.fc-btn.current-day {
+  color: #121212;
+  border-radius: 50px;
+  font-family: Inter, sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  padding: 3px 13px;
+}
+
+/* Title */
+.fc-left h3 {
+  color: #121212;
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 28px;
+  margin: 0;
+}
+
+.fc-left .wrap {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.fc-left .btn-yearly-con {
+  display: flex;
+  gap: 12px;
+}
+
+/* -----------------------------------
+   8️⃣ DROPDOWN MENU
+----------------------------------- */
+.dropdown {
+  position: relative;
+}
+
+.dropdown-btn {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e0e9fe;
+  color: #64748b;
+  border-radius: 50px;
+  padding: 10px 13px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: Inter, sans-serif;
+  gap: 6px;
+}
+
+.dropdown-menuu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 120px;
+  background: #fff;
+  border: 1px solid #e6e6e6;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  z-index: 2000;
+  padding: 6px 0;
+}
+
+.dropdown-itemm {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.dropdown-itemm:hover {
+  background: #f5f5f5;
+}
+.fc .fc-timegrid-slot {
+  height: 60px !important;
+}
+.fc-timegrid-event-harness > .fc-timegrid-event {
+  position: unset !important;
+  margin: 6px !important;
+}
+.fc-timegrid-event-harness-inset .fc-timegrid-event,
+.fc-timegrid-event.fc-event-mirror,
+.fc-timegrid-more-link {
+  border: none !important;
+}
+
+/* Make all-day and month view events fit within the box */
+.fc-daygrid-event {
+  display: block;
+  white-space: normal !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-wrap: break-word;
+  border-radius: 6px;
+  padding: 4px 6px !important;
+  line-height: 1.2;
+  font-size: 12px;
+}
+
+/* Force event box to stretch and wrap correctly */
+.fc-daygrid-day-events {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 100%;
+  width: 100%;
+}
+
+/* Prevent overlapping & clipping inside the day cell */
+.fc-daygrid-day-frame {
+  overflow: visible !important;
+}
+
+/* Keep event title centered and fully visible */
+.fc-h-event .fc-event-title {
+  white-space: normal !important;
+  overflow-wrap: break-word;
+  text-align: center;
+}
+
+/* WEEK VIEW — style all-day events like blocks at the top */
+.fc-timeGridWeek-view .fc-daygrid-event {
+  display: block;
+  width: 100%;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 12px;
+  padding: 3px 6px;
+  color: #fff;
+  white-space: normal;
+}
+
+/* Ensure they don’t overlap vertically */
+.fc-timeGridWeek-view .fc-daygrid-day-events {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Keep background colors visible and remove outline */
+.fc-timeGridWeek-view .fc-h-event {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Reduce the height of the all-day section to be tidy */
+.fc-timeGridWeek-view .fc-daygrid-body {
+  min-height: 40px !important;
+}
+
+/* Subtle alignment for day cells */
+.fc-timeGridWeek-view .fc-daygrid-day-frame {
+  background: #fff !important;
+  border-radius: 8px;
+}
+
+/* When the screen shrinks, allow the text to adjust */
+
+/* -----------------------------------
+   9️⃣ RESPONSIVE
+----------------------------------- */
+@media screen and (max-width: 991px) {
+  .fc-custom-toolbar {
+    align-items: flex-end;
+    margin-bottom: 20px;
+  }
+  .fc-left .wrap {
+    flex-direction: column;
+  }
+  .fc .fc-view-harness {
+    height: 350px !important;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  /* .fc-daygrid-event {
+    font-size: 10px;
+    padding: 2px 4px !important;
+  }
+  .fc .fc-daygrid-more-link {
+ padding: 0px !important;
+    white-space: unset !important;
+    margin-top: -15px !important;
+    font-size: 10px !important;
+  }
+  .fc .fc-daygrid-more-link a {
+    color: #121212 !important;
+   
+  }
+  a{
+    color: #121212 !important;
+  } */
+}
+
+
+
+/* FullCalendar.css */
+
+@media screen and (max-width: 991px) {
+  /* --- 👇 REPLACE the previous dot styles with these new pill styles 👇 --- */
+
+  /* This container still works perfectly to center the pill */
+  .fc .fc-daygrid-day-events {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 4px;
+    min-height: 24px; /* Give it a little space */
+  }
+
+  /* Reset the event wrapper */
+  .fc .fc-daygrid-event {
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Style the main pill container */
+  .mobile-event-pill {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Pushes dot to the left and ellipsis to the right */
+    box-sizing: border-box;
+    width: 35px;   /* Pill width */
+    height: 22px;  /* Pill height */
+    padding: 0 6px; /* Inner spacing */
+    border-radius: 50px; /* This creates the rounded pill shape */
+    color: white; /* This will color the ellipsis */
+  }
+
+  /* Style the white dot inside the pill */
+  .inner-dot {
+    display: block;
+    width: 8px;
+    height: 8px;
+    background-color: #fff;
+    border-radius: 50%;
+  }
+
+  /* Style the ellipsis (...) */
+  .event-ellipsis {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1;
+    padding-bottom: 4px; /* Small adjustment for vertical alignment */
+  }
+.fc .fc-col-header-cell-cushion{
+  font-size: 12px;
+}
+}
+
+
+
+/* FullCalendar.css */
+
+/* -----------------------------------
+    1️⃣ WEEK VIEW (Flat look — no times)
+    FINAL FIX: Enforce 7 columns and fix alignment.
+----------------------------------- */
+
+/* Hides the time labels and the axis column (Must keep this) */
+.fc-timeGridWeek-view .fc-timegrid-slot-label,
+.fc-timeGridWeek-view .fc-timegrid-axis {
+  display: none !important;
+  width: 0 !important; 
+}
+
+/* Hides the main container for the time slots (Must keep this) */
+.fc-timeGridWeek-view .fc-timegrid-slots {
+  display: none !important;
+}
+
+/* --- VITAL FIXES FOR 7-COLUMN ALIGNMENT --- */
+
+/* 1. Force the inner calendar table to a fixed layout and 100% width. This is crucial for fixing scrollbar issues. */
+.fc-timeGridWeek-view .fc-scrollgrid-sync-table {
+    table-layout: fixed !important;
+    width: 100% !important; 
+}
+
+/* 2. Target the main header row container. */
+.fc-timeGridWeek-view .fc-scrollgrid-section-header table {
+    table-layout: fixed !important; /* Ensure the header table is also fixed */
+    width: 100% !important;
+}
+
+/* 3. Explicitly set all 7 column header cells to take exactly 1/7th of the width. */
+.fc-timeGridWeek-view .fc-col-header-cell {
+    /* Using 14.2857% instead of calc(100%/7) for better browser float handling */
+    width: 14.2857% !important; 
+}
+
+/* 4. Set the body columns to 1/7th width as well for alignment */
+.fc-timeGridWeek-view .fc-timegrid-cols .fc-timegrid-col {
+    width: 14.2857% !important;
+}
+
+/* 5. Ensure the day grid body (all-day events) also respects the 7-column layout. */
+.fc-timeGridWeek-view .fc-daygrid-body table {
+    table-layout: fixed !important;
+    width: 100% !important;
+}
+
+/* 6. Crucial: Remove horizontal scrolling on the grid to prevent the calendar from being squished or hidden by the scrollbar. */
+.fc-timeGridWeek-view .fc-scroller {
+    overflow-x: hidden !important; 
+    overflow-y: auto !important; /* Keep vertical scroll if needed */
+}
+
+/* 7. Ensure the header cells aren't using display:flex or similar that could cause overflow (a safety check). */
+.fc-timeGridWeek-view .fc-col-header-cell-cushion {
+    display: block !important;
+    text-overflow: clip !important;
+}
+
+

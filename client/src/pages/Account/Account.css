@@ -1,0 +1,94 @@
+.account-page {
+  font-family: Inter, sans-serif;
+}
+
+.account-page .top-con {
+  border-bottom: 1px solid #64748b33;
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+  margin-bottom: 45px;
+}
+.account-page .top-con h1 {
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 22px;
+  line-height: 36px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #121212;
+}
+.account-page .top-con p {
+  color: #64748b;
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  margin: 0px;
+}
+.account-page .form-my-account {
+}
+.account-page .form-my-account .form-wrap {
+  max-width: 370px;
+}
+.account-page .form-my-account .email-con {
+  justify-content: space-between;
+  display: flex;
+  align-items: center;
+  margin-top: 45px;
+  height: 52px;
+}
+.account-page .form-my-account .email-con input::placeholder {
+  color: #121212;
+}
+.account-page .form-my-account .google-btn-con {
+  margin-top: 45px;
+}
+.account-page .form-my-account .select-con {
+  margin-top: 45px;
+}
+.account-page .form-my-account .btn-wrap-con {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 45px;
+  width: 100%;
+  max-width: 575px;
+}
+.account-page .form-my-account .btn-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.account-page .form-my-account .btn-wrap-con > button:last-child {
+}
+
+@media screen and (max-width: 1180px) {
+}
+@media screen and (max-width: 991px){
+  .account-page{
+    margin-top: 42px;
+  }
+}
+@media screen and (max-width: 1001px) {
+}
+@media screen and (max-width: 768px) {
+  .account-page .top-con{
+    margin-bottom: 20px;
+  }
+  .account-page .form-my-account .btn-wrap-con{
+    flex-direction: column;
+    align-items: start;
+    gap: 60px;
+  }
+  .account-page .top-con h1{
+    font-size: 18px;
+    margin: 0px;
+  }
+}

@@ -1,0 +1,101 @@
+.mylink-page {
+  font-family: Inter, sans-serif;
+}
+
+.mylink-page .top-con {
+  border-bottom: 1px solid #64748b33;
+  padding-bottom: 24px;
+  margin-bottom: 60px;
+}
+.mylink-page .top-con h1 {
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 22px;
+  line-height: 36px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #121212;
+}
+.mylink-page .top-con p {
+  color: #64748b;
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  margin-bottom: 0px;
+}
+
+.mylink-page .business-container {
+  max-width: 370px;
+}
+
+.mylink-page .business-container .business-input-wrap {
+}
+.mylink-page .business-container .business-input-wrap h3 {
+  font-family: Inter;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 14px;
+  line-height: 22px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: #121212;
+}
+.mylink-page .business-container .business-input-wrap .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.mylink-page .business-container .business-input-wrap .wrap .input-group-comp{
+  max-width: 210px;
+
+}
+.mylink-page .business-container .business-input-wrap .wrap span {
+  color: #121212;
+  font-family: Inter;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+}
+.mylink-page .business-container .business-input-wrap .wrap .input-group-comp {
+  margin-bottom: 0px;
+}
+.mylink-page .business-container .btn-copy-con {
+    margin-top: 30px;
+}
+.mylink-page .business-container .btn-copy-con button {
+    width: 100%;
+}
+
+
+@media screen and (max-width: 1180px) {
+}
+@media screen and (max-width: 991px){
+  .mylink-page{
+    margin-top: 42px;
+  }
+  .mylink-page .top-con{
+    margin-bottom: 20px;
+  }
+}
+@media screen and (max-width: 1001px) {
+}
+@media screen and (max-width: 768px) {
+  .mylink-page .business-container{
+    max-width: none;
+  }
+  .mylink-page .top-con h1{
+    font-size: 18px;
+  }
+}

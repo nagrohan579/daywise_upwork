@@ -1,0 +1,31 @@
+.terms-con {
+  max-width: 897px;
+  margin: 139px 0px 110px 0px;
+  margin-inline: auto;
+}
+.terms-con h1 {
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 36px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: #121212;
+  margin-bottom: 24px;
+}
+.terms-con .content {
+  color: #64748b;
+}
+.terms-con .content ul {
+  margin-left: 20px;
+}
+
+@media screen and (max-width: 999px) {
+  .terms-con {
+    max-width: none;
+    width: 90%;
+    margin-top: 40px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    font-size: 14px;
+  }
+}

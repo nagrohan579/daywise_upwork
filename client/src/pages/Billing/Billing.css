@@ -1,0 +1,170 @@
+.billing-page {
+  font-family: Inter, sans-serif;
+}
+
+.billing-page .top-con {
+  border-bottom: 1px solid #64748b33;
+  padding-bottom: 24px;
+  margin-bottom: 60px;
+}
+.billing-page .top-con h1 {
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 22px;
+  line-height: 36px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #121212;
+}
+.billing-page .top-con p {
+  color: #64748b;
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  margin-bottom: 0px;
+}
+
+.billing-page .subscription-plan-con {
+}
+.billing-page .subscription-plan-con .header {
+}
+.billing-page .subscription-plan-con .header h1 {
+  font-family: Inter;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 18px;
+  line-height: 28px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: #121212;
+  margin-bottom: 30px;
+}
+.billing-page .subscription-plan-con .header .subscription-card-box {
+  grid-template-columns: repeat(3, 1fr);
+  display: grid;
+  gap: 19px;
+}
+.billing-page .subscription-plan-con .header .subscription-card-box .subs-card {
+  box-shadow: 0px 1px 2px 0px #0000000d;
+  border: 1px solid #64748b33;
+  border-radius: 12px;
+  padding: 20px;
+  background-color: #f9faff;
+}
+.billing-page
+  .subscription-plan-con
+  .header
+  .subscription-card-box
+  .subs-card
+  .boxx {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: 100%;
+}
+.billing-page .subscription-card-box .subs-card .top-content {
+}
+.billing-page .subscription-card-box .subs-card .top-content .wrap {
+  margin-bottom: 20px;
+}
+
+.billing-page .subscription-card-box .subs-card .top-content h3 {
+  font-family: Inter;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 18px;
+  line-height: 28px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: #121212;
+  margin: 0;
+}
+.billing-page .subscription-card-box .subs-card .top-content h5 {
+  font-family: Inter;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: #121212;
+  margin: 0;
+}
+.billing-page .subscription-card-box .subs-card .top-content p {
+  margin: 0px;
+  font-family: Inter;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 12px;
+  line-height: 18px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: #121212;
+}
+.billing-page .subscription-card-box .subs-card .boxx > button {
+  margin-top: auto;
+}
+
+.billing-page .add-update-billing-card {
+  margin-top: 60px;
+}
+.billing-page .add-update-billing-card h1 {
+  color: #121212;
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 18px;
+  line-height: 28px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  margin-bottom: 25px;
+}
+.billing-page .add-update-billing-card .no-card-text {
+  margin: 0px;
+  color: #64748b;
+  font-family: Inter;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+}
+
+
+/* RESPONSIVE */
+@media screen and (max-width: 1180px) {
+}
+@media screen and (max-width: 991px){
+  .billing-page{
+    margin-top: 42px;
+  }
+  .billing-page .top-con{
+    margin-bottom: 20px;
+  }
+  .billing-page .subscription-plan-con .header h1{
+    margin-bottom: 20px;
+  }
+}
+@media screen and (max-width: 1001px) {
+}
+@media screen and (max-width: 768px) {
+  .billing-page .subscription-plan-con .header .subscription-card-box{
+    grid-template-columns: repeat(1,1fr);
+  }
+  .billing-page .subscription-card-box .subs-card .top-content{
+    margin-bottom: 50px;
+  }
+  .billing-page .top-con h1{
+    margin: 0px;
+    font-size: 18px;
+  }
+}

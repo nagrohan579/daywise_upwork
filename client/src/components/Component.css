@@ -1,0 +1,328 @@
+header {
+  border-bottom: 1px solid #e5e7eb;
+}
+header .containerr {
+  margin: 16px 0px 10px 0px;
+  margin-inline: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1152px;
+}
+header .right {
+  display: flex;
+  align-items: center;
+  gap: 27px;
+}
+header .right button.btn-login a {
+  color: #4b5563;
+  text-decoration: none;
+}
+header .right .btn-login {
+  color: #4b5563;
+  font-family: "Inter", sans-serif;
+  border: none;
+  outline: none;
+  background-color: transparent;
+  cursor: pointer;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+}
+header .right button.btn-signup a {
+  color: #fff;
+  text-decoration: none;
+}
+header .right .btn-signup {
+  background-color: #0053f1;
+  border-radius: 100px;
+  font-family: "Inter", sans-serif;
+  padding: 11px 16px;
+  color: #fff;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 18px;
+  /* line-height: 24px; */
+  height: 40px;
+}
+
+/* FAQ */
+.faq-con {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.faq-block {
+  display: flex;
+  flex-direction: column;
+}
+
+/* FAQ question row */
+.faq-item {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  color: #121212;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.faq-item:hover {
+  background: #f9fafb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Arrow */
+.faq-item .arrow {
+  font-size: 20px;
+  color: #64748b;
+  transition: transform 0.3s ease;
+}
+.faq-item.open .arrow {
+  transform: rotate(90deg);
+}
+
+/* Answer section */
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease, opacity 0.4s ease;
+  opacity: 0;
+  padding: 0 20px;
+}
+.faq-answer.show {
+  max-height: 200px; /* adjust based on expected text size */
+  opacity: 1;
+  margin-top: 8px;
+}
+.faq-answer p {
+  font-size: 14px;
+  line-height: 22px;
+  color: #444;
+  margin: 0;
+}
+
+/* FOOTER */
+footer {
+  max-width: 1152px;
+  margin-inline: auto;
+  padding: 42px 0px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: Inter, sans-serif;
+}
+footer ul {
+  display: flex;
+  align-items: center;
+  gap: 23px;
+  list-style: none;
+}
+footer ul li {
+  cursor: pointer;
+  color: #121212;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+}
+footer ul li a {
+  text-decoration: none;
+  color: #121212;
+}
+/* LOGIN CSS */
+/* --- Global Reset and Page Layout --- */
+.login-page {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  background-color: #f9fafb;
+  padding: 20px;
+  font-family: Inter, sans-serif;
+}
+
+.login-page .login-card {
+  width: 100%;
+  max-width: 448px;
+}
+
+.login-page .logo-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 34px;
+}
+.login-page .logo-container img {
+  cursor: pointer;
+  object-fit: contain;
+}
+
+.login-page .title {
+  font-size: 30px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.login-page .subtitle {
+  font-size: 14px;
+  color: #4b5563;
+  font-weight: 400;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+/* --- Form Elements --- */
+.login-page .form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.login-page .form .input-group-comp {
+  margin-bottom: 0px;
+}
+.login-page .input-group {
+}
+
+.login-page .text-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  box-sizing: border-box;
+  font-size: 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.text-input::placeholder {
+  color: #6b7280;
+}
+.text-input:focus {
+  outline: none;
+  border-color: #0053f1;
+  /* box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);  */
+}
+
+.text-input.is-error {
+  border-color: #ef4444; /* Red border for error state */
+}
+
+.error-message {
+  font-size: 0.875rem;
+  color: #ef4444; /* Red error text */
+  margin-top: 4px;
+  min-height: 18px; /* Reserve space to prevent layout jump */
+}
+
+/* --- Buttons --- */
+.login-page .button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s, opacity 0.2s;
+  border: none;
+  background-color: #0053f1;
+  color: #fff;
+}
+
+.login-page .button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Google Button */
+.login-page .google-button {
+  background-color: #64748b;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  color: #fff;
+  gap: 10px;
+}
+
+/* --- Separator --- */
+.login-page .separator {
+  display: flex;
+  align-items: center;
+  margin: 24px 0;
+}
+
+.login-page .separator-line {
+  flex-grow: 1;
+  border: none;
+  border-top: 1px solid #d1d5db;
+  margin: 0;
+}
+
+.login-page .separator-text {
+  padding: 0 16px;
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* --- Footer Text and Links --- */
+.login-page .google-info {
+  text-align: center;
+  font-size: 14px;
+  color: #4b5563;
+  margin-top: 16px;
+  font-weight: 400;
+}
+
+.login-page .footer-text {
+  text-align: center;
+  font-size: 0.875rem;
+  color: #4b5563;
+  margin-top: 17px;
+}
+
+.login-page .login-link {
+  color: #0053f1;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.login-link:hover {
+  text-decoration: underline;
+  color: #2563eb;
+}
+
+/* Responsive */
+
+@media screen and (max-width: 1180px) {
+  footer {
+    max-width: none;
+    padding: 30px 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .faq-con {
+    grid-template-columns: 1fr;
+  }
+  footer {
+    padding: 30px 20px 20px 20px;
+  }
+  .login-page .title {
+    font-size: 24px;
+    line-height: 32px;
+  }
+}

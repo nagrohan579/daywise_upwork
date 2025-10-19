@@ -1,0 +1,368 @@
+.serviceModal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  border-bottom: none;
+}
+.serviceModal .modal-dialog {
+  max-width: 512px;
+  font-family: Inter, sans-serif;
+}
+.serviceModal .content-wrap {
+  max-width: 390px;
+}
+.serviceModal .content-wrap .modal-title {
+  font-family: Inter;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 22px;
+  line-height: 36px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: #121212;
+}
+.serviceModal .content-wrap p {
+  font-family: Inter;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: #64748b;
+}
+
+.serviceModal .close-btn {
+  border: none;
+  outline: none;
+  background-color: transparent;
+  cursor: pointer;
+}
+.serviceModal .modal-body {
+  padding-top: 0px;
+}
+.serviceModal .modal-body .btn-wrap {
+  margin-top: 24px;
+  display: flex;
+  justify-content: end;
+  gap: 12px;
+  align-items: center;
+}
+
+/* dateSpecificHour */
+.dateSpecificHour {
+}
+.dateSpecificHour .modal-dialog {
+  max-width: 640px;
+  font-family: Inter, sans-serif;
+}
+.dateSpecificHour .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  border-bottom: none;
+}
+.dateSpecificHour .modal-header .content-wrap h4 {
+  font-family: Inter;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 22px;
+  line-height: 36px;
+  letter-spacing: 0%;
+  color: #121212;
+}
+.dateSpecificHour .modal-header .content-wrap p {
+  font-family: Inter;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  color: #64748b;
+}
+.dateSpecificHour .modal-header .close-btn {
+  border: none;
+  outline: none;
+  background-color: transparent;
+  cursor: pointer;
+}
+.dateSpecificHour .input-wrap {
+  display: flex;
+  justify-content: space-between;
+  gap: 28px;
+}
+.dateSpecificHour .input-wrap .input-group-comp,
+.dateSpecificHour .input-wrap .select-group {
+  flex: 1;
+  margin-bottom: 28px;
+}
+
+.dateSpecificHour .reason-input-con {
+  margin-bottom: 28px;
+}
+.dateSpecificHour .btn-wrap {
+  display: flex;
+  justify-content: end;
+  gap: 12px;
+}
+
+/* addAppointmentModal */
+.addAppointmentModal {
+}
+.addAppointmentModal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  border-bottom: none;
+}
+.addAppointmentModal .modal-dialog {
+  max-width: 512px;
+  font-family: Inter, sans-serif;
+}
+.addAppointmentModal .content-wrap {
+  max-width: 390px;
+}
+.addAppointmentModal .content-wrap .modal-title {
+  font-family: Inter;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 22px;
+  line-height: 36px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: #121212;
+}
+.addAppointmentModal .content-wrap p {
+  font-family: Inter;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: #64748b;
+}
+
+.addAppointmentModal .close-btn {
+  border: none;
+  outline: none;
+  background-color: transparent;
+  cursor: pointer;
+}
+.addAppointmentModal .modal-body {
+  padding-top: 0px;
+}
+.addAppointmentModal .modal-body .btn-wrap {
+  margin-top: 24px;
+  display: flex;
+  justify-content: end;
+  gap: 12px;
+  align-items: center;
+}
+.addAppointmentModal .input-wrap {
+  display: flex;
+  gap: 35px;
+  align-items: center;
+}
+.addAppointmentModal .input-wrap .input-group-comp {
+  width: 100%;
+}
+.addAppointmentModal .input-wrap .input-group-comp input::placeholder {
+  color: #121212;
+}
+.addAppointmentModal .input-wrap h5 {
+  font-family: Inter;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: #121212;
+  min-width: 45px;
+}
+
+/* previewBookingModal */
+.previewBookingModal {
+}
+.previewBookingModal .modal-dialog {
+  max-width: 1220px;
+}
+.previewBookingModal .close-btn {
+  border: none;
+  outline: none;
+  background-color: transparent;
+  cursor: pointer;
+}
+.previewBookingModal .modal-body {
+  padding: 80px;
+}
+.previewBookingModal .modal-header {
+  display: flex;
+  justify-content: end;
+  border-bottom: none;
+}
+.previewBookingModal .main-wrapper {
+  border: 1px solid #64748b33;
+  border-radius: 20px;
+  pointer-events: none;
+}
+
+.previewBookingModal .main-wrapper .containerr {
+  display: flex;
+}
+.previewBookingModal .main-wrapper .containerr .left {
+  flex: 0.5;
+  border-right: 1px solid #64748b33;
+  padding: 30px;
+}
+.previewBookingModal .main-wrapper .containerr .left .daywise-branding {
+  margin-bottom: 21px;
+}
+.previewBookingModal .main-wrapper .containerr .left .daywise-branding button {
+  font-size: 11px;
+  line-height: 16px;
+  width: 136px;
+  height: 30px;
+  font-weight: 500;
+}
+.previewBookingModal .main-wrapper .containerr .left .profile-wrapper {
+  margin-bottom: 21px;
+}
+.previewBookingModal .main-wrapper .containerr .left .profile-wrapper img {
+  width: 49px;
+  height: 49px;
+  object-fit: contain;
+  margin-bottom: 6px;
+}
+.previewBookingModal .main-wrapper .containerr .left .profile-wrapper h5 {
+  margin: 0;
+  color: #121212;
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 14px;
+  line-height: 20px;
+  vertical-align: middle;
+}
+.previewBookingModal .main-wrapper .containerr .left .business-wrapper {
+  margin-bottom: 65px;
+}
+.previewBookingModal .main-wrapper .containerr .left .business-wrapper h2 {
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 22px;
+  line-height: 36px;
+  vertical-align: middle;
+  color: #121212;
+  margin-bottom: 6px;
+}
+.previewBookingModal .main-wrapper .containerr .left .business-wrapper p {
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  vertical-align: middle;
+  color: #64748b;
+  margin: 0;
+}
+.previewBookingModal .main-wrapper .containerr .left .select-con {
+  margin-bottom: 30px;
+}
+.previewBookingModal .main-wrapper .containerr .left .select-con h4 {
+  font-family: Inter;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 18px;
+  line-height: 28px;
+  vertical-align: middle;
+  color: #121212;
+}
+.previewBookingModal .main-wrapper .containerr .left .description {
+  color: #64748b;
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  vertical-align: middle;
+  margin: 0;
+}
+
+.previewBookingModal .main-wrapper .containerr .right {
+  flex: 1;
+  padding: 30px;
+}
+
+/* MODAL CSS */
+/* RESPONSIVE */
+@media (max-width: 1220px) {
+  .previewBookingModal .modal-dialog {
+    max-width: 1000px;
+  }
+  .previewBookingModal .modal-body {
+    padding: 30px;
+  }
+
+  .previewBookingModal .main-wrapper .containerr .left {
+    padding: 20px;
+  }
+  .previewBookingModal .main-wrapper .containerr .right {
+    padding: 20px;
+  }
+}
+@media screen and (max-width: 999px) {
+  .previewBookingModal .modal-dialog {
+    width: 95%;
+    margin-inline: auto;
+  }
+  .previewBookingModal .main-wrapper .containerr {
+    flex-direction: column;
+  }
+  .previewBookingModal .main-wrapper .containerr .left {
+    border-right: none;
+    padding: 12px;
+  }
+  .previewBookingModal .main-wrapper .containerr .left .business-wrapper {
+    margin-bottom: 20px;
+  }
+
+  .previewBookingModal .main-wrapper .containerr .right {
+    padding: 12px;
+  }
+  .previewBookingModal .modal-header {
+    padding-bottom: 0px;
+  }
+  .previewBookingModal .modal-body {
+    padding: 16px;
+  }
+}
+@media (max-width: 991px) {
+  .modal-dialog {
+    width: 95% !important;
+  }
+  .dateSpecificHour .input-wrap {
+    flex-direction: column;
+    gap: 0px;
+  }
+}
+@media (max-width: 768px) {
+  .addAppointmentModal .input-wrap {
+    flex-direction: column;
+    align-items: start;
+    gap: 0px;
+    margin-bottom: 12px;
+  }
+  .addAppointmentModal .input-wrap.view-wrap {
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+  }
+  .addAppointmentModal .input-wrap.view-wrap h5 {
+    margin: 0px;
+  }
+  .addAppointmentModal .input-wrap.view-wrap .input-group-comp {
+    margin-bottom: 0px;
+  }
+}

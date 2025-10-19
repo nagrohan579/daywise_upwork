@@ -1,0 +1,46 @@
+.btn-comp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 12px;
+  border: none;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+/* Variants */
+.btn-primary {
+  background: #0053f1;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  /* background: #0056b3; */
+}
+
+.btn-secondary {
+  background: #f1f1f1;
+  color: #333;
+}
+
+.btn-secondary:hover {
+  background: #e2e2e2;
+}
+
+/* Icon */
+.btn-icon {
+  display: flex;
+  align-items: center;
+}
+
+.btn-text {
+  display: inline-block;
+}

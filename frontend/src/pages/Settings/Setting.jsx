@@ -1,0 +1,203 @@
+import { useState, useEffect } from "react";
+import { AppLayout, Button, Input, Textarea } from "../../components";
+import { toast } from "sonner";
+import "./Setting.css";
+
+const Setting = () => {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [userData, setUserData] = useState({
+    businessName: "",
+    welcomeMessage: "",
+  });
+
+  // Fetch user data on mount
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  const fetchUserData = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/auth/me`, {
+        credentials: 'include',
+      });
+
+      if (response.status === 401) {
+        // Not authenticated, redirect to login
+        toast.error('Please log in to access settings');
+        window.location.href = '/login';
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+
+      const data = await response.json();
+      setUserData({
+        businessName: data.user.businessName || "",
+        welcomeMessage: data.user.welcomeMessage || "",
+      });
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      toast.error('Failed to load business settings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setUserData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSaveChanges = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+      // Get current user ID
+      const meResponse = await fetch(`${apiUrl}/api/auth/me`, {
+        credentials: 'include',
+      });
+      const meData = await meResponse.json();
+      const userId = meData.user.id;
+
+      // Update user data
+      const response = await fetch(`${apiUrl}/api/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          businessName: userData.businessName,
+          welcomeMessage: userData.welcomeMessage,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save changes');
+      }
+
+      toast.success('Business settings saved successfully!');
+      fetchUserData(); // Refresh data
+    } catch (error) {
+      console.error('Error saving changes:', error);
+      toast.error(error.message || 'Failed to save changes');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    fetchUserData(); // Reset to original data
+    toast.info('Changes discarded');
+  };
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="setting-page">
+          <div className="top-con">
+            <h1>Business Settings</h1>
+            <p>Loading business information...</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  return (
+    <AppLayout>
+      <div className="setting-page">
+        <div className="top-con">
+          <h1>Business Settings</h1>
+          <p>Configure your business information</p>
+        </div>
+        <form className="setting-form" onSubmit={handleSaveChanges}>
+          <div className="business-name-con">
+            <Input
+              label={"Your Business Name"}
+              placeholder={"Enter your business name here"}
+              value={userData.businessName}
+              onChange={(e) => handleInputChange('businessName', e.target.value)}
+            />
+            <span className="info-text">
+              <svg
+                width="13"
+                height="14"
+                viewBox="0 0 13 14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M0 7C0 3.41 2.91 0.5 6.5 0.5C10.09 0.5 13 3.41 13 7C13 10.59 10.09 13.5 6.5 13.5C2.91 13.5 0 10.59 0 7ZM5.804 6.03867C6.568 5.65667 7.42867 6.34733 7.22133 7.176L6.74867 9.06667L6.77667 9.05333C6.89414 9.00169 7.02698 8.99719 7.14768 9.04077C7.26839 9.08435 7.36771 9.17267 7.4251 9.28745C7.48249 9.40223 7.49355 9.53468 7.456 9.65739C7.41844 9.7801 7.33514 9.88367 7.22333 9.94667L7.19667 9.96133C6.432 10.3433 5.57133 9.65267 5.77867 8.824L6.252 6.93333L6.224 6.94667C6.16503 6.97944 6.10003 6.99994 6.03292 7.00693C5.96581 7.01393 5.89798 7.00726 5.83352 6.98734C5.76905 6.96743 5.70929 6.93467 5.65782 6.89105C5.60635 6.84742 5.56424 6.79383 5.53403 6.7335C5.50382 6.67317 5.48613 6.60735 5.48204 6.54C5.47794 6.47266 5.48751 6.40518 5.51018 6.34163C5.53285 6.27808 5.56815 6.21978 5.61394 6.17023C5.65974 6.12069 5.71509 6.08092 5.77667 6.05333L5.804 6.03867ZM6.5 5C6.63261 5 6.75979 4.94732 6.85355 4.85355C6.94732 4.75979 7 4.63261 7 4.5C7 4.36739 6.94732 4.24021 6.85355 4.14645C6.75979 4.05268 6.63261 4 6.5 4C6.36739 4 6.24022 4.05268 6.14645 4.14645C6.05268 4.24021 6 4.36739 6 4.5C6 4.63261 6.05268 4.75979 6.14645 4.85355C6.24022 4.94732 6.36739 5 6.5 5Z"
+                  fill="#64748B"
+                />
+              </svg>
+              Your business name displays on your booking form
+            </span>
+          </div>
+          <div className="welcome-msg-con">
+            <Textarea
+              label={"Welcome Message"}
+              placeholder={"Enter your welcome message here"}
+              value={userData.welcomeMessage}
+              onChange={(e) => handleInputChange('welcomeMessage', e.target.value)}
+              style={{
+                borderRadius: "12px",
+                boxShadow: "0px 1px 2px 0px #0000000D",
+              }}
+            />
+            <span className="info-text">
+              <svg
+                width="13"
+                height="14"
+                viewBox="0 0 13 14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M0 7C0 3.41 2.91 0.5 6.5 0.5C10.09 0.5 13 3.41 13 7C13 10.59 10.09 13.5 6.5 13.5C2.91 13.5 0 10.59 0 7ZM5.804 6.03867C6.568 5.65667 7.42867 6.34733 7.22133 7.176L6.74867 9.06667L6.77667 9.05333C6.89414 9.00169 7.02698 8.99719 7.14768 9.04077C7.26839 9.08435 7.36771 9.17267 7.4251 9.28745C7.48249 9.40223 7.49355 9.53468 7.456 9.65739C7.41844 9.7801 7.33514 9.88367 7.22333 9.94667L7.19667 9.96133C6.432 10.3433 5.57133 9.65267 5.77867 8.824L6.252 6.93333L6.224 6.94667C6.16503 6.97944 6.10003 6.99994 6.03292 7.00693C5.96581 7.01393 5.89798 7.00726 5.83352 6.98734C5.76905 6.96743 5.70929 6.93467 5.65782 6.89105C5.60635 6.84742 5.56424 6.79383 5.53403 6.7335C5.50382 6.67317 5.48613 6.60735 5.48204 6.54C5.47794 6.47266 5.48751 6.40518 5.51018 6.34163C5.53285 6.27808 5.56815 6.21978 5.61394 6.17023C5.65974 6.12069 5.71509 6.08092 5.77667 6.05333L5.804 6.03867ZM6.5 5C6.63261 5 6.75979 4.94732 6.85355 4.85355C6.94732 4.75979 7 4.63261 7 4.5C7 4.36739 6.94732 4.24021 6.85355 4.14645C6.75979 4.05268 6.63261 4 6.5 4C6.36739 4 6.24022 4.05268 6.14645 4.14645C6.05268 4.24021 6 4.36739 6 4.5C6 4.63261 6.05268 4.75979 6.14645 4.85355C6.24022 4.94732 6.36739 5 6.5 5Z"
+                  fill="#64748B"
+                />
+              </svg>
+              Your welcome message displays on your booking form
+            </span>
+          </div>
+          <div className="btn-wrap">
+            <Button
+              text={"Cancel"}
+              type="button"
+              onClick={handleCancel}
+              disabled={saving}
+              style={{
+                backgroundColor: "transparent",
+                border: "1px solid #E0E9FE",
+                color: "#64748B",
+              }}
+            />
+            <Button
+              text={saving ? "Saving..." : "Save Changes"}
+              type="submit"
+              disabled={saving}
+            />
+          </div>
+        </form>
+      </div>
+    </AppLayout>
+  );
+};
+
+export default Setting;

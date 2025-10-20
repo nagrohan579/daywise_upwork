@@ -28,6 +28,10 @@ dist-ssr
 .env.local
 .env.production
 
+# Convex
+convex/_generated/
+.convex/
+
 # Database
 migrations/
 *.db

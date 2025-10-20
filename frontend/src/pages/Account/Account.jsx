@@ -158,19 +158,6 @@ const Account = () => {
     toast.info('Changes discarded');
   };
 
-  if (loading) {
-    return (
-      <AppLayout>
-        <div className="account-page">
-          <div className="top-con">
-            <h1>Account</h1>
-            <p>Loading account information...</p>
-          </div>
-        </div>
-      </AppLayout>
-    );
-  }
-
   return (
     <AppLayout>
       <div className="account-page">
@@ -178,7 +165,16 @@ const Account = () => {
           <h1>Account</h1>
           <p>Configure your account settings and information</p>
         </div>
-        <form className="form-my-account" onSubmit={handleSaveChanges}>
+        
+        {loading ? (
+          <div className="account-loading">
+            <div className="account-loading-content">
+              <div className="account-spinner"></div>
+              <p className="account-loading-text">Loading your business information...</p>
+            </div>
+          </div>
+        ) : (
+          <form className="form-my-account" onSubmit={handleSaveChanges}>
           <div className="form-wrap">
             <Input
               label={"Your Name"}
@@ -342,6 +338,7 @@ const Account = () => {
             />
           </div>
         </form>
+        )}
       </div>
     </AppLayout>
   );

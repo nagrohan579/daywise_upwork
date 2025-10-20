@@ -1391,7 +1391,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Availability routes
   app.post("/api/availability", async (req, res) => {
     try {
-      const availabilityData = insertAvailabilitySchema.parse(req.body);
+      const session = req.session as any;
+      if (!session?.userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      // Use session userId instead of request body to prevent unauthorized access
+      const availabilityData = insertAvailabilitySchema.parse({
+        ...req.body,
+        userId: session.userId
+      });
       const availability = await storage.createAvailability(availabilityData);
       res.json({ message: "Availability created successfully", availability });
     } catch (error) {
@@ -1590,6 +1599,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/availability/:userId", async (req, res) => {
     try {
+      const session = req.session as any;
+      if (!session?.userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      // Verify user is requesting their own availability
+      if (req.params.userId !== session.userId) {
+        return res.status(403).json({ message: "Permission denied: Cannot access another user's availability" });
+      }
+
       const availability = await storage.getAvailabilityByUser(req.params.userId);
       console.log(`GET /api/availability/${req.params.userId} - Found ${availability.length} records:`, availability);
       res.json(availability);
@@ -1600,12 +1619,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/availability/:id", async (req, res) => {
     try {
+      const session = req.session as any;
+      if (!session?.userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      // Fetch existing availability to verify ownership
+      const existing = await storage.getAvailability(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ message: "Availability not found" });
+      }
+
+      // Verify ownership
+      if (existing.userId !== session.userId) {
+        return res.status(403).json({ message: "Permission denied: Cannot update another user's availability" });
+      }
+
       const updates = req.body;
       console.log(`PUT /api/availability/${req.params.id} - Updates:`, updates);
       const availability = await storage.updateAvailability(req.params.id, updates);
-      if (!availability) {
-        return res.status(404).json({ message: "Availability not found" });
-      }
       console.log(`Updated availability result:`, availability);
       res.json({ message: "Availability updated successfully", availability });
     } catch (error) {
@@ -1615,6 +1647,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/availability/:id", async (req, res) => {
     try {
+      const session = req.session as any;
+      if (!session?.userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      // Fetch existing availability to verify ownership
+      const existing = await storage.getAvailability(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ message: "Availability not found" });
+      }
+
+      // Verify ownership
+      if (existing.userId !== session.userId) {
+        return res.status(403).json({ message: "Permission denied: Cannot delete another user's availability" });
+      }
+
       const success = await storage.deleteAvailability(req.params.id);
       if (!success) {
         return res.status(404).json({ message: "Availability not found" });

@@ -101,19 +101,6 @@ const Setting = () => {
     toast.info('Changes discarded');
   };
 
-  if (loading) {
-    return (
-      <AppLayout>
-        <div className="setting-page">
-          <div className="top-con">
-            <h1>Business Settings</h1>
-            <p>Loading business information...</p>
-          </div>
-        </div>
-      </AppLayout>
-    );
-  }
-
   return (
     <AppLayout>
       <div className="setting-page">
@@ -121,7 +108,16 @@ const Setting = () => {
           <h1>Business Settings</h1>
           <p>Configure your business information</p>
         </div>
-        <form className="setting-form" onSubmit={handleSaveChanges}>
+        
+        {loading ? (
+          <div className="setting-loading">
+            <div className="setting-loading-content">
+              <div className="setting-spinner"></div>
+              <p className="setting-loading-text">Loading your business information...</p>
+            </div>
+          </div>
+        ) : (
+          <form className="setting-form" onSubmit={handleSaveChanges}>
           <div className="business-name-con">
             <Input
               label={"Your Business Name"}
@@ -195,6 +191,7 @@ const Setting = () => {
             />
           </div>
         </form>
+        )}
       </div>
     </AppLayout>
   );

@@ -119,6 +119,10 @@ export const storage = {
     return await convex.query(api.availability.getByUser, { userId: userId as Id<"users"> });
   },
 
+  async getAvailability(id: string) {
+    return await convex.query(api.availability.get, { id: id as Id<"availability"> });
+  },
+
   async createAvailability(availability: any) {
     const id = await convex.mutation(api.availability.create, availability);
     return await convex.query(api.availability.getByUser, { userId: availability.userId });

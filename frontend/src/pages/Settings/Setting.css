@@ -35,8 +35,6 @@
 .setting-page .setting-form {
   max-width: 370px;
 }
-.setting-page .setting-form .business-name-con {
-}
 .setting-page .setting-form .business-name-con input {
   box-shadow: 0px 1px 2px 0px #0000000d;
 }
@@ -63,8 +61,44 @@
   margin-top: 45px;
 }
 
+/* Loading spinner animation */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
 
+.setting-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  padding: 40px 20px;
+}
 
+.setting-loading-content {
+  text-align: center;
+}
+
+.setting-spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+.setting-loading-text {
+  color: #64748b;
+  font-size: 14px;
+  font-family: Inter, sans-serif;
+  margin: 0;
+}
 
 @media screen and (max-width: 1180px) {
 }

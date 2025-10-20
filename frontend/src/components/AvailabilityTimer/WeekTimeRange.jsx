@@ -1,28 +1,53 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RxCross2 } from "react-icons/rx";
 import { PlusIcon } from "../SVGICONS/Svg";
 import "./AvailabilityTimer.css";
 
-const WeekTimeRange = ({ day }) => {
-  const isUnavailableByDefault = day === "S" 
+const WeekTimeRange = ({ day, dayName, timeRanges: propTimeRanges, onChange }) => {
+  // Use prop timeRanges if provided (controlled), otherwise use internal state (uncontrolled)
+  const isControlled = propTimeRanges !== undefined && onChange !== undefined;
+  const isUnavailableByDefault = day === "S";
 
-  const [timeRanges, setTimeRanges] = useState(
+  const [internalTimeRanges, setInternalTimeRanges] = useState(
     isUnavailableByDefault ? [] : [{ start: "09:00", end: "17:00" }]
   );
 
+  // Use controlled value if provided, otherwise use internal state
+  const timeRanges = isControlled ? propTimeRanges : internalTimeRanges;
+
+  // Sync internal state with props if controlled
+  useEffect(() => {
+    if (isControlled && propTimeRanges) {
+      setInternalTimeRanges(propTimeRanges);
+    }
+  }, [isControlled, propTimeRanges]);
+
   const handleAdd = () => {
-    setTimeRanges([...timeRanges, { start: "09:00", end: "17:00" }]);
+    const newRanges = [...timeRanges, { start: "09:00", end: "17:00" }];
+    if (isControlled) {
+      onChange(newRanges);
+    } else {
+      setInternalTimeRanges(newRanges);
+    }
   };
 
   const handleRemove = (index) => {
     const updated = timeRanges.filter((_, i) => i !== index);
-    setTimeRanges(updated);
+    if (isControlled) {
+      onChange(updated);
+    } else {
+      setInternalTimeRanges(updated);
+    }
   };
 
   const handleTimeChange = (index, field, value) => {
     const updated = [...timeRanges];
     updated[index][field] = value;
-    setTimeRanges(updated);
+    if (isControlled) {
+      onChange(updated);
+    } else {
+      setInternalTimeRanges(updated);
+    }
   };
 
   const formatTimeDisplay = (time) => {

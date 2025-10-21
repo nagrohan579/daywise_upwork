@@ -85,6 +85,7 @@ const SignupPage = () => {
   };
 
   const handleGoogleSignup = () => {
+    // Use redirect flow for now (popup has domain issues)
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
     window.location.href = `${apiUrl}/api/auth/google`;
   };
@@ -198,7 +199,7 @@ const SignupPage = () => {
         </button>
 
         <p className="google-info">
-          Continue with Google to connect your calendar.
+          Continue with Google to create your account.
         </p>
 
         <p className="footer-text">

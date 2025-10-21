@@ -38,8 +38,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Google OAuth start endpoint (redirect-based flow) - COMMENTED OUT
-  /* app.get("/api/auth/google/start", (req, res) => {
+  app.get("/api/auth/google", (req, res) => {
     const googleClientId = process.env.GOOGLE_CLIENT_ID;
+    const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    
+    console.log(`Google OAuth Config - Client ID: ${googleClientId ? 'SET' : 'NOT SET'}`);
+    console.log(`Google OAuth Config - Client Secret: ${googleClientSecret ? 'SET' : 'NOT SET'}`);
+    
     if (!googleClientId) {
       return res.status(500).json({ message: "Google Client ID not configured" });
     }
@@ -47,29 +52,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Determine redirect URI based on environment
     let redirectUri;
     const host = req.get('host');
-    
+
     // Use production domain or Replit domain
     if (process.env.BASE_URL) {
       redirectUri = `${process.env.BASE_URL}/api/auth/google/callback`;
     } else if (process.env.REPLIT_DEV_DOMAIN) {
       redirectUri = `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback`;
     } else {
-      // Fallback to dynamic detection
-      const forwardedProto = req.headers['x-forwarded-proto'];
-      const protocol = Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto?.split(',')[0] || req.protocol;
-      const baseUrl = `${protocol}://${host}`;
-      redirectUri = `${baseUrl}/api/auth/google/callback`;
+      // For development, hardcode localhost:3000
+      redirectUri = `http://localhost:3000/api/auth/google/callback`;
     }
-    
+
     console.log(`Google OAuth Start - Host: ${host}, Redirect URI: ${redirectUri}`);
-    
+    console.log(`Environment check - BASE_URL: ${process.env.BASE_URL}, NODE_ENV: ${process.env.NODE_ENV}`);
+
+    // Only request basic profile info for login/signup (no calendar access)
     const scope = 'openid email profile';
     const responseType = 'code';
     const state = Math.random().toString(36).substring(2, 15);
-    
+
     // Store state in session for verification
     (req.session as any).oauthState = state;
-    
+
     const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${googleClientId}&` +
       `redirect_uri=${encodeURIComponent(redirectUri)}&` +
@@ -79,7 +83,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       `access_type=offline&` +
       `include_granted_scopes=true&` +
       `state=${state}`;
-    
+
     console.log(`Generated Google Auth URL: ${googleAuthUrl}`);
     res.redirect(googleAuthUrl);
   });
@@ -88,14 +92,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/google/callback", async (req, res) => {
     try {
       const { code, state } = req.query;
-      
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
       if (!code || typeof code !== 'string') {
-        return res.redirect('/login?error=no_code');
+        return res.send(`
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'GOOGLE_AUTH_ERROR',
+                error: 'No authorization code received'
+              }, '*');
+              window.close();
+            } else {
+              window.location.href = '${frontendUrl}/login?error=no_code';
+            }
+          </script>
+        `);
       }
 
       // Verify state parameter
       if (state !== (req.session as any).oauthState) {
-        return res.redirect('/login?error=invalid_state');
+        return res.send(`
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'GOOGLE_AUTH_ERROR',
+                error: 'Invalid state parameter'
+              }, '*');
+              window.close();
+            } else {
+              window.location.href = '${frontendUrl}/login?error=invalid_state';
+            }
+          </script>
+        `);
       }
 
       // Use the same redirect URI logic as the start endpoint
@@ -107,11 +136,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (process.env.REPLIT_DEV_DOMAIN) {
         redirectUri = `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback`;
       } else {
-        // Fallback to dynamic detection
-        const forwardedProto = req.headers['x-forwarded-proto'];
-        const protocol = Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto?.split(',')[0] || req.protocol;
-        const baseUrl = `${protocol}://${host}`;
-        redirectUri = `${baseUrl}/api/auth/google/callback`;
+        // For development, hardcode localhost:3000
+        redirectUri = `http://localhost:3000/api/auth/google/callback`;
       }
       
       console.log(`Google OAuth Callback - Host: ${host}, Redirect URI: ${redirectUri}`);
@@ -132,10 +158,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const tokens = await tokenResponse.json();
-      
+
       if (!tokenResponse.ok) {
         console.error('Token exchange failed:', tokens);
-        return res.redirect('/login?error=token_exchange_failed');
+        return res.send(`
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'GOOGLE_AUTH_ERROR',
+                error: 'Token exchange failed'
+              }, '*');
+              window.close();
+            } else {
+              window.location.href = '${frontendUrl}/login?error=token_exchange_failed';
+            }
+          </script>
+        `);
       }
 
       // Verify the ID token
@@ -146,13 +184,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const payload = ticket.getPayload();
       if (!payload) {
-        return res.redirect('/login?error=invalid_token');
+        return res.send(`
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'GOOGLE_AUTH_ERROR',
+                error: 'Invalid token received'
+              }, '*');
+              window.close();
+            } else {
+              window.location.href = '${frontendUrl}/login?error=invalid_token';
+            }
+          </script>
+        `);
       }
 
       const { sub: googleId, email, name, picture } = payload;
-      
+
       if (!email || !name || !googleId) {
-        return res.redirect('/login?error=missing_user_info');
+        return res.send(`
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'GOOGLE_AUTH_ERROR',
+                error: 'Missing user information'
+              }, '*');
+              window.close();
+            } else {
+              window.location.href = '${frontendUrl}/login?error=missing_user_info';
+            }
+          </script>
+        `);
       }
 
       // Normalize email to lowercase
@@ -199,13 +261,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (!user) {
-        return res.redirect('/login?error=user_creation_failed');
+        return res.send(`
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'GOOGLE_AUTH_ERROR',
+                error: 'Failed to create user account'
+              }, '*');
+              window.close();
+            } else {
+              window.location.href = '${frontendUrl}/login?error=user_creation_failed';
+            }
+          </script>
+        `);
       }
 
       // Set session data
-  (req.session as any).userId = user._id;
+      (req.session as any).userId = user._id;
       (req.session as any).user = {
-  id: user._id,
+        id: user._id,
         email: user.email,
         name: user.name,
         isAdmin: user.isAdmin
@@ -214,72 +288,315 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Clear OAuth state
       delete (req.session as any).oauthState;
 
+      // Store Google Calendar credentials if we have access and refresh tokens
+      console.log('Google OAuth tokens received:', {
+        hasAccessToken: !!tokens.access_token,
+        hasRefreshToken: !!tokens.refresh_token,
+        scope: tokens.scope,
+        expiry_date: tokens.expiry_date
+      });
+      
+      // Note: Calendar credentials should NOT be stored during signup/login
+      // Users must explicitly connect their calendar after authentication
+      // via the /api/google-calendar/auth flow
+      if (tokens.access_token && tokens.refresh_token) {
+        console.log('OAuth tokens available, but calendar connection must be done separately');
+      }
+
+      // Create user data for response
+      const userData = {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        picture: user.picture,
+        isAdmin: user.isAdmin
+      };
+
       // For popup window, close the popup and redirect parent
       res.send(`
         <script>
           if (window.opener) {
-            window.opener.location.href = '/dashboard';
+            // Notify parent window and close popup
+            window.opener.postMessage({
+              type: 'GOOGLE_AUTH_SUCCESS',
+              user: ${JSON.stringify(userData)}
+            }, '*');
             window.close();
           } else {
-            window.location.href = '/dashboard';
+            // Fallback: redirect to frontend
+            window.location.href = '${frontendUrl}/booking';
           }
         </script>
       `);
     } catch (error) {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       console.error('Google OAuth callback error:', error);
-      res.redirect('/login?error=oauth_failed');
+      
+      // For popup window, send error message and close
+      res.send(`
+        <script>
+          if (window.opener) {
+            // Notify parent window of error and close popup
+            window.opener.postMessage({
+              type: 'GOOGLE_AUTH_ERROR',
+              error: 'Authentication failed. Please try again.'
+            }, '*');
+            window.close();
+          } else {
+            // Fallback: redirect to frontend with error
+            window.location.href = '${frontendUrl}/login?error=oauth_failed';
+          }
+        </script>
+      `);
     }
   });
 
   // Google Calendar OAuth routes
   app.get("/api/google-calendar/auth", async (req, res) => {
     try {
+      console.log('Google Calendar auth request - Session:', req.session);
+      console.log('Google Calendar auth request - User:', (req.session as any)?.user);
+      
       if (!(req.session as any)?.user) {
+        console.log('No user session found, returning 401');
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      const authUrl = googleCalendarService.getAuthUrl((req.session as any).user._id, req);
-      res.json({ authUrl });
+      const userId = (req.session as any)?.user?.id || (req.session as any)?.userId;
+      console.log('User ID for Google Calendar auth:', userId);
+      
+      const authUrl = googleCalendarService.getAuthUrl(userId, req);
+      console.log('Generated auth URL:', authUrl);
+      
+      // Check if authUrl is valid
+      if (!authUrl || !authUrl.startsWith('https://accounts.google.com')) {
+        console.error('Invalid auth URL generated:', authUrl);
+        return res.status(500).json({ error: 'Failed to generate auth URL' });
+      }
+      
+      // Redirect directly to Google OAuth
+      console.log('Redirecting to:', authUrl);
+      res.redirect(authUrl);
     } catch (error) {
       console.error('Google Calendar auth start error:', error);
-      res.status(500).json({ message: "Failed to initiate Google Calendar authentication" });
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      res.redirect(`${frontendUrl}/booking?calendar_error=auth_failed`);
     }
   });
 
   app.get("/api/google-calendar/callback", async (req, res) => {
     try {
       const { code, state: userId } = req.query;
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       
       if (!code || typeof code !== 'string' || !userId || typeof userId !== 'string') {
-        return res.redirect('/dashboard?calendar_error=invalid_callback');
+        return res.send(`
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'CALENDAR_ERROR',
+                error: 'Invalid callback parameters'
+              }, '*');
+              window.close();
+            } else {
+              window.location.href = '${frontendUrl}/booking?calendar_error=invalid_callback';
+            }
+          </script>
+        `);
       }
 
-      await googleCalendarService.handleCallback(code, userId, req);
-      // For popup window, close the popup  
+      const result = await googleCalendarService.handleCallback(code, userId, req);
+
+      if (result.success) {
+        // Send success message to parent window and attempt to close
+        res.send(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Calendar Connected</title>
+              <style>
+                body {
+                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  height: 100vh;
+                  margin: 0;
+                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                }
+                .container {
+                  background: white;
+                  padding: 40px;
+                  border-radius: 16px;
+                  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                  text-align: center;
+                  max-width: 400px;
+                }
+                .success-icon {
+                  width: 64px;
+                  height: 64px;
+                  background: #10b981;
+                  border-radius: 50%;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  margin: 0 auto 20px;
+                }
+                .checkmark {
+                  color: white;
+                  font-size: 32px;
+                  font-weight: bold;
+                }
+                h1 {
+                  color: #1f2937;
+                  margin: 0 0 10px;
+                  font-size: 24px;
+                }
+                p {
+                  color: #6b7280;
+                  margin: 0;
+                  font-size: 14px;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="success-icon">
+                  <span class="checkmark">✓</span>
+                </div>
+                <h1>Calendar Connected!</h1>
+                <p>This window will close automatically...</p>
+              </div>
+              <script>
+                // Send message immediately and also on load
+                function sendMessage() {
+                  if (window.opener) {
+                    console.log('Sending CALENDAR_CONNECTED message to parent');
+                    window.opener.postMessage({ type: 'CALENDAR_CONNECTED' }, '*');
+                  } else {
+                    console.log('No window.opener found');
+                  }
+                }
+                
+                // Send immediately
+                sendMessage();
+                
+                // Also send on load as backup
+                window.addEventListener('load', sendMessage);
+                
+                // Try to close window after a short delay
+                setTimeout(() => {
+                  window.close();
+                  // If close fails, show manual close message
+                  setTimeout(() => {
+                    const p = document.querySelector('p');
+                    if (p) p.textContent = 'Please close this window';
+                  }, 300);
+                }, 1000);
+              </script>
+            </body>
+          </html>
+        `);
+      } else {
+        // Show error and attempt to close
+        res.send(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Connection Failed</title>
+              <style>
+                body {
+                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  height: 100vh;
+                  margin: 0;
+                  background: linear-gradient(135deg, #f43f5e 0%, #dc2626 100%);
+                }
+                .container {
+                  background: white;
+                  padding: 40px;
+                  border-radius: 16px;
+                  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                  text-align: center;
+                  max-width: 400px;
+                }
+                h1 {
+                  color: #1f2937;
+                  margin: 0 0 10px;
+                  font-size: 24px;
+                }
+                p {
+                  color: #6b7280;
+                  margin: 0;
+                  font-size: 14px;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <h1>Connection Failed</h1>
+                <p>Please close this window and try again</p>
+              </div>
+              <script>
+                // Send error message immediately and also on load
+                function sendErrorMessage() {
+                  if (window.opener) {
+                    console.log('Sending CALENDAR_ERROR message to parent');
+                    window.opener.postMessage({ type: 'CALENDAR_ERROR', error: '${result.error}' }, '*');
+                  } else {
+                    console.log('No window.opener found for error');
+                  }
+                }
+                
+                // Send immediately
+                sendErrorMessage();
+                
+                // Also send on load as backup
+                window.addEventListener('load', sendErrorMessage);
+                
+                setTimeout(() => window.close(), 2000);
+              </script>
+            </body>
+          </html>
+        `);
+      }
+    } catch (error) {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      console.error('Google Calendar callback error:', error);
       res.send(`
         <script>
           if (window.opener) {
-            // Notify parent window and close popup
-            window.opener.postMessage({ type: 'CALENDAR_CONNECTED' }, '*');
+            window.opener.postMessage({
+              type: 'CALENDAR_ERROR',
+              error: 'Calendar connection failed'
+            }, '*');
             window.close();
           } else {
-            window.location.href = '/dashboard?calendar_connected=true';
+            window.location.href = '${frontendUrl}/booking?calendar_error=connection_failed';
           }
         </script>
       `);
-    } catch (error) {
-      console.error('Google Calendar callback error:', error);
-      res.redirect('/dashboard?calendar_error=connection_failed');
     }
   });
 
   app.get("/api/google-calendar/status", async (req, res) => {
     try {
+      console.log('Google Calendar status request - Session:', req.session);
+      console.log('Google Calendar status request - User:', (req.session as any)?.user);
+      console.log('Google Calendar status request - UserId from session:', (req.session as any)?.userId);
+      
       if (!(req.session as any)?.user) {
+        console.log('No user session found in calendar status check');
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      const status = await googleCalendarService.getConnectionStatus((req.session as any).user._id);
+      const userId = (req.session as any)?.user?.id || (req.session as any)?.userId;
+      console.log('Google Calendar status - Resolved userId:', userId, 'type:', typeof userId);
+
+      const status = await googleCalendarService.getConnectionStatus(userId);
+      console.log('Google Calendar status result:', status);
       res.json(status);
     } catch (error) {
       console.error('Google Calendar status error:', error);
@@ -293,7 +610,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      await googleCalendarService.disconnect((req.session as any).user._id);
+      const userId = (req.session as any)?.user?.id || (req.session as any)?.userId;
+      await googleCalendarService.disconnect(userId);
       res.json({ success: true });
     } catch (error) {
       console.error('Google Calendar disconnect error:', error);
@@ -307,11 +625,140 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      const result = await googleCalendarService.syncAllBookings((req.session as any).user._id);
+      const result = await googleCalendarService.syncAllBookings((req.session as any).user.id);
       res.json(result);
     } catch (error) {
       console.error('Google Calendar sync error:', error);
       res.status(500).json({ message: "Failed to sync bookings to calendar" });
+    }
+  });
+
+  // Get calendar events
+  app.get("/api/google-calendar/events", async (req, res) => {
+    try {
+      if (!(req.session as any)?.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { timeMin, timeMax } = req.query;
+      const startDate = timeMin ? new Date(timeMin as string) : undefined;
+      const endDate = timeMax ? new Date(timeMax as string) : undefined;
+
+      const result = await googleCalendarService.getCalendarEvents(
+        (req.session as any).user.id,
+        startDate,
+        endDate
+      );
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Google Calendar events error:', error);
+      res.status(500).json({ message: "Failed to fetch calendar events" });
+    }
+  });
+
+  // Create calendar event
+  app.post("/api/google-calendar/events", async (req, res) => {
+    try {
+      if (!(req.session as any)?.user) {
+        console.log('Google Calendar event creation - No user in session');
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const userId = (req.session as any).user.id || (req.session as any).userId;
+      console.log('Google Calendar event creation - User ID:', userId);
+
+      const { summary, description, start, end, attendees } = req.body;
+      
+      if (!summary || !start || !end) {
+        console.log('Google Calendar event creation - Missing required fields');
+        return res.status(400).json({ message: "Missing required fields: summary, start, end" });
+      }
+
+      console.log('Google Calendar event creation - Event data:', { summary, start, end, attendees });
+
+      const result = await googleCalendarService.createCalendarEvent(
+        userId,
+        {
+          summary,
+          description,
+          start: new Date(start),
+          end: new Date(end),
+          attendees
+        }
+      );
+      
+      console.log('Google Calendar event creation - Result:', result);
+      res.json(result);
+    } catch (error) {
+      console.error('Google Calendar create event error:', error);
+      console.error('Google Calendar create event error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      res.status(500).json({ 
+        message: "Failed to create calendar event",
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+
+  // Update calendar event
+  app.put("/api/google-calendar/events/:eventId", async (req, res) => {
+    try {
+      if (!(req.session as any)?.user) {
+        console.log('Google Calendar event update - No user in session');
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const userId = (req.session as any).user.id || (req.session as any).userId;
+      console.log('Google Calendar event update - User ID:', userId);
+
+      const { eventId } = req.params;
+      const { summary, description, start, end, attendees } = req.body;
+
+      console.log('Google Calendar event update - Event ID:', eventId);
+      console.log('Google Calendar event update - Update data:', { summary, start, end, attendees });
+
+      const result = await googleCalendarService.updateCalendarEvent(
+        userId,
+        eventId,
+        {
+          summary,
+          description,
+          start: start ? new Date(start) : undefined,
+          end: end ? new Date(end) : undefined,
+          attendees
+        }
+      );
+      
+      console.log('Google Calendar event update - Result:', result);
+      res.json(result);
+    } catch (error) {
+      console.error('Google Calendar update event error:', error);
+      console.error('Google Calendar update event error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      res.status(500).json({ 
+        message: "Failed to update calendar event",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Delete calendar event
+  app.delete("/api/google-calendar/events/:eventId", async (req, res) => {
+    try {
+      if (!(req.session as any)?.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { eventId } = req.params;
+
+      const result = await googleCalendarService.deleteCalendarEvent(
+        (req.session as any).user.id,
+        eventId
+      );
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Google Calendar delete event error:', error);
+      res.status(500).json({ message: "Failed to delete calendar event" });
     }
   });
 
@@ -408,7 +855,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Google OAuth error:', error);
       res.status(500).json({ message: "Google authentication failed", error: error instanceof Error ? error.message : "Unknown error" });
     }
-  }); */
+  });
 
   // Email/password login endpoint
   app.post("/api/auth/login", async (req, res) => {
@@ -601,8 +1048,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                            ? '' // Same domain in production
                            : 'http://localhost:5173'; // Frontend dev server
 
-      // Redirect to frontend dashboard with verified flag
-      res.redirect(`${frontendUrl}/dashboard?verified=true`);
+      // Redirect to frontend booking page with verified flag
+      res.redirect(`${frontendUrl}/booking?verified=true`);
       
     } catch (error) {
       console.error('Email verification error:', error);
@@ -724,14 +1171,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/auth/me", async (req, res) => {
     try {
+      console.log('Auth me request - Session:', req.session);
+      console.log('Auth me request - UserId from session:', (req.session as any).userId);
+      console.log('Auth me request - User from session:', (req.session as any).user);
+      
       if (!(req.session as any).userId) {
+        console.log('No userId in session');
         return res.status(401).json({ message: "Not authenticated" });
       }
       
       const user = await storage.getUser((req.session as any).userId);
       if (!user) {
+        console.log('User not found in storage for userId:', (req.session as any).userId);
         return res.status(401).json({ message: "User not found" });
       }
+      
+      console.log('Auth me - Found user:', { id: user._id, email: user.email, name: user.name });
+      console.log('Auth me - User ID type:', typeof user._id);
+      console.log('Auth me - User ID value:', user._id);
       
       // Return comprehensive user data for account page
       res.json({ 
@@ -1835,6 +2292,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete user account
+  app.delete("/api/users/:id", async (req, res) => {
+    try {
+      // Check authentication
+      const session = req.session as any;
+      if (!session?.userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      // Verify user is deleting their own account
+      if (session.userId !== req.params.id) {
+        return res.status(403).json({ message: "Forbidden: You can only delete your own account" });
+      }
+
+      // Delete the user and all associated data
+      await storage.deleteUser(req.params.id);
+
+      // Destroy the session
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Error destroying session:', err);
+        }
+      });
+
+      res.json({ success: true, message: "Account deleted successfully" });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      res.status(500).json({
+        message: "Failed to delete account",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Admin routes
 
   // Blocked dates routes
@@ -2612,8 +3103,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const success = process.env.BASE_URL
-        ? `${process.env.BASE_URL}/dashboard/billing?success=1`
-        : "http://localhost:5173/dashboard/billing?success=1";
+        ? `${process.env.BASE_URL}/billing?success=1`
+        : "http://localhost:5173/billing?success=1";
       const cancel = process.env.BASE_URL
         ? `${process.env.BASE_URL}/pricing?canceled=1`
         : "http://localhost:5173/pricing?canceled=1";
@@ -2733,8 +3224,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const returnUrl = process.env.BASE_URL
-        ? `${process.env.BASE_URL}/dashboard?tab=billing`
-        : "http://localhost:5173/dashboard?tab=billing";
+        ? `${process.env.BASE_URL}/billing`
+        : "http://localhost:5173/billing";
       
       // Create customer portal session
       const portalSession = await stripe.billingPortal.sessions.create({

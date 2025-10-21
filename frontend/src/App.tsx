@@ -34,7 +34,6 @@ function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/verify/:token" element={<VerifyPage />} />
         <Route path="/verify-error" element={<VerifyPage />} />
-        <Route path="/dashboard" element={<BookingsPage />} />
         <Route path="/booking" element={<BookingsPage />} />
         <Route path="/service" element={<ServicePage />} />
         <Route path="/availability" element={<AvailabilityPage />} />

@@ -62,6 +62,12 @@ const LoginPage = () => {
     }
   };
 
+  const handleGoogleLogin = () => {
+    // Use redirect flow for now (popup has domain issues)
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    window.location.href = `${apiUrl}/api/auth/google`;
+  };
+
   return (
     <div className="login-page">
       <div className="login-card">
@@ -126,10 +132,7 @@ const LoginPage = () => {
         </div>
 
         <button
-          onClick={() => {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-            window.location.href = `${apiUrl}/api/auth/google`;
-          }}
+          onClick={handleGoogleLogin}
           className="button google-button"
           disabled={isSubmitting}
         >

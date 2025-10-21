@@ -50,6 +50,7 @@ export const create = mutation({
     status: v.optional(v.string()),
     notes: v.optional(v.string()),
     bookingToken: v.string(),
+    googleCalendarEventId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("bookings", {
@@ -62,6 +63,7 @@ export const create = mutation({
       status: args.status ?? "confirmed",
       notes: args.notes,
       bookingToken: args.bookingToken,
+      googleCalendarEventId: args.googleCalendarEventId,
     });
   },
 });

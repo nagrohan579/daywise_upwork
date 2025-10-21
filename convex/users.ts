@@ -183,3 +183,117 @@ export const resetPassword = mutation({
     });
   },
 });
+
+// Delete user and all associated data
+export const deleteUser = mutation({
+  args: { id: v.id("users") },
+  handler: async (ctx, { id }) => {
+    // 1. Get all appointment types for this user
+    const appointmentTypes = await ctx.db
+      .query("appointmentTypes")
+      .withIndex("by_userId", (q) => q.eq("userId", id))
+      .collect();
+
+    // 2. Delete appointmentTypeAvailability entries (junction table)
+    for (const type of appointmentTypes) {
+      const mappings = await ctx.db
+        .query("appointmentTypeAvailability")
+        .withIndex("by_appointmentTypeId", (q) => q.eq("appointmentTypeId", type._id))
+        .collect();
+      for (const mapping of mappings) {
+        await ctx.db.delete(mapping._id);
+      }
+    }
+
+    // 3. Delete notifications
+    const notifications = await ctx.db
+      .query("notifications")
+      .withIndex("by_userId", (q) => q.eq("userId", id))
+      .collect();
+    for (const notification of notifications) {
+      await ctx.db.delete(notification._id);
+    }
+
+    // 4. Delete bookings
+    const bookings = await ctx.db
+      .query("bookings")
+      .withIndex("by_userId", (q) => q.eq("userId", id))
+      .collect();
+    for (const booking of bookings) {
+      await ctx.db.delete(booking._id);
+    }
+
+    // 5. Delete availability exceptions
+    const exceptions = await ctx.db
+      .query("availabilityExceptions")
+      .withIndex("by_userId", (q) => q.eq("userId", id))
+      .collect();
+    for (const exception of exceptions) {
+      await ctx.db.delete(exception._id);
+    }
+
+    // 6. Delete blocked dates
+    const blockedDates = await ctx.db
+      .query("blockedDates")
+      .withIndex("by_userId", (q) => q.eq("userId", id))
+      .collect();
+    for (const blockedDate of blockedDates) {
+      await ctx.db.delete(blockedDate._id);
+    }
+
+    // 7. Delete availability (basic weekly)
+    const availabilities = await ctx.db
+      .query("availability")
+      .withIndex("by_userId", (q) => q.eq("userId", id))
+      .collect();
+    for (const availability of availabilities) {
+      await ctx.db.delete(availability._id);
+    }
+
+    // 8. Delete availability patterns
+    const patterns = await ctx.db
+      .query("availabilityPatterns")
+      .withIndex("by_userId", (q) => q.eq("userId", id))
+      .collect();
+    for (const pattern of patterns) {
+      await ctx.db.delete(pattern._id);
+    }
+
+    // 9. Delete appointment types
+    for (const type of appointmentTypes) {
+      await ctx.db.delete(type._id);
+    }
+
+    // 10. Delete branding
+    const branding = await ctx.db
+      .query("branding")
+      .withIndex("by_userId", (q) => q.eq("userId", id))
+      .first();
+    if (branding) {
+      await ctx.db.delete(branding._id);
+    }
+
+    // 11. Delete user subscription
+    const subscription = await ctx.db
+      .query("userSubscriptions")
+      .withIndex("by_userId", (q) => q.eq("userId", id))
+      .first();
+    if (subscription) {
+      await ctx.db.delete(subscription._id);
+    }
+
+    // 12. Delete Google Calendar credentials
+    const googleCreds = await ctx.db
+      .query("googleCalendarCredentials")
+      .withIndex("by_userId", (q) => q.eq("userId", id))
+      .first();
+    if (googleCreds) {
+      await ctx.db.delete(googleCreds._id);
+    }
+
+    // 13. Finally, delete the user
+    await ctx.db.delete(id);
+
+    return { success: true };
+  },
+});

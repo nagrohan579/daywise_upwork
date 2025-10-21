@@ -99,7 +99,7 @@ const VerifyPage = () => {
               Email Verified!
             </h1>
             <p className="text-gray-600 mb-6">{message}</p>
-            <p className="text-sm text-gray-500">Redirecting to dashboard...</p>
+            <p className="text-sm text-gray-500">Redirecting to booking page...</p>
           </>
         )}
 

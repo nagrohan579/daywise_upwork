@@ -178,13 +178,13 @@ export async function sendBusinessNotification(data: BookingEmailData): Promise<
             <h3 style="margin: 0 0 15px 0; color: #1f2937;">Next Steps</h3>
             <p style="margin: 5px 0; color: #4b5563;">• The customer has received an automatic confirmation</p>
             <p style="margin: 5px 0; color: #4b5563;">• A reminder will be sent 24 hours before the appointment</p>
-            <p style="margin: 5px 0; color: #4b5563;">• You can manage this booking in your dashboard</p>
+            <p style="margin: 5px 0; color: #4b5563;">• You can manage this booking in your booking page</p>
           </div>
           
           <div style="text-align: center;">
-            <a href="${process.env.REPLIT_DEV_DOMAIN || 'your-app.replit.app'}/dashboard" 
+            <a href="${process.env.REPLIT_DEV_DOMAIN || 'your-app.replit.app'}/booking" 
                style="background: ${accentColor}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-              View Dashboard
+              View Bookings
             </a>
           </div>
           ${platformBadge}

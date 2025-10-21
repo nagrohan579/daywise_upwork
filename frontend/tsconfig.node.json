@@ -9,7 +9,6 @@
     "esModuleInterop": true,
     "strict": true,
     "resolveJsonModule": true,
-    "allowImportingTsExtensions": true,
     "composite": true
   },
   "include": ["vite.config.ts", "server"]

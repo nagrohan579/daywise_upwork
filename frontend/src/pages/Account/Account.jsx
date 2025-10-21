@@ -14,6 +14,9 @@ const Account = () => {
   const isMobile = useMobile(991);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const [userData, setUserData] = useState({
     name: "",
     email: "",
@@ -156,6 +159,60 @@ const Account = () => {
   const handleCancel = () => {
     fetchUserData(); // Reset to original data
     toast.info('Changes discarded');
+  };
+
+  const handleDeleteAccount = async () => {
+    // Validate confirmation text
+    if (deleteConfirmText !== "DELETE") {
+      toast.error('Please type "DELETE" to confirm');
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+      // Get current user ID
+      const meResponse = await fetch(`${apiUrl}/api/auth/me`, {
+        credentials: 'include',
+      });
+
+      if (!meResponse.ok) {
+        throw new Error('Unable to verify user identity. Please log in again.');
+      }
+
+      const meData = await meResponse.json();
+
+      if (!meData || !meData.user || !meData.user.id) {
+        throw new Error('Unable to get user information. Please log in again.');
+      }
+
+      const userId = meData.user.id;
+
+      // Delete user account
+      const response = await fetch(`${apiUrl}/api/users/${userId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to delete account');
+      }
+
+      toast.success('Account deleted successfully');
+
+      // Redirect to home page after a short delay
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1500);
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast.error(error.message || 'Failed to delete account');
+      setDeleting(false);
+      setShowDeleteModal(false);
+      setDeleteConfirmText("");
+    }
   };
 
   return (
@@ -333,11 +390,146 @@ const Account = () => {
             <Button
               text={"Delete Account"}
               type="button"
-              onClick={() => toast.error('Account deletion feature coming soon!')}
+              onClick={() => setShowDeleteModal(true)}
               style={{ backgroundColor: "#DF0404" }}
             />
           </div>
         </form>
+        )}
+
+        {showDeleteModal && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget && !deleting) {
+                setShowDeleteModal(false);
+                setDeleteConfirmText("");
+              }
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: 'white',
+                borderRadius: '16px',
+                padding: '32px',
+                maxWidth: '500px',
+                width: '90%',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+              }}
+            >
+              <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                <div
+                  style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    backgroundColor: '#FEE2E2',
+                    margin: '0 auto 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <svg
+                    width="32"
+                    height="32"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#DC2626"
+                    strokeWidth="2"
+                  >
+                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '8px', color: '#1F2937' }}>
+                  Delete Account
+                </h2>
+                <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '24px' }}>
+                  This action cannot be undone. This will permanently delete your account and remove all your data including:
+                </p>
+                <ul style={{ textAlign: 'left', fontSize: '14px', color: '#6B7280', marginLeft: '20px', marginBottom: '24px' }}>
+                  <li>All appointment types and bookings</li>
+                  <li>Availability schedules and patterns</li>
+                  <li>Google Calendar integration</li>
+                  <li>Branding and customization settings</li>
+                  <li>All other associated data</li>
+                </ul>
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '8px',
+                  }}
+                >
+                  Type <strong>DELETE</strong> to confirm:
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="Type DELETE here"
+                  disabled={deleting}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid #D1D5DB',
+                    fontSize: '14px',
+                    outline: 'none',
+                    transition: 'border-color 0.2s',
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#3B82F6'}
+                  onBlur={(e) => e.target.style.borderColor = '#D1D5DB'}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <Button
+                  text="Cancel"
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeleteConfirmText("");
+                  }}
+                  disabled={deleting}
+                  style={{
+                    flex: 1,
+                    border: '1px solid #D1D5DB',
+                    backgroundColor: 'white',
+                    color: '#374151',
+                  }}
+                />
+                <Button
+                  text={deleting ? "Deleting..." : "Delete Account"}
+                  type="button"
+                  onClick={handleDeleteAccount}
+                  disabled={deleting || deleteConfirmText !== "DELETE"}
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#DC2626',
+                    opacity: deleteConfirmText !== "DELETE" ? 0.5 : 1,
+                    cursor: deleteConfirmText !== "DELETE" ? 'not-allowed' : 'pointer',
+                  }}
+                />
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </AppLayout>

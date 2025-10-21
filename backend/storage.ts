@@ -72,6 +72,12 @@ export const storage = {
     });
   },
 
+  async deleteUser(id: string) {
+    return await convex.mutation(api.users.deleteUser, {
+      id: id as Id<"users">,
+    });
+  },
+
   // Booking operations
   async getBooking(id: string) {
     return await convex.query(api.bookings.getById, { id: id as Id<"bookings"> });
@@ -434,6 +440,71 @@ export const storage = {
     });
   },
 
+  // Google Calendar credentials operations
+  async getGoogleCredentialsByUserId(userId: string) {
+    return await convex.query(api.googleCalendarCredentials.getByUserId, {
+      userId: userId as Id<"users">,
+    });
+  },
+
+  async createGoogleCredentials(credentials: {
+    userId: string;
+    accessToken: string;
+    refreshToken: string;
+    tokenExpiry: number;
+    scope: string;
+  }) {
+    const id = await convex.mutation(api.googleCalendarCredentials.create, {
+      userId: credentials.userId as Id<"users">,
+      accessToken: credentials.accessToken,
+      refreshToken: credentials.refreshToken,
+      tokenExpiry: credentials.tokenExpiry,
+      scope: credentials.scope,
+    });
+    return await convex.query(api.googleCalendarCredentials.getByUserId, {
+      userId: credentials.userId as Id<"users">,
+    });
+  },
+
+  async updateGoogleCredentials(id: string, updates: any) {
+    await convex.mutation(api.googleCalendarCredentials.update, {
+      id: id as Id<"googleCalendarCredentials">,
+      updates,
+    });
+    return await convex.query(api.googleCalendarCredentials.getByUserId, {
+      userId: updates.userId as Id<"users">,
+    });
+  },
+
+  async updateGoogleCredentialsByUserId(userId: string, updates: any) {
+    return await convex.mutation(api.googleCalendarCredentials.updateByUserId, {
+      userId: userId as Id<"users">,
+      updates,
+    });
+  },
+
+  async upsertGoogleCredentials(credentials: {
+    userId: string;
+    accessToken: string;
+    refreshToken: string;
+    tokenExpiry: number;
+    scope: string;
+  }) {
+    return await convex.mutation(api.googleCalendarCredentials.upsert, {
+      userId: credentials.userId as Id<"users">,
+      accessToken: credentials.accessToken,
+      refreshToken: credentials.refreshToken,
+      tokenExpiry: credentials.tokenExpiry,
+      scope: credentials.scope,
+    });
+  },
+
+  async deleteGoogleCredentialsByUserId(userId: string) {
+    return await convex.mutation(api.googleCalendarCredentials.deleteByUserId, {
+      userId: userId as Id<"users">,
+    });
+  },
+
   // Placeholder operations that might be needed
   async getAppointmentTypeAvailabilities(appointmentTypeId: string) {
     // TODO: Implement if needed
@@ -500,6 +571,11 @@ export async function createDemoData() {
       secondaryColor: "#f97316",
       accentColor: "#3b82f6"
     });
+
+    if (!demoUser) {
+      console.warn('Demo user creation failed, skipping demo data creation');
+      return;
+    }
 
     // Create appointment types for demo user
     const consultation30 = await storage.createAppointmentType({

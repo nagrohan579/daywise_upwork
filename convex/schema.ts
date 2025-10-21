@@ -50,6 +50,7 @@ export default defineSchema({
     bookingToken: v.string(),
     customerReminderSentAt: v.optional(v.number()),
     businessReminderSentAt: v.optional(v.number()),
+    googleCalendarEventId: v.optional(v.string()), // Google Calendar event ID for syncing
   })
     .index("by_userId", ["userId"])
     .index("by_appointmentTypeId", ["appointmentTypeId"])

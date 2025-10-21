@@ -21,4 +21,8 @@ export default defineConfig({
       deny: ["**/.*"],
     },
   },
+  define: {
+    // Suppress React DevTools warning in development
+    __REACT_DEVTOOLS_GLOBAL_HOOK__: '({ isDisabled: true })',
+  },
 });

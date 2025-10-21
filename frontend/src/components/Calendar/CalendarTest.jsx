@@ -1,103 +1,7 @@
 import React, { useCallback, useState } from "react";
 import { FaChevronLeft, FaChevronRight, FaChevronDown } from "react-icons/fa6";
 import "./CalendarTest.css";
-import AddAppointmentModal from "../UI/modals/AddAppointmentModal";
-
-const events = [
-  {
-    id: 1,
-    title: "30-minute appointment",
-    date: "2025-10-02",
-    color: "orange",
-    time: "10:00",
-  },
-  {
-    id: 2,
-    title: "Appointment Type 1",
-    date: "2025-10-04",
-    color: "blue",
-    time: "14:30",
-  },
-  {
-    id: 3,
-    title: "Team Meeting",
-    date: "2025-10-07",
-    color: "green",
-    time: "11:00",
-  },
-  {
-    id: 4,
-    title: "Unavailable",
-    date: "2025-10-10",
-    color: "red",
-    time: null,
-  },
-  {
-    id: 5,
-    title: "Today's Appointment",
-    date: "2025-10-11", // 👈 today's date
-    color: "orange",
-    time: "09:30",
-  },
-  {
-    id: 6,
-    title: "30-minute appointment",
-    date: "2025-10-12",
-    color: "orange",
-    time: "09:00",
-  },
-  {
-    id: 7,
-    title: "Service Appointment (New)",
-    date: "2025-10-15",
-    color: "purple",
-    time: "13:30",
-  },
-  {
-    id: 8,
-    title: "Client Consultation",
-    date: "2025-10-18",
-    color: "teal",
-    time: "15:00",
-  },
-  {
-    id: 9,
-    title: "Follow-up Meeting",
-    date: "2025-10-21",
-    color: "blue",
-    time: "16:00",
-  },
-  {
-    id: 10,
-    title: "Unavailable",
-    date: "2025-10-25",
-    color: "red",
-    time: null,
-  },
-  {
-    id: 11,
-    title: "End of Month Review",
-    date: "2025-10-30",
-    color: "green",
-    time: "10:30",
-  },
-
-  // 👇 Added manually for today and tomorrow
-  {
-    id: 12,
-    title: "Today's 2 Appointment",
-    date: "2025-10-11",
-    color: "blue",
-    time: "16:00",
-  },
-  {
-    id: 13,
-    title: "Unavailable",
-    date: "2025-10-12",
-    color: "red",
-    time: null,
-  },
-];
+import AddAppointmentModal from "../ui/modals/AddAppointmentModal";
 
 const monthNames = [
   "January",
@@ -116,7 +20,7 @@ const monthNames = [
 
 const dayNames = ["Sun", "Mon", "Tues", "Wed", "Thu", "Fri", "Sat"];
 
-const CalendarApp = () => {
+const CalendarApp = ({ events = [] }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState("month");
   const [showViewDropdown, setShowViewDropdown] = useState(false);

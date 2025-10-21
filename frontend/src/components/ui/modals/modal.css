@@ -7,6 +7,10 @@
 .serviceModal .modal-dialog {
   max-width: 512px;
   font-family: Inter, sans-serif;
+  z-index: 1055; /* Ensure modal appears above sidebar */
+}
+.serviceModal .modal-backdrop {
+  z-index: 1050; /* Ensure backdrop appears above sidebar */
 }
 .serviceModal .content-wrap {
   max-width: 390px;
@@ -55,6 +59,10 @@
 .dateSpecificHour .modal-dialog {
   max-width: 640px;
   font-family: Inter, sans-serif;
+  z-index: 1055; /* Ensure modal appears above sidebar */
+}
+.dateSpecificHour .modal-backdrop {
+  z-index: 1050; /* Ensure backdrop appears above sidebar */
 }
 .dateSpecificHour .modal-header {
   display: flex;
@@ -117,6 +125,10 @@
 .addAppointmentModal .modal-dialog {
   max-width: 512px;
   font-family: Inter, sans-serif;
+  z-index: 1055; /* Ensure modal appears above sidebar (z-index: 50) */
+}
+.addAppointmentModal .modal-backdrop {
+  z-index: 1050; /* Ensure backdrop appears above sidebar */
 }
 .addAppointmentModal .content-wrap {
   max-width: 390px;
@@ -186,6 +198,10 @@
 }
 .previewBookingModal .modal-dialog {
   max-width: 1220px;
+  z-index: 1055; /* Ensure modal appears above sidebar */
+}
+.previewBookingModal .modal-backdrop {
+  z-index: 1050; /* Ensure backdrop appears above sidebar */
 }
 .previewBookingModal .close-btn {
   border: none;

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "./SingleCalendar.css";
-import Select from "../UI/Input/Select";
+import Select from "../ui/Input/Select";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 import { useMobile } from "../../hooks";
 

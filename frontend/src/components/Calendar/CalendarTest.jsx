@@ -62,7 +62,6 @@ const CalendarApp = ({ events = [] }) => {
     title: {
       fontSize: "18px",
       fontWeight: "600",
-      fontWeight: "600",
       color: "#121212",
       margin: 0,
     },
@@ -74,7 +73,6 @@ const CalendarApp = ({ events = [] }) => {
     navBtn: {
       width: "32px",
       height: "32px",
-      border: "none",
       background: "transparent",
       cursor: "pointer",
       borderRadius: "6px",

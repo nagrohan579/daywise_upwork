@@ -1,0 +1,69 @@
+# ============================================
+# BACKEND ENVIRONMENT VARIABLES
+# ============================================
+# Copy this file to backend/.env and fill in your values
+
+# ============================================
+# DEPLOYMENT URLS
+# ============================================
+# Frontend URL - Your Vercel deployment URL
+FRONTEND_URL=https://your-app.vercel.app
+
+# Backend Base URL - Your DigitalOcean droplet URL (with https if using SSL)
+BASE_URL=https://api.yourdomain.com
+
+# Port for the backend server (default: 3000)
+PORT=3000
+
+# Node environment (development or production)
+NODE_ENV=production
+
+# ============================================
+# CONVEX DATABASE
+# ============================================
+# Get these from https://dashboard.convex.dev
+CONVEX_DEPLOYMENT=prod:your-deployment-name
+CONVEX_URL=https://your-deployment.convex.cloud
+
+# ============================================
+# SESSION & SECURITY
+# ============================================
+# Generate a random 32-character secret key
+# You can use: openssl rand -base64 32
+SESSION_SECRET=your-random-32-character-secret-key-here
+
+# ============================================
+# GOOGLE OAUTH & CALENDAR
+# ============================================
+# Get these from https://console.cloud.google.com
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-client-secret
+
+# ============================================
+# STRIPE PAYMENTS
+# ============================================
+# Get these from https://dashboard.stripe.com
+STRIPE_SECRET_KEY=sk_live_your_stripe_secret_key
+STRIPE_PUBLISHABLE_KEY=pk_live_your_stripe_publishable_key
+STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
+
+# ============================================
+# EMAIL (SENDGRID)
+# ============================================
+# Get these from https://sendgrid.com
+SENDGRID_API_KEY=SG.your_sendgrid_api_key
+SENDGRID_FROM_EMAIL=noreply@yourdomain.com
+
+# ============================================
+# ADMIN AUTHENTICATION
+# ============================================
+# Admin panel credentials (HTTP Basic Auth)
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=your-secure-admin-password
+
+# ============================================
+# OPTIONAL
+# ============================================
+# Set to 'true' if embedding in iframe (e.g., Canva)
+EMBEDDED_IFRAME=false
+

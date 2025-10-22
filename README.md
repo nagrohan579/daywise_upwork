@@ -10,6 +10,13 @@ DayWise is a scheduling platform that integrates with Canva, Stripe, SendGrid, a
 
 **Status**: Active Development - Monorepo architecture with Convex database
 
+## Recent updates (October 2025)
+
+- ✅ Authentication: Signup and login with Google OAuth are implemented and verified.
+- ✅ Google Calendar: Users can connect their Google account and sync operations are working (connect/disconnect flows are implemented).
+- ✅ Bookings: Creating, updating, and deleting appointments works end-to-end. Changes persist in Convex and (when connected) are synchronized to Google Calendar.
+
+
 ## Features
 
 ### Core Functionality
@@ -343,13 +350,13 @@ See `backend/routes.ts` for complete API documentation.
 - User authentication and session management
 - Email verification with SendGrid
 
-### 🚧 Phase 3: Backend Integration (IN PROGRESS)
+### ✅ Phase 3: Backend Integration (COMPLETED)
 - ✅ User signup and authentication
 - ✅ SendGrid email integration
 - ✅ Account and Settings page data fetching
+- ✅ Google Calendar sync (connect/disconnect, event create/update/delete)
+- ✅ Complete booking flow (create/update/delete bookings synced with Convex and Google Calendar)
 - ⏳ Stripe payments
-- ⏳ Google Calendar sync
-- ⏳ Complete booking flow
 
 ### ⏳ Phase 4: Canva SDK Integration
 - Canva Developer Portal registration
@@ -540,6 +547,220 @@ For issues or questions, refer to:
 2. Environment variable configuration
 3. Database connection status
 4. API key validation
+
+---
+
+## Admin System
+
+### Overview
+
+DayWise includes a built-in admin system for platform management and oversight. The admin panel is separate from the regular user dashboard and provides system-wide access to users, bookings, and statistics.
+
+### Automatic Admin User Creation
+
+The admin user is **automatically created** when the backend server starts for the first time. The initialization process:
+
+1. Checks if an admin user already exists in the database
+2. If no admin exists, creates a new admin user with:
+   - Email: `admin@daywise.app`
+   - Password: `admin123` (hashed with bcrypt)
+   - Full admin privileges (`isAdmin: true`)
+   - No email verification required
+3. Logs the default credentials to the console
+
+**Backend Location**: `/backend/lib/admin-init.ts`
+
+**Initialization Logs**: When the backend starts, you'll see:
+```
+Checking for admin user...
+Creating default admin user...
+Admin user created successfully: admin@daywise.app
+⚠️  Default password: admin123
+⚠️  Please change the admin password after first login!
+```
+
+### Default Admin Credentials
+
+**Email**: `admin@daywise.app`
+**Password**: `admin123`
+
+⚠️ **IMPORTANT**: Change these credentials in production! The default password is only for initial setup.
+
+### Accessing the Admin Panel
+
+1. **Login Page**: Navigate to `/admin/login` in your browser
+   - Development: `http://localhost:5173/admin/login`
+   - Production: `https://your-domain.com/admin/login`
+
+2. **Login Form**: Simple, clean interface with:
+   - Email field
+   - Password field
+   - Sign in button
+   - No Google OAuth
+   - No signup link
+   - No email verification UI
+
+3. **After Login**: Successfully authenticated admins are redirected to `/admin/dashboard`
+
+### Admin Dashboard
+
+**Route**: `/admin/dashboard`
+
+The admin dashboard provides:
+
+#### Dashboard Features
+- **Welcome Card**: Overview and system information
+- **Statistics Cards**:
+  - Total Users
+  - Total Bookings
+  - Active Subscriptions
+- **Management Sections** (placeholders for future features):
+  - User Management
+  - Booking Management
+  - System Settings
+- **Logout Button**: End admin session
+
+#### Session Verification
+The dashboard automatically verifies the admin session on load. If the user is not logged in or doesn't have admin privileges, they're redirected back to `/admin/login`.
+
+### Security Features
+
+1. **Password Hashing**: Admin passwords are hashed with bcrypt (10 salt rounds)
+2. **Session-Based Authentication**: Uses Express sessions with secure cookies
+3. **Admin Privilege Check**: All admin endpoints verify `isAdmin` flag
+4. **No Email Verification**: Admin accounts don't require email verification
+5. **Separate Login Flow**: Admin login is isolated from regular user login
+
+### API Endpoints
+
+#### Admin Login
+```
+POST /api/admin/login
+```
+**Request Body**:
+```json
+{
+  "email": "admin@daywise.app",
+  "password": "admin123"
+}
+```
+**Response**:
+```json
+{
+  "message": "Admin login successful",
+  "user": {
+    "id": "...",
+    "email": "admin@daywise.app",
+    "name": "Admin",
+    "isAdmin": true
+  }
+}
+```
+
+#### Admin Stats
+```
+GET /api/admin/stats
+```
+**Authentication**: Requires admin session
+
+**Response**:
+```json
+{
+  "totalUsers": 42,
+  "totalBookings": 128,
+  "activeSubscriptions": 15
+}
+```
+
+### Customizing Admin Credentials
+
+You can customize the default admin credentials using environment variables in your `backend/.env` file:
+
+```env
+# Admin Configuration (Optional)
+ADMIN_EMAIL=your-admin@yourdomain.com
+ADMIN_PASSWORD=your-secure-password-here
+ADMIN_NAME=Administrator
+```
+
+If not specified, the system uses these defaults:
+- Email: `admin@daywise.app`
+- Password: `admin123`
+- Name: `Admin`
+
+**Note**: Changes to environment variables only affect NEW admin user creation. If an admin already exists in the database, updating these variables won't change the existing admin credentials.
+
+### File Structure
+
+```
+frontend/src/pages/Admin/
+├── AdminLogin.jsx         # Admin login page
+├── AdminLogin.css         # Login page styles
+├── AdminDashboard.jsx     # Admin dashboard
+└── AdminDashboard.css     # Dashboard styles
+
+backend/
+├── lib/
+│   └── admin-init.ts      # Admin user initialization
+└── routes.ts              # Admin login and stats endpoints (lines 919-1008)
+```
+
+### Routes Configuration
+
+Routes are configured in `frontend/src/App.tsx`:
+```javascript
+<Route path="/admin/login" element={<AdminLogin />} />
+<Route path="/admin/dashboard" element={<AdminDashboard />} />
+```
+
+### Database Schema
+
+The admin flag is stored in the `users` table in Convex:
+
+```typescript
+users: defineTable({
+  // ... other fields
+  isAdmin: v.boolean(),  // Admin privilege flag
+  password: v.optional(v.string()),  // Hashed password
+  emailVerified: v.boolean(),  // Skip verification for admin
+  // ... other fields
+})
+```
+
+### Troubleshooting
+
+**Issue**: Admin user not created on startup
+**Solution**: Check backend logs for errors. Ensure Convex database connection is working.
+
+**Issue**: Can't login with default credentials
+**Solution**:
+1. Check if admin user exists in Convex dashboard
+2. Verify backend logs show "Admin user created successfully"
+3. Clear browser cache/cookies
+4. Try restarting the backend server
+
+**Issue**: Redirected from dashboard to login
+**Solution**: Check session configuration. Ensure `SESSION_SECRET` is set in backend `.env` file.
+
+**Issue**: Stats not loading on dashboard
+**Solution**: Check browser console for API errors. Verify backend is running and admin session is active.
+
+### Production Deployment Notes
+
+1. **Change Default Password**: Update `ADMIN_PASSWORD` environment variable before deploying to production
+2. **Secure Sessions**: Ensure `SESSION_SECRET` is a strong, random value
+3. **HTTPS Required**: Admin endpoints should only be accessed over HTTPS in production
+4. **IP Allowlist**: Consider adding IP restrictions for admin endpoints in production (see `backend/security/adminAuth.ts` for HTTP Basic Auth middleware)
+
+### Future Enhancements
+
+The admin system is designed to be extensible. Planned features include:
+- User management (view, edit, delete users)
+- Booking management (view all bookings, cancel, reschedule)
+- System settings (global configuration)
+- Analytics and reporting
+- Audit logs
+- Role-based access control
 
 ---
 

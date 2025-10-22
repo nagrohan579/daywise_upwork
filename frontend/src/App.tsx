@@ -16,9 +16,11 @@ import MyLinkPage from "./pages/MyLink";
 import SettingsPage from "./pages/Settings";
 import AccountPage from "./pages/Account";
 import BillingPage from "./pages/Billing";
-import BookingStepsPage from "./pages/BookingSteps";
+import PublicBookingPage from "./pages/PublicBooking";
 import TermsPage from "./pages/Terms";
 import PrivacyPolicyPage from "./pages/PrivacyPolicy";
+import AdminLogin from "./pages/Admin/AdminLogin";
+import AdminDashboard from "./pages/Admin/AdminDashboard";
 
 // Import slick carousel CSS for calendar/slider components
 import "slick-carousel/slick/slick.css";
@@ -42,10 +44,12 @@ function App() {
         <Route path="/setting" element={<SettingsPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="/billing" element={<BillingPage />} />
-        <Route path="/booking-steps" element={<BookingStepsPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-        <Route path="*" element={<HomePage />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        {/* Public booking page - must be last to catch slug routes */}
+        <Route path="/:slug" element={<PublicBookingPage />} />
       </Routes>
     </QueryClientProvider>
   );

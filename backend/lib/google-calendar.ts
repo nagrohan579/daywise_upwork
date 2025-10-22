@@ -7,8 +7,9 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 
 // Function to get dynamic redirect URI based on current environment
 function getRedirectUri(req?: any): string {
-  // For development, always use localhost:3000 to match Google Cloud Console
-  const redirectUri = 'http://localhost:3000/api/google-calendar/callback';
+  // Use BASE_URL from environment, fallback to localhost for development
+  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+  const redirectUri = `${baseUrl}/api/google-calendar/callback`;
   console.log(`Google Calendar Redirect URI: ${redirectUri}`);
   return redirectUri;
 }

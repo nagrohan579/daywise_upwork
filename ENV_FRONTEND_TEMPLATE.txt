@@ -1,0 +1,15 @@
+# ============================================
+# FRONTEND ENVIRONMENT VARIABLES
+# ============================================
+# Add these to your Vercel Environment Variables
+# Vercel Dashboard > Your Project > Settings > Environment Variables
+
+# Backend API URL - Your DigitalOcean droplet URL
+VITE_API_URL=https://api.yourdomain.com
+
+# Convex Database URL - Get from https://dashboard.convex.dev
+VITE_CONVEX_URL=https://your-deployment.convex.cloud
+
+# Google OAuth Client ID - Get from https://console.cloud.google.com
+VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+

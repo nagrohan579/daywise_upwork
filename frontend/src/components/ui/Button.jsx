@@ -7,6 +7,7 @@ const Button = ({
   variant = "primary",
   type = "button",
   style = {},
+  disabled = false,
 }) => {
   return (
     <button
@@ -14,6 +15,7 @@ const Button = ({
       style={style}
       type={type}
       onClick={onClick}
+      disabled={disabled}
     >
       {icon && <span className="btn-icon">{icon}</span>}
       {text && <span className="btn-text">{text}</span>}

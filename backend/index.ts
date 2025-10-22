@@ -18,7 +18,7 @@ const app = express();
 // CORS configuration - allow frontend to access backend API
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? ['https://your-frontend-domain.vercel.app'] // Update with actual production URL
+    ? (process.env.FRONTEND_URL || '').split(',').filter(Boolean) // Support multiple origins, comma-separated
     : ['http://localhost:5173', 'http://localhost:5174'], // Allow local dev
   credentials: true, // Allow cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -108,6 +108,10 @@ app.get("/robots.txt", (_req, res) => {
 });
 
 (async () => {
+  // Initialize admin user on startup
+  const { initializeAdmin } = await import("./lib/admin-init");
+  await initializeAdmin();
+
   const server = await registerRoutes(app);
 
   // Start the 24-hour reminder job for Pro users

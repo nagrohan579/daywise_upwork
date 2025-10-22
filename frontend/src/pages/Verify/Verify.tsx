@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
 
-const API_URL = "http://localhost:3000"; // Backend API URL
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"; // Backend API URL
 
 const VerifyPage = () => {
   const { token } = useParams<{ token: string }>();

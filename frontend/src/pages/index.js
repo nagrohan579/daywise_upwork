@@ -9,7 +9,7 @@ import Account from "./Account/Account";
 import Billing from "./BillingAndSubscription/Billing";
 import Terms from "./Terms/Terms";
 import PrivacyPolicy from "./PrivacyPolicy/PrivacyPolicy";
-import BookingSteps from "./BookingSteps/BookingSteps";
+import PublicBooking from "./PublicBooking/PublicBooking";
 
 export {
   Home,
@@ -23,5 +23,5 @@ export {
   Billing,
   Terms,
   PrivacyPolicy,
-  BookingSteps,
+  PublicBooking,
 };

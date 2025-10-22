@@ -78,6 +78,43 @@
     width: 100%;
 }
 
+/* Loading state */
+.mylink-page .mylink-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #64748b;
+}
+
+.mylink-page .mylink-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #5162fa;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.mylink-page .mylink-loading p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+.mylink-page .link-info {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
 
 @media screen and (max-width: 1180px) {
 }

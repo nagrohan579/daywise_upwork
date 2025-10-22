@@ -14,7 +14,7 @@ import { applyDefaults, FeaturesShape } from "./lib/features";
 import { ensureStripePrices } from "./lib/stripe";
 import { requireFeature, getUserFeatures } from "./lib/plan-features";
 import { RESERVED_SLUGS } from "./constants";
-import { toSlug, ensureUniqueSlug } from "./lib/slug";
+import { toSlug, ensureUniqueSlug, generateBusinessIdentifiers } from "./lib/slug";
 import { googleCalendarService } from "./lib/google-calendar";
 import { z } from "zod";
 import { sendCustomerConfirmation, sendBusinessNotification, sendRescheduleConfirmation, sendRescheduleBusinessNotification, sendCancellationConfirmation, sendCancellationBusinessNotification } from "./email";
@@ -225,12 +225,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!user) {
         // Create new user from Google profile
+        const { businessName, slug } = generateBusinessIdentifiers(name);
+        
         const userData = {
           name,
           email: normalizedEmail,
           googleId,
           picture: picture || null,
-          businessName: name + "'s Business",
+          businessName,
+          slug: await ensureUniqueSlug(slug, ''),
           timezone: 'UTC',
           country: 'US',
           isAdmin: false,
@@ -916,6 +919,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin login endpoint - simplified, no email verification required
+  app.post("/api/admin/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      // Check if user exists
+      const user = await storage.getUserByEmail(email);
+
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Check if user is actually an admin
+      if (!user.isAdmin) {
+        return res.status(403).json({ message: "Access denied. Admin privileges required." });
+      }
+
+      // Verify password exists
+      if (!user.password) {
+        return res.status(400).json({ message: "Invalid admin account configuration" });
+      }
+
+      // Verify password
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Set session data
+      (req.session as any).userId = user._id;
+      (req.session as any).isAdmin = true;
+      (req.session as any).user = {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        isAdmin: true
+      };
+
+      res.json({
+        message: "Admin login successful",
+        user: {
+          id: user._id,
+          email: user.email,
+          name: user.name,
+          isAdmin: true
+        }
+      });
+
+    } catch (error) {
+      console.error('Admin login error:', error);
+      res.status(500).json({ message: "Admin login failed", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  // Admin stats endpoint
+  app.get("/api/admin/stats", async (req, res) => {
+    try {
+      // Verify admin session
+      const userId = (req.session as any)?.userId;
+      const isAdmin = (req.session as any)?.isAdmin;
+
+      if (!userId || !isAdmin) {
+        return res.status(403).json({ message: "Access denied. Admin privileges required." });
+      }
+
+      // Get stats
+      const users = await storage.getAllUsers();
+      const bookings = await storage.getAllBookings();
+
+      // Count active subscriptions (users with active status)
+      const activeSubscriptions = users.filter((u: any) =>
+        u.subscription && u.subscription.status === 'active'
+      ).length;
+
+      res.json({
+        totalUsers: users.length,
+        totalBookings: bookings.length,
+        activeSubscriptions: activeSubscriptions || 0
+      });
+
+    } catch (error) {
+      console.error('Admin stats error:', error);
+      res.status(500).json({ message: "Failed to load admin stats", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
   // Email signup endpoint with verification
   app.post("/api/auth/signup", async (req, res) => {
     try {
@@ -936,13 +1030,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const verificationToken = crypto.randomUUID();
       const verificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours from now (Unix timestamp)
 
+      // Generate business name and slug from user's name
+      const { businessName, slug } = generateBusinessIdentifiers(name);
+
       // Create unverified user with hashed password
       const userData = {
         name,
         email: email.toLowerCase(),
         password: hashedPassword, // Store hashed password
         emailVerified: false,
-        businessName: name.trim() + "'s Business",
+        businessName,
+        slug: await ensureUniqueSlug(slug, ''),
         timezone: 'UTC',
         country: 'US',
         isAdmin: false,
@@ -1625,13 +1723,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error('Failed to send booking emails:', error);
         });
 
-        // Create Google Calendar event asynchronously - don't block the response
+        // Create Google Calendar event and store the event ID
         googleCalendarService.createCalendarEvent(businessUser._id, {
           summary: `${emailAppointmentType.name} - ${bookingData.customerName}`,
           description: `Appointment with ${bookingData.customerName} (${bookingData.customerEmail})\n\nService: ${emailAppointmentType.name}\nDuration: ${emailAppointmentType.duration} minutes`,
           start: appointmentDate,
           end: new Date(appointmentDate.getTime() + (emailAppointmentType.duration || 30) * 60 * 1000),
           attendees: [bookingData.customerEmail]
+        }).then(async (result) => {
+          // Update booking with Google Calendar event ID
+          if (result.success && result.eventId && booking._id) {
+            try {
+              await storage.updateBooking(booking._id, { googleCalendarEventId: result.eventId });
+              console.log(`✅ Google Calendar event created and linked to booking: ${result.eventId}`);
+            } catch (error) {
+              console.error('Failed to update booking with Google Calendar event ID:', error);
+            }
+          }
         }).catch(error => {
           console.log('Google Calendar integration not connected or failed:', error.message);
         });
@@ -1833,6 +1941,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (existingBooking.userId !== session.userId) {
         return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Delete Google Calendar event if it exists
+      if (existingBooking.googleCalendarEventId) {
+        try {
+          await googleCalendarService.deleteCalendarEvent(
+            existingBooking.userId,
+            existingBooking.googleCalendarEventId
+          );
+          console.log(`✅ Google Calendar event deleted: ${existingBooking.googleCalendarEventId}`);
+        } catch (error) {
+          console.error('Failed to delete Google Calendar event:', error);
+          // Continue with booking deletion even if calendar deletion fails
+        }
       }
       
       const success = await storage.deleteBooking(req.params.id);
@@ -2166,7 +2288,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       // Return public user data only
       res.json({ 
-        id: user._id, 
+        id: user._id,
+        name: user.name,
         businessName: user.businessName, 
         logoUrl: user.logoUrl, 
         welcomeMessage: user.welcomeMessage, 
@@ -3102,12 +3225,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const success = process.env.BASE_URL
-        ? `${process.env.BASE_URL}/billing?success=1`
-        : "http://localhost:5173/billing?success=1";
-      const cancel = process.env.BASE_URL
-        ? `${process.env.BASE_URL}/pricing?canceled=1`
-        : "http://localhost:5173/pricing?canceled=1";
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const success = `${frontendUrl}/billing?success=1`;
+      const cancel = `${frontendUrl}/pricing?canceled=1`;
 
       const checkoutOptions: any = {
         mode: "subscription",
@@ -3223,14 +3343,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const returnUrl = process.env.BASE_URL
-        ? `${process.env.BASE_URL}/billing`
-        : "http://localhost:5173/billing";
+      const returnUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const billingUrl = `${returnUrl}/billing`;
       
       // Create customer portal session
       const portalSession = await stripe.billingPortal.sessions.create({
         customer: userSubscription.stripeCustomerId,
-        return_url: returnUrl,
+        return_url: billingUrl,
       });
       
       return res.json({ url: portalSession.url });

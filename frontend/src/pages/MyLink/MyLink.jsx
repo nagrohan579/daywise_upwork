@@ -47,8 +47,9 @@ const MyLink = () => {
   };
 
   const handleCopyLink = () => {
-    const frontendUrl = window.location.origin;
-    const bookingLink = `${frontendUrl}/${userData.slug}`;
+    // Prefer explicit Vite env var (set in Vercel). Fallback to window.location.origin for local dev.
+    const frontendBase = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
+    const bookingLink = `${frontendBase}/${userData.slug}`;
     
     navigator.clipboard.writeText(bookingLink).then(() => {
       toast.success('Link copied to clipboard!');

@@ -205,7 +205,7 @@ const PublicBooking = () => {
 
       console.log("PublicBooking - Creating booking with payload:", bookingPayload);
 
-      const response = await fetch(`${apiUrl}/api/bookings`, {
+      const response = await fetch(`${apiUrl}/api/public-bookings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

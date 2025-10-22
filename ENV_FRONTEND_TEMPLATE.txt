@@ -13,3 +13,7 @@ VITE_CONVEX_URL=https://your-deployment.convex.cloud
 # Google OAuth Client ID - Get from https://console.cloud.google.com
 VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 
+# Frontend public URL - the Vercel URL where the frontend is hosted
+# Used to generate shareable links (fallback to window.location.origin in dev)
+VITE_FRONTEND_URL=https://your-app.vercel.app
+

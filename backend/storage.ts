@@ -96,13 +96,32 @@ export const storage = {
   },
 
   async createBooking(booking: any) {
+    console.log('storage.createBooking - Input booking:', booking);
+    console.log('storage.createBooking - userId:', booking.userId, 'type:', typeof booking.userId);
+    console.log('storage.createBooking - bookingToken:', booking.bookingToken, 'type:', typeof booking.bookingToken);
+    
     // Convert Date to timestamp
-    const bookingData = {
+    const bookingData: any = {
       ...booking,
       appointmentDate: booking.appointmentDate instanceof Date
         ? booking.appointmentDate.getTime()
         : booking.appointmentDate,
     };
+    
+    console.log('storage.createBooking - After spread, userId:', bookingData.userId);
+    console.log('storage.createBooking - After spread, bookingToken:', bookingData.bookingToken);
+    
+    // Remove undefined values to avoid Convex validation issues
+    Object.keys(bookingData).forEach(key => {
+      if (bookingData[key] === undefined) {
+        console.log('storage.createBooking - Removing undefined key:', key);
+        delete bookingData[key];
+      }
+    });
+    
+    console.log('storage.createBooking - Final bookingData to send:', bookingData);
+    console.log('storage.createBooking - Final bookingData JSON:', JSON.stringify(bookingData, null, 2));
+    
     const id = await convex.mutation(api.bookings.create, bookingData);
     return await convex.query(api.bookings.getById, { id });
   },

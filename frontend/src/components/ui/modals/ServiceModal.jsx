@@ -3,8 +3,6 @@ import { IoClose } from "react-icons/io5";
 import "./modal.css";
 import { Input, Textarea, ColorPicker, Checkbox, Button } from "../../index";
 import { useState, useEffect } from "react";
-import { useMutation } from "convex/react";
-import { api } from "../../../../../convex/_generated/api";
 import { toast } from "sonner";
 
 const ServicesModal = ({
@@ -27,10 +25,6 @@ const ServicesModal = ({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userId, setUserId] = useState(null);
-
-  // Convex mutations
-  const createAppointmentType = useMutation(api.appointmentTypes.create);
-  const updateAppointmentType = useMutation(api.appointmentTypes.update);
 
   // Get current user
   useEffect(() => {
@@ -100,11 +94,17 @@ const ServicesModal = ({
     setIsSubmitting(true);
 
     try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
       if (isEdit && selectedService) {
         // Update existing service
-        await updateAppointmentType({
-          id: selectedService._id,
-          updates: {
+        const response = await fetch(`${apiUrl}/api/appointment-types/${selectedService._id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
             name: formData.name,
             description: formData.description,
             duration: formData.duration,
@@ -112,21 +112,40 @@ const ServicesModal = ({
             price: formData.price,
             color: formData.color,
             isActive: formData.isActive,
-          }
+          }),
         });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to update service');
+        }
+
         toast.success("Service updated successfully!");
       } else {
         // Create new service
-        await createAppointmentType({
-          userId: userId,
-          name: formData.name,
-          description: formData.description,
-          duration: formData.duration,
-          bufferTime: formData.bufferTime,
-          price: formData.price,
-          color: formData.color,
-          isActive: formData.isActive,
+        const response = await fetch(`${apiUrl}/api/appointment-types`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            userId: userId,
+            name: formData.name,
+            description: formData.description,
+            duration: formData.duration,
+            bufferTime: formData.bufferTime,
+            price: formData.price,
+            color: formData.color,
+            isActive: formData.isActive,
+          }),
         });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to create service');
+        }
+
         toast.success("Service created successfully!");
       }
 

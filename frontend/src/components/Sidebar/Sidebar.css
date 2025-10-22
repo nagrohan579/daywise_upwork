@@ -142,6 +142,12 @@
   font-weight: 500;
   line-height: 20px;
   font-family: Inter, sans-serif;
+  /* Button reset styles */
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
 }
 
 .sidebar-container .logout-link:hover {

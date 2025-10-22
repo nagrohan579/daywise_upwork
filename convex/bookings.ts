@@ -46,7 +46,7 @@ export const create = mutation({
     customerName: v.string(),
     customerEmail: v.string(),
     appointmentDate: v.number(),
-    duration: v.number(),
+    duration: v.optional(v.number()),
     status: v.optional(v.string()),
     notes: v.optional(v.string()),
     bookingToken: v.string(),

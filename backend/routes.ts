@@ -1579,7 +1579,145 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Booking routes (with feature enforcement)
+  // Internal booking endpoint - simplified for booking page use (authenticated users only)
   app.post("/api/bookings", async (req, res) => {
+    try {
+      const { customerName, customerEmail, appointmentDate } = req.body;
+      
+      // Get userId from session
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      console.log('POST /api/bookings - User ID from session:', userId, 'Type:', typeof userId);
+
+      // Validation
+      if (!customerName?.trim()) {
+        return res.status(400).json({ message: "Customer name is required" });
+      }
+      if (!customerEmail?.includes('@')) {
+        return res.status(400).json({ message: "Valid email address is required" });
+      }
+      if (!appointmentDate) {
+        return res.status(400).json({ message: "Appointment date is required" });
+      }
+
+      // Log for debugging
+      console.log('POST /api/bookings - Creating booking:', {
+        userId,
+        customerName,
+        customerEmail,
+        appointmentDate,
+        appointmentDateType: typeof appointmentDate,
+      });
+
+      // Generate booking token
+      const bookingToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+      // Convert appointmentDate to timestamp
+      let appointmentTimestamp: number;
+      if (typeof appointmentDate === 'number') {
+        appointmentTimestamp = appointmentDate;
+      } else if (typeof appointmentDate === 'string') {
+        appointmentTimestamp = new Date(appointmentDate).getTime();
+      } else if (appointmentDate instanceof Date) {
+        appointmentTimestamp = appointmentDate.getTime();
+      } else {
+        throw new Error('Invalid appointmentDate format');
+      }
+
+      console.log('POST /api/bookings - Converted timestamp:', appointmentTimestamp);
+
+      // Create booking with minimal fields - no appointmentTypeId required
+      const bookingData: any = {
+        userId,
+        customerName,
+        customerEmail,
+        appointmentDate: appointmentTimestamp,
+        duration: 30, // Default duration
+        status: "confirmed",
+        bookingToken,
+      };
+
+      // Only add appointmentTypeId if it exists (optional field)
+      // This ensures we don't pass undefined to Convex
+      
+      console.log('POST /api/bookings - Booking data to create:', bookingData);
+
+      let booking;
+      try {
+        booking = await storage.createBooking(bookingData);
+      } catch (convexError) {
+        console.error('POST /api/bookings - Convex error:', convexError);
+        console.error('POST /api/bookings - Error details:', JSON.stringify(convexError, null, 2));
+        throw convexError;
+      }
+      
+      if (!booking) {
+        return res.status(500).json({ message: "Failed to create booking" });
+      }
+
+      console.log('POST /api/bookings - Booking created successfully:', booking._id);
+
+      // Create Google Calendar event if connected
+      const appointmentDateObj = new Date(appointmentTimestamp);
+      const appointmentEnd = new Date(appointmentDateObj.getTime() + 30 * 60 * 1000); // 30 min default
+      
+      googleCalendarService.createCalendarEvent(userId, {
+        summary: `Appointment - ${customerName}`,
+        description: `Appointment with ${customerName} (${customerEmail})`,
+        start: appointmentDateObj,
+        end: appointmentEnd,
+        attendees: [customerEmail]
+      }).then(async (result) => {
+        // Update booking with Google Calendar event ID
+        if (result.success && result.eventId && booking._id) {
+          try {
+            await storage.updateBooking(booking._id, { googleCalendarEventId: result.eventId });
+            console.log(`✅ Google Calendar event created and linked to booking: ${result.eventId}`);
+          } catch (error) {
+            console.error('Failed to update booking with Google Calendar event ID:', error);
+          }
+        }
+      }).catch(error => {
+        console.log('Google Calendar integration not connected or failed:', error.message);
+      });
+
+      res.json({ message: "Booking created successfully", booking });
+    } catch (error) {
+      console.error('POST /api/bookings - Error:', error);
+      console.error('POST /api/bookings - Error type:', typeof error);
+      console.error('POST /api/bookings - Error name:', error instanceof Error ? error.name : 'unknown');
+      console.error('POST /api/bookings - Error message:', error instanceof Error ? error.message : String(error));
+      
+      // Format error message properly
+      let errorMessage = "Invalid booking data";
+      let errorDetails = "Unknown error";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        errorDetails = error.stack || error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+        errorDetails = error;
+      } else {
+        try {
+          errorDetails = JSON.stringify(error, null, 2);
+        } catch (e) {
+          errorDetails = String(error);
+        }
+      }
+      
+      res.status(400).json({ 
+        message: errorMessage,
+        error: errorDetails,
+      });
+    }
+  });
+
+  // PUBLIC booking endpoint - for public booking page (/:slug)
+  app.post("/api/public-bookings", async (req, res) => {
     try {
       const bookingData = insertBookingSchema.parse(req.body);
       
@@ -1607,8 +1745,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (appointmentType.userId !== userId) {
         return res.status(403).json({ message: "Appointment type does not belong to this user" });
       }
-
-      // Feature enforcement is now handled by requireFeature middleware
 
       const appointmentDate = new Date(bookingData.appointmentDate);
       const appointmentDuration = appointmentType.duration || 30;
@@ -1868,32 +2004,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!booking) {
         return res.status(404).json({ message: "Booking not found after update" });
       }
+
+      // Update Google Calendar event if date/time changed or status changed to cancelled
+      if (existingBooking.googleCalendarEventId) {
+        try {
+          // If cancelled, delete the Google Calendar event
+          if (booking.status === 'cancelled' && existingBooking.status !== 'cancelled') {
+            await googleCalendarService.deleteCalendarEvent(session.userId, existingBooking.googleCalendarEventId);
+            console.log(`✅ Google Calendar event deleted: ${existingBooking.googleCalendarEventId}`);
+          }
+          // If date/time changed, update the Google Calendar event
+          else if (existingBooking.appointmentDate !== booking.appointmentDate) {
+            const appointmentDateObj = new Date(booking.appointmentDate);
+            const appointmentEnd = new Date(appointmentDateObj.getTime() + (booking.duration || 30) * 60 * 1000);
+            
+            await googleCalendarService.updateCalendarEvent(session.userId, existingBooking.googleCalendarEventId, {
+              start: appointmentDateObj,
+              end: appointmentEnd,
+              summary: `Appointment - ${booking.customerName}`,
+              description: `Appointment with ${booking.customerName} (${booking.customerEmail})`
+            });
+            console.log(`✅ Google Calendar event updated: ${existingBooking.googleCalendarEventId}`);
+          }
+        } catch (calendarError) {
+          console.error('Failed to update Google Calendar event:', calendarError);
+          // Don't fail the booking update if calendar sync fails
+        }
+      }
+      // Note: We don't create a new calendar event during edit if one doesn't exist
+      // Calendar events should be created during initial booking creation only
+      // This prevents duplicate entries in the calendar view
+      
+      console.log(`PUT /api/bookings/${req.params.id} - Update completed, sending response`);
       
       // Send email notifications based on status change
       try {
         const user = await storage.getUser(booking.userId);
-        if (!booking.appointmentTypeId) {
-          return res.status(400).json({ message: "Booking missing appointment type" });
-        }
-        const appointmentType = await storage.getAppointmentType(booking.appointmentTypeId);
-        const branding = await storage.getBranding(booking.userId);
-        const userFeatures = await getUserFeatures(booking.userId);
         
-        if (user && appointmentType) {
-          const emailData = {
-            customerName: booking.customerName,
-            customerEmail: booking.customerEmail,
-            businessName: user.businessName || user.name,
-            businessEmail: user.email,
-            appointmentType: appointmentType.name,
-            appointmentDuration: appointmentType.duration,
-            appointmentDate: new Date(booking.appointmentDate).toLocaleDateString(),
-            appointmentTime: new Date(booking.appointmentDate).toLocaleTimeString(),
-            businessColors: branding ? {
-              primary: branding.primary,
-              secondary: branding.secondary,
-              accent: branding.accent
-            } : undefined,
+        // Only send emails if we have an appointment type (skip for internal bookings without appointment type)
+        if (booking.appointmentTypeId) {
+          console.log(`PUT /api/bookings/${req.params.id} - Has appointmentTypeId, preparing email notifications`);
+          const appointmentType = await storage.getAppointmentType(booking.appointmentTypeId);
+          const branding = await storage.getBranding(booking.userId);
+          const userFeatures = await getUserFeatures(booking.userId);
+          
+          if (user && appointmentType) {
+            const emailData = {
+              customerName: booking.customerName,
+              customerEmail: booking.customerEmail,
+              businessName: user.businessName || user.name,
+              businessEmail: user.email,
+              appointmentType: appointmentType.name,
+              appointmentDuration: appointmentType.duration,
+              appointmentDate: new Date(booking.appointmentDate).toLocaleDateString(),
+              appointmentTime: new Date(booking.appointmentDate).toLocaleTimeString(),
+              businessColors: branding ? {
+                primary: branding.primary,
+                secondary: branding.secondary,
+                accent: branding.accent
+              } : undefined,
             businessLogo: branding?.logoUrl,
             usePlatformBranding: userFeatures?.poweredBy || false,
           };
@@ -1914,11 +2083,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await sendRescheduleBusinessNotification(oldEmailData);
           }
         }
+        } else {
+          console.log(`PUT /api/bookings/${req.params.id} - No appointmentTypeId, skipping email notifications`);
+        }
       } catch (emailError) {
         console.error('Email notification error:', emailError);
         // Don't fail the booking update if email fails
       }
       
+      console.log(`PUT /api/bookings/${req.params.id} - Sending success response`);
       res.json({ message: "Booking updated successfully", booking });
     } catch (error) {
       res.status(500).json({ message: "Failed to update booking", error: error instanceof Error ? error.message : "Unknown error" });

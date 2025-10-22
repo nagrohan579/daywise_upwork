@@ -307,6 +307,13 @@ VITE_CONVEX_URL=https://your-deployment.convex.cloud
 VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 ```
 
+```bash
+# Optional but recommended: frontend public base URL used by the app when building
+# shareable links (e.g. the "My Link" copy button). Set this to your Vercel URL
+# so copied booking links point at your production site instead of localhost.
+VITE_FRONTEND_URL=https://your-app.vercel.app
+```
+
 6. Click **"Deploy"**
 
 7. Wait for deployment to complete (2-3 minutes)
@@ -335,6 +342,11 @@ Restart backend:
 ```bash
 pm2 restart daywise-backend
 ```
+
+Note: Also make sure you've added `VITE_FRONTEND_URL` in your Vercel project environment
+variables (see Part 2) and set it to the same Vercel URL. This ensures client-side
+features that build absolute public links (for example the "My Link" copy button)
+use the production frontend domain instead of localhost.
 
 ### Step 5: Test the Full Stack
 
@@ -376,6 +388,7 @@ Add in **Vercel** → **Your Project** → **Settings** → **Environment Variab
 | `VITE_API_URL` | `https://api.yourdomain.com` | Your backend URL |
 | `VITE_CONVEX_URL` | `https://happy-monkey-123.convex.cloud` | Convex deployment URL |
 | `VITE_GOOGLE_CLIENT_ID` | From Google Console | OAuth client ID |
+| `VITE_FRONTEND_URL` | `https://your-app.vercel.app` | Public frontend URL used for shareable links |
 
 ---
 

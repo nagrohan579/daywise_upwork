@@ -4,8 +4,6 @@ import { FaEdit } from "react-icons/fa";
 import { RiDeleteBin5Line } from "react-icons/ri";
 import { FiClock } from "react-icons/fi";
 import { useMobile } from "../../hooks";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
 import { toast } from "sonner";
 
 import { ActionMenu, AppLayout, Button, ServicesModal } from "../../components";
@@ -20,6 +18,8 @@ const Service = () => {
   const [modalMode, setModalMode] = useState("add");
   const [selectedService, setSelectedService] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [appointmentTypes, setAppointmentTypes] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Fetch current user
   useEffect(() => {
@@ -40,14 +40,36 @@ const Service = () => {
     fetchUser();
   }, []);
 
-  // Fetch appointment types from Convex
-  const appointmentTypes = useQuery(
-    api.appointmentTypes.getByUser,
-    userId ? { userId } : "skip"
-  );
+  // Fetch appointment types from API
+  const fetchAppointmentTypes = async () => {
+    if (!userId) return;
+    
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/appointment-types`, {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAppointmentTypes(data || []);
+      } else {
+        console.error('Failed to fetch appointment types');
+        setAppointmentTypes([]);
+      }
+    } catch (error) {
+      console.error('Error fetching appointment types:', error);
+      setAppointmentTypes([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Delete mutation
-  const deleteAppointmentType = useMutation(api.appointmentTypes.deleteAppointmentType);
+  useEffect(() => {
+    if (userId) {
+      fetchAppointmentTypes();
+    }
+  }, [userId]);
 
   const handleAddNew = () => {
     setModalMode("add");
@@ -71,8 +93,20 @@ const Service = () => {
 
     setIsDeleting(true);
     try {
-      await deleteAppointmentType({ id: serviceToDelete._id });
-      toast.success("Service deleted successfully!");
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/appointment-types/${serviceToDelete._id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        toast.success("Service deleted successfully!");
+        await fetchAppointmentTypes(); // Refresh the list
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || "Failed to delete service");
+      }
+      
       setShowDeleteModal(false);
       setServiceToDelete(null);
     } catch (error) {
@@ -121,10 +155,10 @@ const Service = () => {
           </p>
         </div>
         
-        {!appointmentTypes ? (
-          <div className="loading-container">
-            <div className="spinner"></div>
-            <p>Loading services...</p>
+        {loading ? (
+          <div className="service-loading">
+            <div className="service-spinner"></div>
+            <p className="service-loading-text">Loading services...</p>
           </div>
         ) : appointmentTypes.length === 0 ? (
           <div className="empty-state-container">
@@ -205,6 +239,7 @@ const Service = () => {
         selectedService={selectedService}
         onServiceSaved={() => {
           setSelectedService(null);
+          fetchAppointmentTypes(); // Refresh the list
         }}
       />
 

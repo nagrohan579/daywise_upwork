@@ -14,8 +14,6 @@ import { useMobile } from "../../hooks";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import CalendarApp from "../../components/Calendar/CalendarTest";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
 
 // Helper function to convert date to local date string without timezone shift
 const toLocalDateString = (date) => {
@@ -40,6 +38,7 @@ const BookingsPage = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [bookingToDelete, setBookingToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [bookings, setBookings] = useState([]);
 
   const isMobile = useMobile(991);
 
@@ -68,28 +67,37 @@ const BookingsPage = () => {
     fetchUser();
   }, []);
 
-  // Fetch bookings from Convex
-  const convexBookings = useQuery(
-    api.bookings.getByUser,
-    userId ? { userId } : "skip"
-  );
-
-  // Convex mutation for deleting bookings
-  const deleteBooking = useMutation(api.bookings.deleteBooking);
-
-  // Log Convex bookings when they change
-  useEffect(() => {
-    console.log('Booking - Convex bookings query result:', convexBookings);
-    console.log('Booking - Convex bookings count:', convexBookings?.length || 0);
-    if (convexBookings && convexBookings.length > 0) {
-      console.log('Booking - Sample Convex booking:', convexBookings[0]);
-    }
+  // Fetch bookings from API
+  const fetchBookings = async () => {
+    if (!userId) return;
     
-    // Stop loading when we have data or the query completes
-    if (convexBookings !== undefined) {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/bookings`, {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Booking - Bookings from API:', data);
+        setBookings(data || []);
+      } else {
+        console.error('Booking - Failed to fetch bookings');
+        setBookings([]);
+      }
+    } catch (error) {
+      console.error('Booking - Error fetching bookings:', error);
+      setBookings([]);
+    } finally {
       setIsLoadingData(false);
     }
-  }, [convexBookings]);
+  };
+
+  useEffect(() => {
+    if (userId) {
+      fetchBookings();
+    }
+  }, [userId]);
 
   // Fetch Google Calendar events with auto-refresh
   const fetchCalendarEvents = async (showLoadingState = true) => {
@@ -167,11 +175,11 @@ const BookingsPage = () => {
 
   // Transform and combine data whenever bookings or calendar events change
   useEffect(() => {
-    console.log('Booking - Transforming events - Convex bookings:', convexBookings?.length || 0, 'Calendar events:', calendarEvents?.length || 0);
+    console.log('Booking - Transforming events - bookings:', bookings?.length || 0, 'Calendar events:', calendarEvents?.length || 0);
     
     // Only show Convex bookings to avoid duplicates
     // (Convex bookings are automatically synced to Google Calendar)
-    const transformedBookings = (convexBookings || []).map((booking, index) => {
+    const transformedBookings = (bookings || []).map((booking, index) => {
       const bookingDate = new Date(booking.appointmentDate);
       const hours = bookingDate.getHours();
       const minutes = bookingDate.getMinutes();
@@ -187,12 +195,12 @@ const BookingsPage = () => {
       };
     });
 
-    console.log('Booking - Transformed Convex bookings:', transformedBookings);
+    console.log('Booking - Transformed bookings:', transformedBookings);
 
     // Only include calendar events that are NOT already in Convex bookings
     // (to avoid showing duplicates when bookings are synced to calendar)
     const bookingEventIds = new Set(
-      (convexBookings || [])
+      (bookings || [])
         .filter(b => b.googleCalendarEventId)
         .map(b => b.googleCalendarEventId)
     );
@@ -235,7 +243,7 @@ const BookingsPage = () => {
     console.log('Booking - Combined events:', combined);
     
     setCombinedEvents(combined);
-  }, [convexBookings, calendarEvents]);
+  }, [bookings, calendarEvents]);
 
   // Clean up URL parameters (calendar connection is now handled by GoogleButton component)
   useEffect(() => {
@@ -274,40 +282,32 @@ const BookingsPage = () => {
     try {
       console.log('Booking - Deleting appointment:', bookingToDelete);
       
-      // Delete from Convex
-      await deleteBooking({ id: bookingToDelete._id });
-      console.log('Booking - Appointment deleted from Convex');
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      
+      // Delete via API (which handles both Convex and Google Calendar)
+      const response = await fetch(`${apiUrl}/api/bookings/${bookingToDelete._id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
 
-      // Close modal immediately after Convex deletion
+      if (response.ok) {
+        console.log('Booking - Appointment deleted successfully');
+        toast.success('Appointment deleted successfully!');
+        
+        // Refresh bookings list
+        await fetchBookings();
+        
+        // Refresh calendar events
+        fetchCalendarEvents(false);
+      } else {
+        const errorData = await response.json();
+        console.error('Booking - Failed to delete appointment:', errorData);
+        toast.error(errorData.message || 'Failed to delete appointment');
+      }
+
+      // Close modal
       setShowDeleteModal(false);
       setBookingToDelete(null);
-
-      // Delete from Google Calendar if it exists (in background)
-      if (bookingToDelete.googleCalendarEventId) {
-        console.log('Booking - Deleting from Google Calendar:', bookingToDelete.googleCalendarEventId);
-        
-        try {
-          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-          const response = await fetch(`${apiUrl}/api/google-calendar/events/${bookingToDelete.googleCalendarEventId}`, {
-            method: 'DELETE',
-            credentials: 'include',
-          });
-
-          if (response.ok) {
-            console.log('Booking - Appointment deleted from Google Calendar');
-            toast.success('Appointment deleted successfully!');
-          } else {
-            console.error('Booking - Failed to delete from Google Calendar');
-            toast.warning('Appointment deleted but calendar sync failed');
-          }
-        } catch (calendarError) {
-          console.error('Booking - Error deleting from Google Calendar:', calendarError);
-          toast.warning('Appointment deleted but calendar sync failed');
-        }
-      } else {
-        console.log('Booking - No Google Calendar event ID, skipping calendar deletion');
-        toast.success('Appointment deleted successfully!');
-      }
 
       // Refresh calendar events to update UI
       fetchCalendarEvents(false);
@@ -320,7 +320,7 @@ const BookingsPage = () => {
   };
 
   // Prepare bookings for list view
-  const bookingsForList = (convexBookings || []).map(booking => {
+  const bookingsForList = (bookings || []).map(booking => {
     const bookingDate = new Date(booking.appointmentDate);
     const hours = bookingDate.getHours();
     const minutes = bookingDate.getMinutes();
@@ -623,7 +623,8 @@ const BookingsPage = () => {
         selectedEvent={selectedBooking}
         mode={modalMode}
         onAppointmentCreated={() => {
-          // Refresh calendar events when appointment is created
+          // Refresh bookings and calendar events when appointment is created
+          fetchBookings();
           fetchCalendarEvents(false);
           setSelectedBooking(null); // Clear selection after save
         }}

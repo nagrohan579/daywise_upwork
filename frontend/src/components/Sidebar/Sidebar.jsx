@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { GiHamburgerMenu } from "react-icons/gi";
 import { IoMdClose } from "react-icons/io";
+import { toast } from "sonner";
 
 import {
   AvailabilityIcon,
@@ -34,6 +35,29 @@ const navItems = [
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = async (e) => {
+    e.preventDefault();
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        toast.success('Logged out successfully');
+        toggleSidebar(); // Close sidebar
+        navigate('/login'); // Redirect to login page
+      } else {
+        toast.error('Failed to logout');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('An error occurred during logout');
+    }
+  };
 
   return (
     <>
@@ -64,12 +88,12 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         </nav>
 
         <div className="logout-container">
-          <Link to="/logout" className="logout-link" onClick={toggleSidebar}>
+          <button className="logout-link" onClick={handleLogout}>
             <Icon>
               <LogoutIcon />
             </Icon>
             Logout
-          </Link>
+          </button>
         </div>
       </div>
 

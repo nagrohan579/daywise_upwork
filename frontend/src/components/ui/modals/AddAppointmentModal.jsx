@@ -3,8 +3,6 @@ import { IoClose } from "react-icons/io5";
 import "./modal.css";
 import { Input, Select, Button } from "../../index";
 import { useEffect, useState } from "react";
-import { useMutation } from "convex/react";
-import { api } from "../../../../../convex/_generated/api";
 import { toast } from "sonner";
 
 const AddAppointmentModal = ({
@@ -13,6 +11,7 @@ const AddAppointmentModal = ({
   selectedEvent,
   mode = "add",
   onAppointmentCreated,
+  onSuccess, // Additional callback for consistency
 }) => {
   console.log("modemode", mode);
   console.log("selectedEvent", selectedEvent);
@@ -25,21 +24,15 @@ const AddAppointmentModal = ({
     customerEmail: "",
     appointmentDate: "",
     appointmentTime: "",
-    duration: 30,
-    notes: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userId, setUserId] = useState(null);
-
-  // Convex mutations
-  const createBooking = useMutation(api.bookings.create);
-  const updateBooking = useMutation(api.bookings.update);
 
   // Get current user
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const apiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3000';
         const response = await fetch(`${apiUrl}/api/auth/me`, {
           credentials: 'include',
         });
@@ -88,8 +81,6 @@ const AddAppointmentModal = ({
         customerEmail: eventData.customerEmail || '',
         appointmentDate: appointmentDate,
         appointmentTime: appointmentTime,
-        duration: eventData.duration || 30,
-        notes: eventData.notes || '',
       });
     } else if (isAdd) {
       // Initialize with current date/time for new appointments
@@ -102,8 +93,6 @@ const AddAppointmentModal = ({
         customerEmail: "",
         appointmentDate: today,
         appointmentTime: currentTime,
-        duration: 30,
-        notes: "",
       });
     }
   }, [selectedEvent, isEdit, isView, isAdd]);
@@ -161,171 +150,64 @@ const AddAppointmentModal = ({
 
         console.log('AddAppointmentModal - Updating booking with ID:', bookingId);
 
-        // Update in Convex
-        await updateBooking({
-          id: bookingId,
-          updates: {
-            customerName: formData.customerName,
-            customerEmail: formData.customerEmail,
-            appointmentDate: appointmentTimestamp,
-            duration: formData.duration,
-            notes: formData.notes,
-          }
-        });
-
-        console.log('AddAppointmentModal - Booking updated successfully');
-
-        // Update Google Calendar event if it exists
-        if (eventData.googleCalendarEventId) {
-          console.log('AddAppointmentModal - Updating Google Calendar event:', eventData.googleCalendarEventId);
-          
-          try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-            const description = "Appointment with " + formData.customerName + "\nEmail: " + formData.customerEmail;
-            const fullDescription = formData.notes ? description + "\nNotes: " + formData.notes : description;
-            
-            const calendarUpdateData = {
-              summary: "Appointment: " + formData.customerName,
-              description: fullDescription,
-              start: appointmentDateTime.toISOString(),
-              end: new Date(appointmentTimestamp + formData.duration * 60 * 1000).toISOString(),
-              attendees: [formData.customerEmail],
-            };
-            
-            console.log('AddAppointmentModal - Sending Google Calendar update:', calendarUpdateData);
-            
-            const calendarResponse = await fetch(`${apiUrl}/api/google-calendar/events/${eventData.googleCalendarEventId}`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              credentials: 'include',
-              body: JSON.stringify(calendarUpdateData),
-            });
-
-            console.log('AddAppointmentModal - Google Calendar update response status:', calendarResponse.status);
-
-            if (calendarResponse.ok) {
-              const calendarResult = await calendarResponse.json();
-              console.log('AddAppointmentModal - Google Calendar update response:', calendarResult);
-              if (calendarResult.success) {
-                console.log('AddAppointmentModal - Google Calendar event updated successfully');
-                toast.success("Appointment updated successfully!");
-              } else {
-                console.warn('AddAppointmentModal - Google Calendar update failed:', calendarResult);
-                toast.warning(`Appointment updated but calendar sync failed: ${calendarResult.error || 'Unknown error'}`);
-              }
-            } else {
-              const errorText = await calendarResponse.text();
-              console.error('AddAppointmentModal - Google Calendar update error:', calendarResponse.status, errorText);
-              toast.warning("Appointment updated but calendar sync failed");
-            }
-          } catch (calendarError) {
-            console.error('AddAppointmentModal - Google Calendar update error:', calendarError);
-            toast.warning("Appointment updated but calendar sync failed");
-          }
-        } else {
-          console.log('AddAppointmentModal - No Google Calendar event ID, skipping calendar update');
-          toast.success("Appointment updated successfully!");
-        }
-
-      } else {
-        // CREATE new appointment
-        let googleCalendarEventId = null;
-        
-        try {
-        // First check if Google Calendar is connected
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        const statusResponse = await fetch(`${apiUrl}/api/google-calendar/status`, {
-          credentials: 'include',
-        });
-        
-        if (statusResponse.ok) {
-          const statusData = await statusResponse.json();
-          console.log('AddAppointmentModal - Google Calendar connection status:', statusData);
-          
-          if (!statusData.isConnected) {
-            console.warn('AddAppointmentModal - Google Calendar not connected, skipping event creation');
-            toast.warning("Appointment created but Google Calendar is not connected. Please connect Google Calendar to sync events.");
-          } else {
-              const description = "Appointment with " + formData.customerName + "\nEmail: " + formData.customerEmail;
-              const fullDescription = formData.notes ? description + "\nNotes: " + formData.notes : description;
-              
-              const eventData = {
-                summary: "Appointment: " + formData.customerName,
-                description: fullDescription,
-                start: appointmentDateTime.toISOString(),
-                end: new Date(appointmentTimestamp + formData.duration * 60 * 1000).toISOString(),
-                attendees: [formData.customerEmail],
-              };
-              
-              console.log('AddAppointmentModal - Creating Google Calendar event with data:', eventData);
-              
-              const calendarResponse = await fetch(`${apiUrl}/api/google-calendar/events`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify(eventData),
-              });
-
-              console.log('AddAppointmentModal - Google Calendar response status:', calendarResponse.status);
-
-              if (calendarResponse.ok) {
-                const calendarResult = await calendarResponse.json();
-                console.log('AddAppointmentModal - Google Calendar response:', calendarResult);
-                if (calendarResult.success) {
-                  googleCalendarEventId = calendarResult.eventId;
-                  console.log('AddAppointmentModal - Google Calendar event created with ID:', googleCalendarEventId);
-                  toast.success("Appointment created and added to Google Calendar!");
-                } else {
-                  console.warn('AddAppointmentModal - Google Calendar event creation failed:', calendarResult);
-                  console.warn('AddAppointmentModal - Error details:', calendarResult.error);
-                  toast.warning(`Appointment created but failed to add to Google Calendar: ${calendarResult.error || 'Unknown error'}`);
-                }
-              } else {
-                const errorText = await calendarResponse.text();
-                console.error('AddAppointmentModal - Google Calendar API error:', calendarResponse.status, errorText);
-                let errorMessage = 'Unknown error';
-                try {
-                  const errorData = JSON.parse(errorText);
-                  errorMessage = errorData.message || errorData.error || errorText;
-                } catch (e) {
-                  errorMessage = errorText;
-                }
-                toast.warning(`Appointment created but failed to add to Google Calendar: ${errorMessage}`);
-              }
-            }
-          } else {
-            console.error('AddAppointmentModal - Failed to check Google Calendar status:', statusResponse.status);
-            toast.warning("Appointment created but could not verify Google Calendar connection. Please connect Google Calendar to sync events.");
-          }
-        } catch (calendarError) {
-          console.error('AddAppointmentModal - Google Calendar error:', calendarError);
-          toast.warning("Appointment created but failed to add to Google Calendar. Please connect Google Calendar to sync events.");
-        }
-
-        console.log('AddAppointmentModal - Creating Convex booking with userId:', userId, 'type:', typeof userId);
-
-        // Validate userId exists
-        if (!userId || typeof userId !== 'string') {
-          throw new Error(`Invalid userId: ${userId}`);
-        }
-
-        const bookingId = await createBooking({
-          userId: userId,
+        // Update via API
+        const apiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const updatePayload = {
           customerName: formData.customerName,
           customerEmail: formData.customerEmail,
           appointmentDate: appointmentTimestamp,
-          duration: formData.duration,
-          status: "confirmed",
-          notes: formData.notes,
-          bookingToken: generateBookingToken(),
-          googleCalendarEventId: googleCalendarEventId,
+        };
+
+        const response = await fetch(`${apiUrl}/api/bookings/${bookingId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(updatePayload),
         });
-        
-        console.log('AddAppointmentModal - Convex booking created successfully with ID:', bookingId);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to update booking');
+        }
+
+        console.log('AddAppointmentModal - Booking updated successfully');
+        toast.success("Appointment updated successfully!");
+
+      } else {
+        // CREATE new appointment
+        console.log('AddAppointmentModal - Creating booking via API');
+
+        const apiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const bookingPayload = {
+          customerName: formData.customerName,
+          customerEmail: formData.customerEmail,
+          appointmentDate: appointmentTimestamp,
+        };
+
+        console.log('AddAppointmentModal - Booking payload:', bookingPayload);
+
+        const response = await fetch(`${apiUrl}/api/bookings`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(bookingPayload),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('AddAppointmentModal - Server error response:', errorData);
+          console.error('AddAppointmentModal - Error message:', errorData.message);
+          console.error('AddAppointmentModal - Error details:', errorData.error);
+          console.error('AddAppointmentModal - Full error object:', JSON.stringify(errorData, null, 2));
+          throw new Error(errorData.error || errorData.message || 'Failed to create booking');
+        }
+
+        const result = await response.json();
+        console.log('AddAppointmentModal - Booking created successfully:', result);
         toast.success("Appointment created successfully!");
       }
 
@@ -335,15 +217,18 @@ const AddAppointmentModal = ({
         customerEmail: "",
         appointmentDate: "",
         appointmentTime: "",
-        duration: 30,
-        notes: "",
       });
 
       setShowAddAppointmentModal(false);
 
+      // Call callbacks for refresh
       if (onAppointmentCreated) {
         console.log('AddAppointmentModal - Calling onAppointmentCreated callback');
         onAppointmentCreated();
+      }
+      if (onSuccess) {
+        console.log('AddAppointmentModal - Calling onSuccess callback');
+        onSuccess();
       }
 
     } catch (error) {
@@ -388,7 +273,7 @@ const AddAppointmentModal = ({
       <Modal.Body>
         <form onSubmit={handleSubmit}>
           <div className={`input-wrap ${isView ? "view-wrap" : ""}`}>
-            <h5>Customer Name</h5>
+            <h5>Name</h5>
             <Input
               placeholder="Enter customer name"
               value={formData.customerName}
@@ -436,35 +321,6 @@ const AddAppointmentModal = ({
               type="time"
               value={formData.appointmentTime}
               onChange={(e) => handleInputChange('appointmentTime', e.target.value)}
-              readOnly={isView}
-              style={{
-                border: isView ? "none" : "",
-                backgroundColor: isView ? "transparent" : "",
-                pointerEvents: isView ? "none" : "auto",
-              }}
-            />
-          </div>
-          <div className={`input-wrap ${isView ? "view-wrap" : ""}`}>
-            <h5>Duration (minutes)</h5>
-            <Input
-              type="number"
-              placeholder="30"
-              value={formData.duration}
-              onChange={(e) => handleInputChange('duration', parseInt(e.target.value) || 30)}
-              readOnly={isView}
-              style={{
-                border: isView ? "none" : "",
-                backgroundColor: isView ? "transparent" : "",
-                pointerEvents: isView ? "none" : "auto",
-              }}
-            />
-          </div>
-          <div className={`input-wrap ${isView ? "view-wrap" : ""}`}>
-            <h5>Notes (Optional)</h5>
-            <Input
-              placeholder="Add any additional notes"
-              value={formData.notes}
-              onChange={(e) => handleInputChange('notes', e.target.value)}
               readOnly={isView}
               style={{
                 border: isView ? "none" : "",

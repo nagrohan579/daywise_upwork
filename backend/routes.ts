@@ -373,14 +373,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/google-calendar/auth", async (req, res) => {
     try {
       console.log('Google Calendar auth request - Session:', req.session);
-      console.log('Google Calendar auth request - User:', (req.session as any)?.user);
+      console.log('Google Calendar auth request - UserId:', (req.session as any)?.userId);
       
-      if (!(req.session as any)?.user) {
-        console.log('No user session found, returning 401');
+      const userId = (req.session as any)?.userId;
+      
+      if (!userId) {
+        console.log('No userId in session, returning 401');
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      const userId = (req.session as any)?.user?.id || (req.session as any)?.userId;
       console.log('User ID for Google Calendar auth:', userId);
       
       const authUrl = googleCalendarService.getAuthUrl(userId, req);
@@ -654,7 +655,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get calendar events
   app.get("/api/google-calendar/events", async (req, res) => {
     try {
-      if (!(req.session as any)?.user) {
+      const userId = (req.session as any)?.userId;
+      
+      if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
 
@@ -663,7 +666,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const endDate = timeMax ? new Date(timeMax as string) : undefined;
 
       const result = await googleCalendarService.getCalendarEvents(
-        (req.session as any).user.id,
+        userId,
         startDate,
         endDate
       );
@@ -678,12 +681,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create calendar event
   app.post("/api/google-calendar/events", async (req, res) => {
     try {
-      if (!(req.session as any)?.user) {
-        console.log('Google Calendar event creation - No user in session');
+      const userId = (req.session as any)?.userId;
+      
+      if (!userId) {
+        console.log('Google Calendar event creation - No userId in session');
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      const userId = (req.session as any).user.id || (req.session as any).userId;
       console.log('Google Calendar event creation - User ID:', userId);
 
       const { summary, description, start, end, attendees } = req.body;
@@ -721,12 +725,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update calendar event
   app.put("/api/google-calendar/events/:eventId", async (req, res) => {
     try {
-      if (!(req.session as any)?.user) {
-        console.log('Google Calendar event update - No user in session');
+      const userId = (req.session as any)?.userId;
+      
+      if (!userId) {
+        console.log('Google Calendar event update - No userId in session');
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      const userId = (req.session as any).user.id || (req.session as any).userId;
       console.log('Google Calendar event update - User ID:', userId);
 
       const { eventId } = req.params;
@@ -762,14 +767,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete calendar event
   app.delete("/api/google-calendar/events/:eventId", async (req, res) => {
     try {
-      if (!(req.session as any)?.user) {
+      const userId = (req.session as any)?.userId;
+      
+      if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
 
       const { eventId } = req.params;
 
       const result = await googleCalendarService.deleteCalendarEvent(
-        (req.session as any).user.id,
+        userId,
         eventId
       );
       

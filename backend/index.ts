@@ -44,7 +44,7 @@ const sessionCookieDomain = process.env.COOKIE_DOMAIN || undefined; // e.g. ".da
 
 // Configure session middleware
 app.use(session({
-  name: "dw.sid",
+  name: "daywise_session", // Changed from "dw.sid" to avoid conflicts with old cookies
   secret: process.env.SESSION_SECRET!,
   resave: false,
   saveUninitialized: false,
@@ -57,6 +57,7 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     sameSite: sessionSameSite as any,
     domain: sessionCookieDomain,
+    path: '/', // Explicitly set path
   }
 }));
 

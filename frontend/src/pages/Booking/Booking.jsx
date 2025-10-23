@@ -245,7 +245,7 @@ const BookingsPage = () => {
     setCombinedEvents(combined);
   }, [bookings, calendarEvents]);
 
-  // Clean up URL parameters (calendar connection is now handled by GoogleButton component)
+  // Clean up URL parameters and handle calendar connection status
   useEffect(() => {
     const calendarConnected = searchParams.get('calendar_connected');
     const calendarError = searchParams.get('calendar_error');
@@ -269,24 +269,6 @@ const BookingsPage = () => {
       });
     }
   }, [searchParams, setSearchParams]);
-
-  // Listen for postMessage from OAuth popup
-  useEffect(() => {
-    const handleMessage = (event) => {
-      // Security: verify origin if needed
-      // if (event.origin !== expectedOrigin) return;
-      
-      if (event.data.type === 'CALENDAR_CONNECTED') {
-        toast.success('Google Calendar connected successfully!');
-        fetchCalendarEvents(true);
-      } else if (event.data.type === 'CALENDAR_ERROR') {
-        toast.error(event.data.error || 'Failed to connect Google Calendar');
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
 
   // Manual refresh handler
   const handleManualRefresh = () => {

@@ -409,194 +409,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       
       if (!code || typeof code !== 'string' || !userId || typeof userId !== 'string') {
-        return res.send(`
-          <script>
-            if (window.opener) {
-              window.opener.postMessage({
-                type: 'CALENDAR_ERROR',
-                error: 'Invalid callback parameters'
-              }, '*');
-              window.close();
-            } else {
-              window.location.href = '${frontendUrl}/booking?calendar_error=invalid_callback';
-            }
-          </script>
-        `);
+        return res.redirect(`${frontendUrl}/booking?calendar_error=invalid_callback`);
       }
 
       const result = await googleCalendarService.handleCallback(code, userId, req);
 
       if (result.success) {
-        // Send success message to parent window and attempt to close
-        res.send(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <title>Calendar Connected</title>
-              <style>
-                body {
-                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  height: 100vh;
-                  margin: 0;
-                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                }
-                .container {
-                  background: white;
-                  padding: 40px;
-                  border-radius: 16px;
-                  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                  text-align: center;
-                  max-width: 400px;
-                }
-                .success-icon {
-                  width: 64px;
-                  height: 64px;
-                  background: #10b981;
-                  border-radius: 50%;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  margin: 0 auto 20px;
-                }
-                .checkmark {
-                  color: white;
-                  font-size: 32px;
-                  font-weight: bold;
-                }
-                h1 {
-                  color: #1f2937;
-                  margin: 0 0 10px;
-                  font-size: 24px;
-                }
-                p {
-                  color: #6b7280;
-                  margin: 0;
-                  font-size: 14px;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <div class="success-icon">
-                  <span class="checkmark">✓</span>
-                </div>
-                <h1>Calendar Connected!</h1>
-                <p>This window will close automatically...</p>
-              </div>
-              <script>
-                // Send message immediately and also on load
-                function sendMessage() {
-                  if (window.opener) {
-                    console.log('Sending CALENDAR_CONNECTED message to parent');
-                    window.opener.postMessage({ type: 'CALENDAR_CONNECTED' }, '*');
-                  } else {
-                    console.log('No window.opener found');
-                  }
-                }
-                
-                // Send immediately
-                sendMessage();
-                
-                // Also send on load as backup
-                window.addEventListener('load', sendMessage);
-                
-                // Try to close window after a short delay
-                setTimeout(() => {
-                  window.close();
-                  // If close fails, show manual close message
-                  setTimeout(() => {
-                    const p = document.querySelector('p');
-                    if (p) p.textContent = 'Please close this window';
-                  }, 300);
-                }, 1000);
-              </script>
-            </body>
-          </html>
-        `);
+        // Redirect back to booking page with success parameter
+        return res.redirect(`${frontendUrl}/booking?calendar_connected=true`);
       } else {
-        // Show error and attempt to close
-        res.send(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <title>Connection Failed</title>
-              <style>
-                body {
-                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  height: 100vh;
-                  margin: 0;
-                  background: linear-gradient(135deg, #f43f5e 0%, #dc2626 100%);
-                }
-                .container {
-                  background: white;
-                  padding: 40px;
-                  border-radius: 16px;
-                  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                  text-align: center;
-                  max-width: 400px;
-                }
-                h1 {
-                  color: #1f2937;
-                  margin: 0 0 10px;
-                  font-size: 24px;
-                }
-                p {
-                  color: #6b7280;
-                  margin: 0;
-                  font-size: 14px;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <h1>Connection Failed</h1>
-                <p>Please close this window and try again</p>
-              </div>
-              <script>
-                // Send error message immediately and also on load
-                function sendErrorMessage() {
-                  if (window.opener) {
-                    console.log('Sending CALENDAR_ERROR message to parent');
-                    window.opener.postMessage({ type: 'CALENDAR_ERROR', error: '${result.error}' }, '*');
-                  } else {
-                    console.log('No window.opener found for error');
-                  }
-                }
-                
-                // Send immediately
-                sendErrorMessage();
-                
-                // Also send on load as backup
-                window.addEventListener('load', sendErrorMessage);
-                
-                setTimeout(() => window.close(), 2000);
-              </script>
-            </body>
-          </html>
-        `);
+        // Redirect back with error
+        return res.redirect(`${frontendUrl}/booking?calendar_error=${encodeURIComponent(result.error || 'connection_failed')}`);
       }
     } catch (error) {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       console.error('Google Calendar callback error:', error);
-      res.send(`
-        <script>
-          if (window.opener) {
-            window.opener.postMessage({
-              type: 'CALENDAR_ERROR',
-              error: 'Calendar connection failed'
-            }, '*');
-            window.close();
-          } else {
-            window.location.href = '${frontendUrl}/booking?calendar_error=connection_failed';
-          }
-        </script>
-      `);
+      return res.redirect(`${frontendUrl}/booking?calendar_error=connection_failed`);
     }
   });
 

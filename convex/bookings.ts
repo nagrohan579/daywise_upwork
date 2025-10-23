@@ -9,6 +9,25 @@ export const getById = query({
   },
 });
 
+// Get booking by ID with appointment type
+export const getByIdWithType = query({
+  args: { id: v.id("bookings") },
+  handler: async (ctx, { id }) => {
+    const booking = await ctx.db.get(id);
+    if (!booking) return null;
+    
+    let appointmentType: any = null;
+    if (booking.appointmentTypeId) {
+      appointmentType = await ctx.db.get(booking.appointmentTypeId);
+    }
+    
+    return {
+      ...booking,
+      appointmentType,
+    };
+  },
+});
+
 // Get booking by token
 export const getByToken = query({
   args: { token: v.string() },
@@ -17,6 +36,40 @@ export const getByToken = query({
       .query("bookings")
       .withIndex("by_bookingToken", (q) => q.eq("bookingToken", token))
       .first();
+  },
+});
+
+// Get booking by token with appointment type
+export const getByTokenWithType = query({
+  args: { token: v.string() },
+  handler: async (ctx, { token }) => {
+    const booking = await ctx.db
+      .query("bookings")
+      .withIndex("by_bookingToken", (q) => q.eq("bookingToken", token))
+      .first();
+    
+    if (!booking) return null;
+    
+    let appointmentType: any = null;
+    if (booking.appointmentTypeId) {
+      appointmentType = await ctx.db.get(booking.appointmentTypeId);
+    }
+    
+    return {
+      ...booking,
+      appointmentType,
+    };
+  },
+});
+
+// Get bookings by user
+export const getByUser = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    return await ctx.db
+      .query("bookings")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
   },
 });
 
@@ -32,7 +85,7 @@ export const getByUserWithTypes = query({
     // Fetch appointment types for each booking
     const bookingsWithTypes = await Promise.all(
       bookings.map(async (booking) => {
-        let appointmentType = null;
+        let appointmentType: any = null;
         if (booking.appointmentTypeId) {
           appointmentType = await ctx.db.get(booking.appointmentTypeId);
         }

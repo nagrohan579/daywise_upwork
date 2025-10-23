@@ -360,21 +360,18 @@ const AddAppointmentModal = ({
             <h5>Service</h5>
             <Select
               placeholder="Service Type"
-              value={formData.serviceType}
-              onChange={(value) => handleInputChange('serviceType', value)}
-              disabled={isView}
+              value={appointmentTypes.find(type => type._id === formData.serviceType)?.name || ''}
+              onChange={(selectedName) => {
+                const selectedType = appointmentTypes.find(type => type.name === selectedName);
+                handleInputChange('serviceType', selectedType?._id || '');
+              }}
+              options={appointmentTypes.map(type => type.name)}
               style={{
                 border: isView ? "none" : "",
                 backgroundColor: isView ? "transparent" : "",
                 pointerEvents: isView ? "none" : "auto",
               }}
-            >
-              {appointmentTypes.map((type) => (
-                <option key={type._id} value={type._id}>
-                  {type.name}
-                </option>
-              ))}
-            </Select>
+            />
           </div>
           <div className="btn-wrap">
             <Button

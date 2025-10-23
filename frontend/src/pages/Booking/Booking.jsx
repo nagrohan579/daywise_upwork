@@ -81,10 +81,11 @@ const BookingsPage = () => {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Booking - Bookings from API:', data);
+        console.log('Booking - Fetched bookings:', data?.length || 0, 'bookings');
+        console.log('Booking - Sample booking:', data?.[0]);
         setBookings(data || []);
       } else {
-        console.error('Booking - Failed to fetch bookings');
+        console.error('Booking - Failed to fetch bookings, status:', response.status);
         setBookings([]);
       }
     } catch (error) {
@@ -219,21 +220,24 @@ const BookingsPage = () => {
       const hours = bookingDate.getHours();
       const minutes = bookingDate.getMinutes();
 
-      // Get appointment type name for display
+      // Get appointment type name and color for display
       const appointmentTypeName = booking.appointmentType?.name || 'Appointment';
+      const appointmentTypeColor = booking.appointmentType?.color || '#4285F4'; // Use service color or default blue
+
+      console.log(`Booking ${index + 1} - appointmentType:`, booking.appointmentType, 'color:', appointmentTypeColor);
 
       return {
         id: `booking-${booking._id}`,
         title: `${appointmentTypeName} with ${booking.customerName}`,
         date: toLocalDateString(bookingDate),
-        color: booking.appointmentType?.color || (booking.googleCalendarEventId ? "#4285F4" : "#F19B11"), // Use service color or default
+        color: appointmentTypeColor, // Always use appointment type color
         time: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
         source: 'booking',
         data: booking
       };
     });
 
-    console.log('Booking - Showing Convex bookings:', transformedBookings);
+    console.log('Booking - Transformed bookings with colors:', transformedBookings.map(b => ({ id: b.id, color: b.color })));
     setCombinedEvents(transformedBookings);
   }, [bookings]);
 
@@ -352,7 +356,7 @@ const BookingsPage = () => {
         name: booking.customerName,
         date: bookingDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit' }),
         time: `${displayHours}:${minutes.toString().padStart(2, '0')}${isPM ? 'pm' : 'am'}`,
-        color: booking.appointmentType?.color || (booking.googleCalendarEventId ? "#4285F4" : "#F19B11"), // Use service color or default
+        color: booking.appointmentType?.color || '#4285F4', // Always use appointment type color
         source: 'booking',
       };
     });

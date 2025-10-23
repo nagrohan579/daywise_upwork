@@ -80,11 +80,11 @@ export const storage = {
 
   // Booking operations
   async getBooking(id: string) {
-    return await convex.query(api.bookings.getById, { id: id as Id<"bookings"> });
+    return await convex.query(api.bookings.getByIdWithType, { id: id as Id<"bookings"> });
   },
 
   async getBookingByToken(token: string) {
-    return await convex.query(api.bookings.getByToken, { token });
+    return await convex.query(api.bookings.getByTokenWithType, { token });
   },
 
   async getBookingsByUser(userId: string) {
@@ -123,14 +123,16 @@ export const storage = {
     console.log('storage.createBooking - Final bookingData JSON:', JSON.stringify(bookingData, null, 2));
     
     const id = await convex.mutation(api.bookings.create, bookingData);
-    return await convex.query(api.bookings.getById, { id });
+    return await convex.query(api.bookings.getByIdWithType, { id });
   },
 
   async updateBooking(id: string, updates: any) {
-    return await convex.mutation(api.bookings.update, {
+    await convex.mutation(api.bookings.update, {
       id: id as Id<"bookings">,
       updates,
     });
+    // Fetch and return the updated booking with appointment type
+    return await convex.query(api.bookings.getByIdWithType, { id: id as Id<"bookings"> });
   },
 
   async deleteBooking(id: string) {

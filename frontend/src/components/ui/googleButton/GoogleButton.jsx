@@ -1,7 +1,13 @@
 import "./googlebutton.css";
-const GoogleButton = ({ text, style = {} }) => {
+const GoogleButton = ({ text, style = {}, onClick, disabled = false }) => {
   return (
-    <button className="google-btn" style={style}>
+    <button 
+      className="google-btn" 
+      style={style}
+      onClick={onClick}
+      disabled={disabled}
+      type="button"
+    >
       <img
         src="/assets/images/google-logo.png"
         alt="google"

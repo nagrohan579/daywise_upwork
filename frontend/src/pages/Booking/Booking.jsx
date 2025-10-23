@@ -250,6 +250,15 @@ const BookingsPage = () => {
     const calendarConnected = searchParams.get('calendar_connected');
     const calendarError = searchParams.get('calendar_error');
 
+    if (calendarConnected) {
+      toast.success('Google Calendar connected successfully!');
+      fetchCalendarEvents(true);
+    }
+    
+    if (calendarError) {
+      toast.error('Failed to connect Google Calendar');
+    }
+
     if (calendarConnected || calendarError) {
       // Remove the parameters from URL
       setSearchParams(prev => {
@@ -261,10 +270,35 @@ const BookingsPage = () => {
     }
   }, [searchParams, setSearchParams]);
 
+  // Listen for postMessage from OAuth popup
+  useEffect(() => {
+    const handleMessage = (event) => {
+      // Security: verify origin if needed
+      // if (event.origin !== expectedOrigin) return;
+      
+      if (event.data.type === 'CALENDAR_CONNECTED') {
+        toast.success('Google Calendar connected successfully!');
+        fetchCalendarEvents(true);
+      } else if (event.data.type === 'CALENDAR_ERROR') {
+        toast.error(event.data.error || 'Failed to connect Google Calendar');
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   // Manual refresh handler
   const handleManualRefresh = () => {
     setIsRefreshing(true);
     fetchCalendarEvents(true);
+  };
+
+  // Google Calendar OAuth handler
+  const handleConnectGoogleCalendar = () => {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    // Redirect to backend OAuth endpoint which will redirect to Google
+    window.location.href = `${apiUrl}/api/google-calendar/auth`;
   };
 
   // Show delete confirmation modal
@@ -350,6 +384,7 @@ const BookingsPage = () => {
               <GoogleButton
                 text={isMobile ? "Calendar" : "Sync to Google Calendar"}
                 style={{ width: isMobile ? "110px" : "240px" }}
+                onClick={handleConnectGoogleCalendar}
               />
               <button
                 onClick={handleManualRefresh}

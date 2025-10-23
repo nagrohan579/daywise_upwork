@@ -1269,12 +1269,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/auth/me", async (req, res) => {
     try {
-      console.log('Auth me request - Session:', req.session);
-      console.log('Auth me request - UserId from session:', (req.session as any).userId);
-      console.log('Auth me request - User from session:', (req.session as any).user);
+      console.log('=== Auth /api/auth/me Debug ===');
+      console.log('Request headers:', JSON.stringify(req.headers, null, 2));
+      console.log('Cookies received:', req.headers.cookie);
+      console.log('Session ID:', req.sessionID);
+      console.log('Session object:', JSON.stringify(req.session, null, 2));
+      console.log('UserId from session:', (req.session as any).userId);
+      console.log('User from session:', (req.session as any).user);
+      console.log('================================');
       
       if (!(req.session as any).userId) {
-        console.log('No userId in session');
+        console.log('No userId in session - returning 401');
         return res.status(401).json({ message: "Not authenticated" });
       }
       
@@ -1310,6 +1315,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       res.status(500).json({ message: "Failed to get user info", error: error instanceof Error ? error.message : "Unknown error" });
     }
+  });
+
+  // Debug endpoint to verify cookies and session (REMOVE IN PRODUCTION after debugging)
+  app.get("/api/debug/session", (req, res) => {
+    const debugInfo = {
+      timestamp: new Date().toISOString(),
+      cookies: {
+        raw: req.headers.cookie || 'No cookies received',
+        parsed: req.cookies || 'No parsed cookies'
+      },
+      session: {
+        id: req.sessionID || 'No session ID',
+        userId: (req.session as any)?.userId || 'No userId in session',
+        sessionData: req.session || 'No session object'
+      },
+      headers: {
+        origin: req.headers.origin,
+        referer: req.headers.referer,
+        userAgent: req.headers['user-agent'],
+        cookie: req.headers.cookie
+      },
+      env: {
+        NODE_ENV: process.env.NODE_ENV,
+        FRONTEND_URL: process.env.FRONTEND_URL,
+        SESSION_SAMESITE: process.env.SESSION_SAMESITE,
+        SESSION_COOKIE_SECURE: process.env.SESSION_COOKIE_SECURE,
+        COOKIE_DOMAIN: process.env.COOKIE_DOMAIN
+      }
+    };
+    
+    console.log('=== Debug endpoint called ===');
+    console.log(JSON.stringify(debugInfo, null, 2));
+    
+    res.json(debugInfo);
   });
 
   // Account management routes

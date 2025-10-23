@@ -32,6 +32,16 @@ app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false }));
 
+// Configure session cookie options with sensible production defaults and env overrides
+const sessionCookieSecure = process.env.SESSION_COOKIE_SECURE
+  ? process.env.SESSION_COOKIE_SECURE === 'true'
+  : process.env.NODE_ENV === 'production';
+
+const sessionSameSite = process.env.SESSION_SAMESITE
+  || (process.env.NODE_ENV === 'production' ? 'none' : 'lax');
+
+const sessionCookieDomain = process.env.COOKIE_DOMAIN || undefined; // e.g. ".daywisebooking.com"
+
 // Configure session middleware
 app.use(session({
   name: "dw.sid",
@@ -42,10 +52,11 @@ app.use(session({
     checkPeriod: 86400000 // prune expired entries every 24h
   }),
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // Only require HTTPS in production
+    secure: sessionCookieSecure, // require HTTPS in production
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: process.env.EMBEDDED_IFRAME === 'true' ? 'none' : 'lax' // Allow cross-site requests for OAuth callbacks and iframe embedding
+    sameSite: sessionSameSite as any,
+    domain: sessionCookieDomain,
   }
 }));
 

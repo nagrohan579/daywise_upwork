@@ -9,7 +9,7 @@ import { FaPlus } from "react-icons/fa6";
 import { FaEye, FaEdit } from "react-icons/fa";
 import { RiDeleteBin5Line } from "react-icons/ri";
 import "./Booking.css";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useMobile } from "../../hooks";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -212,74 +212,66 @@ const BookingsPage = () => {
   // Transform and combine data whenever bookings or calendar events change
   useEffect(() => {
     console.log('Booking - Transforming events - bookings:', bookings?.length || 0, 'Calendar events:', calendarEvents?.length || 0);
+    console.log('Booking - isCalendarConnected:', isCalendarConnected);
     
-    // Only show Convex bookings to avoid duplicates
-    // (Convex bookings are automatically synced to Google Calendar)
-    const transformedBookings = (bookings || []).map((booking, index) => {
-      const bookingDate = new Date(booking.appointmentDate);
-      const hours = bookingDate.getHours();
-      const minutes = bookingDate.getMinutes();
+    // If calendar is connected, ONLY show Google Calendar events
+    // Otherwise show Convex bookings
+    if (isCalendarConnected && calendarEvents && calendarEvents.length > 0) {
+      // Only show Google Calendar events (single source of truth when connected)
+      const transformedCalendarEvents = (calendarEvents || [])
+        .map((event, index) => {
+          let eventDate;
+          let eventTime = null;
 
-      return {
-        id: `booking-${booking._id}`,
-        title: `${booking.customerName}`,
-        date: toLocalDateString(bookingDate), // Use helper function to avoid timezone issues
-        color: "orange", // Default color for bookings
-        time: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
-        source: 'booking',
-        data: booking
-      };
-    });
+          // Handle different date formats from Google Calendar
+          if (event.start?.dateTime) {
+            eventDate = new Date(event.start.dateTime);
+            const hours = eventDate.getHours();
+            const minutes = eventDate.getMinutes();
+            eventTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+          } else if (event.start?.date) {
+            eventDate = new Date(event.start.date);
+            // All-day event
+            eventTime = null;
+          } else {
+            return null;
+          }
 
-    console.log('Booking - Transformed bookings:', transformedBookings);
+          return {
+            id: `calendar-${event.id || index}`,
+            title: event.summary || 'Untitled Event',
+            date: toLocalDateString(eventDate),
+            color: "blue",
+            time: eventTime,
+            source: 'calendar',
+            data: event
+          };
+        }).filter(Boolean);
 
-    // Only include calendar events that are NOT already in Convex bookings
-    // (to avoid showing duplicates when bookings are synced to calendar)
-    const bookingEventIds = new Set(
-      (bookings || [])
-        .filter(b => b.googleCalendarEventId)
-        .map(b => b.googleCalendarEventId)
-    );
-
-    const transformedCalendarEvents = (calendarEvents || [])
-      .filter(event => !bookingEventIds.has(event.id)) // Exclude synced bookings
-      .map((event, index) => {
-        let eventDate;
-        let eventTime = null;
-
-        // Handle different date formats from Google Calendar
-        if (event.start?.dateTime) {
-          eventDate = new Date(event.start.dateTime);
-          const hours = eventDate.getHours();
-          const minutes = eventDate.getMinutes();
-          eventTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-        } else if (event.start?.date) {
-          eventDate = new Date(event.start.date);
-          // All-day event
-          eventTime = null;
-        } else {
-          return null;
-        }
+      console.log('Booking - Showing ONLY Google Calendar events:', transformedCalendarEvents);
+      setCombinedEvents(transformedCalendarEvents);
+    } else {
+      // Calendar not connected, show Convex bookings
+      const transformedBookings = (bookings || []).map((booking, index) => {
+        const bookingDate = new Date(booking.appointmentDate);
+        const hours = bookingDate.getHours();
+        const minutes = bookingDate.getMinutes();
 
         return {
-          id: `calendar-${event.id || index}`,
-          title: event.summary || 'Untitled Event',
-          date: toLocalDateString(eventDate), // Use helper function to avoid timezone issues
-          color: "blue", // Different color for calendar events
-          time: eventTime,
-          source: 'calendar',
-          data: event
+          id: `booking-${booking._id}`,
+          title: `${booking.customerName}`,
+          date: toLocalDateString(bookingDate),
+          color: "orange",
+          time: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
+          source: 'booking',
+          data: booking
         };
-      }).filter(Boolean);
+      });
 
-    console.log('Booking - Transformed Google Calendar events (excluding synced bookings):', transformedCalendarEvents);
-
-    const combined = [...transformedBookings, ...transformedCalendarEvents];
-    console.log('Booking - Combined events total:', combined.length);
-    console.log('Booking - Combined events:', combined);
-    
-    setCombinedEvents(combined);
-  }, [bookings, calendarEvents]);
+      console.log('Booking - Showing Convex bookings (calendar not connected):', transformedBookings);
+      setCombinedEvents(transformedBookings);
+    }
+  }, [bookings, calendarEvents, isCalendarConnected]);
 
   // Clean up URL parameters and handle calendar connection status
   useEffect(() => {
@@ -371,23 +363,68 @@ const BookingsPage = () => {
     }
   };
 
-  // Prepare bookings for list view
-  const bookingsForList = (bookings || []).map(booking => {
-    const bookingDate = new Date(booking.appointmentDate);
-    const hours = bookingDate.getHours();
-    const minutes = bookingDate.getMinutes();
-    const isPM = hours >= 12;
-    const displayHours = hours % 12 || 12;
+  // Prepare bookings for list view - use calendar events if connected, otherwise use bookings
+  const bookingsForList = React.useMemo(() => {
+    // If calendar is connected and we have calendar events, show those
+    if (isCalendarConnected && calendarEvents && calendarEvents.length > 0) {
+      return calendarEvents.map(event => {
+        let eventDate;
+        let timeStr = '';
+        
+        if (event.start?.dateTime) {
+          eventDate = new Date(event.start.dateTime);
+          const hours = eventDate.getHours();
+          const minutes = eventDate.getMinutes();
+          const isPM = hours >= 12;
+          const displayHours = hours % 12 || 12;
+          timeStr = `${displayHours}:${minutes.toString().padStart(2, '0')}${isPM ? 'pm' : 'am'}`;
+        } else if (event.start?.date) {
+          eventDate = new Date(event.start.date);
+          timeStr = 'All day';
+        } else {
+          eventDate = new Date();
+          timeStr = '';
+        }
 
-    return {
-      ...booking,
-      title: `Appointment with ${booking.customerName}`,
-      name: booking.customerName,
-      date: bookingDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit' }),
-      time: `${displayHours}:${minutes.toString().padStart(2, '0')}${isPM ? 'pm' : 'am'}`,
-      color: "#F19B11",
-    };
-  });
+        // Try to find the corresponding booking in Convex to get the _id
+        const correspondingBooking = (bookings || []).find(b => b.googleCalendarEventId === event.id);
+
+        return {
+          _id: correspondingBooking?._id || event.id,
+          googleCalendarEventId: event.id,
+          title: event.summary || 'Untitled Event',
+          customerName: event.summary || 'Untitled Event',
+          name: event.summary || 'Untitled Event',
+          date: eventDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit' }),
+          time: timeStr,
+          color: "#4285F4", // Google blue
+          appointmentDate: eventDate.toISOString(),
+          source: 'calendar',
+          originalEvent: event,
+          convexBooking: correspondingBooking, // Keep reference to Convex booking if exists
+        };
+      });
+    } else {
+      // Calendar not connected, show Convex bookings
+      return (bookings || []).map(booking => {
+        const bookingDate = new Date(booking.appointmentDate);
+        const hours = bookingDate.getHours();
+        const minutes = bookingDate.getMinutes();
+        const isPM = hours >= 12;
+        const displayHours = hours % 12 || 12;
+
+        return {
+          ...booking,
+          title: `Appointment with ${booking.customerName}`,
+          name: booking.customerName,
+          date: bookingDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit' }),
+          time: `${displayHours}:${minutes.toString().padStart(2, '0')}${isPM ? 'pm' : 'am'}`,
+          color: "#F19B11",
+          source: 'booking',
+        };
+      });
+    }
+  }, [bookings, calendarEvents, isCalendarConnected]);
 
   return (
     <AppLayout>

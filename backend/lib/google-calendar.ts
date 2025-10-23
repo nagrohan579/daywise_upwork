@@ -127,8 +127,15 @@ export class GoogleCalendarService {
       });
 
       return newCredentials.access_token;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error refreshing Google access token:', error);
+      
+      // Check if it's an invalid_grant error (user revoked access)
+      if (error?.message?.includes('invalid_grant') || error?.code === 'invalid_grant') {
+        console.log('Invalid grant error - user may have revoked access, disconnecting calendar');
+        await this.disconnect(userId);
+      }
+      
       return null;
     }
   }
@@ -150,7 +157,10 @@ export class GoogleCalendarService {
       console.log('Access token expired, refreshing...');
       const newAccessToken = await this.refreshAccessToken(userId);
       if (!newAccessToken) {
-        throw new Error('Failed to refresh access token');
+        console.error('Failed to refresh expired access token - disconnecting calendar');
+        // Token refresh failed - disconnect calendar
+        await this.disconnect(userId);
+        throw new Error('Failed to refresh access token - calendar disconnected');
       }
       credentials.accessToken = newAccessToken;
     }
@@ -166,12 +176,15 @@ export class GoogleCalendarService {
     try {
       return await operation(calendar);
     } catch (error: any) {
-      // If token expired during request, refresh and retry once
-      if (error?.code === 401 || error?.message?.includes('invalid_grant')) {
-        console.log('Token expired during operation, refreshing and retrying...');
+      // If token expired or invalid during request, refresh and retry once
+      if (error?.code === 401 || error?.message?.includes('invalid_grant') || error?.message?.includes('invalid credentials')) {
+        console.log('Token expired/invalid during operation, refreshing and retrying...');
         const newAccessToken = await this.refreshAccessToken(userId);
         if (!newAccessToken) {
-          throw new Error('Failed to refresh access token on retry');
+          console.error('Failed to refresh access token on retry - disconnecting calendar');
+          // Token refresh failed - disconnect calendar
+          await this.disconnect(userId);
+          throw new Error('Failed to refresh access token - calendar disconnected');
         }
 
         this.oauth2Client.setCredentials({
@@ -180,7 +193,18 @@ export class GoogleCalendarService {
         });
 
         const newCalendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
-        return await operation(newCalendar);
+        
+        try {
+          return await operation(newCalendar);
+        } catch (retryError: any) {
+          // If it fails again, disconnect
+          if (retryError?.code === 401 || retryError?.message?.includes('invalid_grant')) {
+            console.error('Token still invalid after refresh - disconnecting calendar');
+            await this.disconnect(userId);
+            throw new Error('Invalid credentials - calendar disconnected');
+          }
+          throw retryError;
+        }
       }
       throw error;
     }

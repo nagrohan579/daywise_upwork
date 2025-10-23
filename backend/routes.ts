@@ -29,6 +29,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
   // Initialize Stripe client
+  
+  // Helper function to mark Google Calendar as disconnected
+  const markGoogleCalendarDisconnected = async (userId: string, req?: any) => {
+    try {
+      console.log(`Marking Google Calendar as disconnected for user: ${userId}`);
+      
+      // Disconnect calendar (clears credentials in Convex)
+      await googleCalendarService.disconnect(userId);
+      
+      console.log(`✅ Google Calendar disconnected for user: ${userId}`);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error marking Google Calendar as disconnected:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  };
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy_key_for_dev");
 
   // Initialize multer for file uploads
@@ -1190,7 +1207,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User not found" });
       }
       
+      // Check if Google Calendar is connected by querying credentials
+      let googleCalendarConnected = false;
+      try {
+        const calendarStatus = await googleCalendarService.getConnectionStatus(user._id);
+        googleCalendarConnected = calendarStatus.isConnected === true;
+      } catch (error) {
+        console.log('Error checking calendar status:', error);
+        googleCalendarConnected = false;
+      }
+      
       console.log('Auth me - Found user:', { id: user._id, email: user.email, name: user.name });
+      console.log('Auth me - Google Calendar Connected:', googleCalendarConnected);
       console.log('Auth me - User ID type:', typeof user._id);
       console.log('Auth me - User ID value:', user._id);
       
@@ -1210,7 +1238,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           accentColor: user.accentColor,
           slug: user.slug,
           googleId: user.googleId,
-          emailVerified: user.emailVerified
+          emailVerified: user.emailVerified,
+          googleCalendarConnected: googleCalendarConnected // Add calendar connection status
         } 
       });
     } catch (error) {

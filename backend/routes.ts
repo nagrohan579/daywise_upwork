@@ -73,6 +73,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // Store state in session for verification
     (req.session as any).oauthState = state;
+    
+    // Force session save before redirect to ensure state is persisted
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+      }
+    });
 
     const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${googleClientId}&` +
@@ -91,6 +98,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Google OAuth callback endpoint (redirect-based flow)
   app.get("/api/auth/google/callback", async (req, res) => {
     try {
+      console.log('=== Google OAuth Callback Debug ===');
+      console.log('Callback - Session ID:', req.sessionID);
+      console.log('Callback - Session object:', JSON.stringify(req.session, null, 2));
+      console.log('Callback - OAuth state in session:', (req.session as any).oauthState);
+      console.log('Callback - State from query:', req.query.state);
+      console.log('Callback - Cookies received:', req.headers.cookie);
+      console.log('===================================');
+      
       const { code, state } = req.query;
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 

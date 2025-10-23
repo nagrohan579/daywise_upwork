@@ -39,6 +39,8 @@ const BookingsPage = () => {
   const [bookingToDelete, setBookingToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [bookings, setBookings] = useState([]);
+  const [isCalendarConnected, setIsCalendarConnected] = useState(false);
+  const [isCheckingCalendarStatus, setIsCheckingCalendarStatus] = useState(true);
 
   const isMobile = useMobile(991);
 
@@ -96,8 +98,34 @@ const BookingsPage = () => {
   useEffect(() => {
     if (userId) {
       fetchBookings();
+      checkCalendarStatus(); // Check if calendar is already connected
     }
   }, [userId]);
+
+  // Check if Google Calendar is connected
+  const checkCalendarStatus = async () => {
+    if (!userId) return;
+    
+    setIsCheckingCalendarStatus(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/google-calendar/status`, {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setIsCalendarConnected(data.connected === true);
+      } else {
+        setIsCalendarConnected(false);
+      }
+    } catch (error) {
+      console.error('Error checking calendar status:', error);
+      setIsCalendarConnected(false);
+    } finally {
+      setIsCheckingCalendarStatus(false);
+    }
+  };
 
   // Fetch Google Calendar events with auto-refresh
   const fetchCalendarEvents = async (showLoadingState = true) => {
@@ -138,12 +166,20 @@ const BookingsPage = () => {
             console.log('Booking - Sample Google Calendar event:', data.events[0]);
           }
           setCalendarEvents(data.events);
+          setIsCalendarConnected(true); // Mark as connected if we got events successfully
         } else {
           console.warn('Booking - Google Calendar API returned no events or failed:', data);
+          // Check if it's a "not connected" error
+          if (data.error && data.error.includes('not connected')) {
+            setIsCalendarConnected(false);
+          }
         }
       } else {
         const errorText = await response.text();
         console.error('Booking - Google Calendar API error:', response.status, errorText);
+        if (response.status === 401 || errorText.includes('not connected')) {
+          setIsCalendarConnected(false);
+        }
       }
     } catch (error) {
       console.error('Booking - Error fetching calendar events:', error);
@@ -155,9 +191,9 @@ const BookingsPage = () => {
     }
   };
 
-  // Initial fetch and setup auto-refresh polling
+  // Initial fetch and setup auto-refresh polling - only if calendar is connected
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !isCalendarConnected) return;
 
     // Initial fetch
     fetchCalendarEvents(true);
@@ -171,7 +207,7 @@ const BookingsPage = () => {
     return () => {
       clearInterval(refreshInterval);
     };
-  }, [userId]);
+  }, [userId, isCalendarConnected]);
 
   // Transform and combine data whenever bookings or calendar events change
   useEffect(() => {
@@ -364,9 +400,16 @@ const BookingsPage = () => {
             </div>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               <GoogleButton
-                text={isMobile ? "Calendar" : "Sync to Google Calendar"}
+                text={
+                  isCheckingCalendarStatus 
+                    ? (isMobile ? "..." : "Checking...")
+                    : isCalendarConnected 
+                      ? (isMobile ? "Connected" : "Calendar Connected")
+                      : (isMobile ? "Calendar" : "Sync to Google Calendar")
+                }
                 style={{ width: isMobile ? "110px" : "240px" }}
                 onClick={handleConnectGoogleCalendar}
+                disabled={isCalendarConnected || isCheckingCalendarStatus}
               />
               <button
                 onClick={handleManualRefresh}

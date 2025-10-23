@@ -219,11 +219,14 @@ const BookingsPage = () => {
       const hours = bookingDate.getHours();
       const minutes = bookingDate.getMinutes();
 
+      // Get appointment type name for display
+      const appointmentTypeName = booking.appointmentType?.name || 'Appointment';
+
       return {
         id: `booking-${booking._id}`,
-        title: `${booking.customerName}`,
+        title: `${appointmentTypeName} with ${booking.customerName}`,
         date: toLocalDateString(bookingDate),
-        color: booking.googleCalendarEventId ? "#4285F4" : "#F19B11", // Blue if synced to calendar, orange if not
+        color: booking.appointmentType?.color || (booking.googleCalendarEventId ? "#4285F4" : "#F19B11"), // Use service color or default
         time: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
         source: 'booking',
         data: booking
@@ -340,13 +343,16 @@ const BookingsPage = () => {
       const isPM = hours >= 12;
       const displayHours = hours % 12 || 12;
 
+      // Get appointment type name for display
+      const appointmentTypeName = booking.appointmentType?.name || 'Appointment';
+      
       return {
         ...booking,
-        title: `Appointment with ${booking.customerName}`,
+        title: `${appointmentTypeName} with ${booking.customerName}`,
         name: booking.customerName,
         date: bookingDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit' }),
         time: `${displayHours}:${minutes.toString().padStart(2, '0')}${isPM ? 'pm' : 'am'}`,
-        color: booking.googleCalendarEventId ? "#4285F4" : "#F19B11", // Blue if synced, orange if not
+        color: booking.appointmentType?.color || (booking.googleCalendarEventId ? "#4285F4" : "#F19B11"), // Use service color or default
         source: 'booking',
       };
     });

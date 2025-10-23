@@ -88,7 +88,7 @@ export const storage = {
   },
 
   async getBookingsByUser(userId: string) {
-    return await convex.query(api.bookings.getByUser, { userId: userId as Id<"users"> });
+    return await convex.query(api.bookings.getByUserWithTypes, { userId: userId as Id<"users"> });
   },
 
   async getAllBookings() {

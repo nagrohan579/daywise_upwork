@@ -1591,7 +1591,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Internal booking endpoint - simplified for booking page use (authenticated users only)
   app.post("/api/bookings", async (req, res) => {
     try {
-      const { customerName, customerEmail, appointmentDate } = req.body;
+      const { customerName, customerEmail, appointmentDate, appointmentTypeId } = req.body;
       
       // Get userId from session
       const userId = (req.session as any)?.userId;
@@ -1638,7 +1638,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('POST /api/bookings - Converted timestamp:', appointmentTimestamp);
 
-      // Create booking with minimal fields - no appointmentTypeId required
+      // Create booking with appointmentTypeId if provided
       const bookingData: any = {
         userId,
         customerName,
@@ -1649,8 +1649,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bookingToken,
       };
 
-      // Only add appointmentTypeId if it exists (optional field)
-      // This ensures we don't pass undefined to Convex
+      // Add appointmentTypeId if it exists (optional field)
+      if (appointmentTypeId) {
+        bookingData.appointmentTypeId = appointmentTypeId;
+      }
       
       console.log('POST /api/bookings - Booking data to create:', bookingData);
 
@@ -1675,9 +1677,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const appointmentDateObj = new Date(appointmentTimestamp);
       const appointmentEnd = new Date(appointmentDateObj.getTime() + 30 * 60 * 1000); // 30 min default
       
+      // Get appointment type name for Google Calendar event
+      let appointmentTypeName = 'Appointment';
+      if (appointmentTypeId) {
+        try {
+          const appointmentType = await storage.getAppointmentType(appointmentTypeId);
+          if (appointmentType) {
+            appointmentTypeName = appointmentType.name;
+          }
+        } catch (error) {
+          console.error('Failed to fetch appointment type for Google Calendar:', error);
+        }
+      }
+      
       googleCalendarService.createCalendarEvent(userId, {
-        summary: `Appointment - ${customerName}`,
-        description: `Appointment with ${customerName} (${customerEmail})`,
+        summary: `${appointmentTypeName} with ${customerName}`,
+        description: `${appointmentTypeName} with ${customerName} (${customerEmail})`,
         start: appointmentDateObj,
         end: appointmentEnd,
         attendees: [customerEmail],
@@ -2037,16 +2052,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
             existingBooking.appointmentDate !== booking.appointmentDate ||
             existingBooking.customerName !== booking.customerName ||
             existingBooking.customerEmail !== booking.customerEmail ||
-            existingBooking.duration !== booking.duration
+            existingBooking.duration !== booking.duration ||
+            existingBooking.appointmentTypeId !== booking.appointmentTypeId
           ) {
             const appointmentDateObj = new Date(booking.appointmentDate);
             const appointmentEnd = new Date(appointmentDateObj.getTime() + (booking.duration || 30) * 60 * 1000);
             
+            // Get appointment type name for Google Calendar event
+            let appointmentTypeName = 'Appointment';
+            if (booking.appointmentTypeId) {
+              try {
+                const appointmentType = await storage.getAppointmentType(booking.appointmentTypeId);
+                if (appointmentType) {
+                  appointmentTypeName = appointmentType.name;
+                }
+              } catch (error) {
+                console.error('Failed to fetch appointment type for Google Calendar update:', error);
+              }
+            }
+            
             const updateResult = await googleCalendarService.updateCalendarEvent(session.userId, existingBooking.googleCalendarEventId, {
               start: appointmentDateObj,
               end: appointmentEnd,
-              summary: `Appointment - ${booking.customerName}`,
-              description: `Appointment with ${booking.customerName} (${booking.customerEmail})`,
+              summary: `${appointmentTypeName} with ${booking.customerName}`,
+              description: `${appointmentTypeName} with ${booking.customerName} (${booking.customerEmail})`,
               attendees: [booking.customerEmail]
             });
             

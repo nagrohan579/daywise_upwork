@@ -24,11 +24,13 @@ const AddAppointmentModal = ({
     customerEmail: "",
     appointmentDate: "",
     appointmentTime: "",
+    serviceType: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userId, setUserId] = useState(null);
+  const [appointmentTypes, setAppointmentTypes] = useState([]);
 
-  // Get current user
+  // Get current user and appointment types
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -42,6 +44,9 @@ const AddAppointmentModal = ({
           console.log('AddAppointmentModal - User ID type:', typeof data.user.id);
           console.log('AddAppointmentModal - User ID value:', data.user.id);
           setUserId(data.user.id);
+          
+          // Fetch appointment types for this user
+          await fetchAppointmentTypes(data.user.id);
         } else {
           console.error('AddAppointmentModal - Failed to fetch user, status:', response.status);
         }
@@ -51,6 +56,25 @@ const AddAppointmentModal = ({
     };
     fetchUser();
   }, []);
+
+  // Fetch appointment types
+  const fetchAppointmentTypes = async (userId) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/appointment-types?userId=${userId}`, {
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        console.log('AddAppointmentModal - Appointment types:', data);
+        setAppointmentTypes(data);
+      } else {
+        console.error('AddAppointmentModal - Failed to fetch appointment types, status:', response.status);
+      }
+    } catch (error) {
+      console.error('AddAppointmentModal - Error fetching appointment types:', error);
+    }
+  };
 
   // Initialize form with current date/time OR selected event data
   useEffect(() => {
@@ -81,6 +105,7 @@ const AddAppointmentModal = ({
         customerEmail: eventData.customerEmail || '',
         appointmentDate: appointmentDate,
         appointmentTime: appointmentTime,
+        serviceType: eventData.appointmentTypeId || '',
       });
     } else if (isAdd) {
       // Initialize with current date/time for new appointments
@@ -116,7 +141,7 @@ const AddAppointmentModal = ({
     
     if (isView) return;
 
-    if (!formData.customerName || !formData.customerEmail || !formData.appointmentDate || !formData.appointmentTime) {
+    if (!formData.customerName || !formData.customerEmail || !formData.appointmentDate || !formData.appointmentTime || !formData.serviceType) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -156,6 +181,7 @@ const AddAppointmentModal = ({
           customerName: formData.customerName,
           customerEmail: formData.customerEmail,
           appointmentDate: appointmentTimestamp,
+          appointmentTypeId: formData.serviceType,
         };
 
         const response = await fetch(`${apiUrl}/api/bookings/${bookingId}`, {
@@ -184,6 +210,7 @@ const AddAppointmentModal = ({
           customerName: formData.customerName,
           customerEmail: formData.customerEmail,
           appointmentDate: appointmentTimestamp,
+          appointmentTypeId: formData.serviceType,
         };
 
         console.log('AddAppointmentModal - Booking payload:', bookingPayload);
@@ -328,6 +355,26 @@ const AddAppointmentModal = ({
                 pointerEvents: isView ? "none" : "auto",
               }}
             />
+          </div>
+          <div className={`input-wrap ${isView ? "view-wrap" : ""}`}>
+            <h5>Service</h5>
+            <Select
+              placeholder="Service Type"
+              value={formData.serviceType}
+              onChange={(value) => handleInputChange('serviceType', value)}
+              disabled={isView}
+              style={{
+                border: isView ? "none" : "",
+                backgroundColor: isView ? "transparent" : "",
+                pointerEvents: isView ? "none" : "auto",
+              }}
+            >
+              {appointmentTypes.map((type) => (
+                <option key={type._id} value={type._id}>
+                  {type.name}
+                </option>
+              ))}
+            </Select>
           </div>
           <div className="btn-wrap">
             <Button

@@ -20,14 +20,30 @@ export const getByToken = query({
   },
 });
 
-// Get bookings by user
-export const getByUser = query({
+// Get bookings by user with appointment types
+export const getByUserWithTypes = query({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
-    return await ctx.db
+    const bookings = await ctx.db
       .query("bookings")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .collect();
+
+    // Fetch appointment types for each booking
+    const bookingsWithTypes = await Promise.all(
+      bookings.map(async (booking) => {
+        let appointmentType = null;
+        if (booking.appointmentTypeId) {
+          appointmentType = await ctx.db.get(booking.appointmentTypeId);
+        }
+        return {
+          ...booking,
+          appointmentType,
+        };
+      })
+    );
+
+    return bookingsWithTypes;
   },
 });
 

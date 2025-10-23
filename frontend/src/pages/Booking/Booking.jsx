@@ -365,6 +365,10 @@ const BookingsPage = () => {
 
   // Prepare bookings for list view - use calendar events if connected, otherwise use bookings
   const bookingsForList = React.useMemo(() => {
+    console.log('bookingsForList - isCalendarConnected:', isCalendarConnected);
+    console.log('bookingsForList - calendarEvents count:', calendarEvents?.length || 0);
+    console.log('bookingsForList - bookings count:', bookings?.length || 0);
+    
     // If calendar is connected and we have calendar events, show those
     if (isCalendarConnected && calendarEvents && calendarEvents.length > 0) {
       return calendarEvents.map(event => {
@@ -386,23 +390,41 @@ const BookingsPage = () => {
           timeStr = '';
         }
 
-        // Try to find the corresponding booking in Convex to get the _id
+        // Try to find the corresponding booking in Convex to get the full booking data
         const correspondingBooking = (bookings || []).find(b => b.googleCalendarEventId === event.id);
 
-        return {
-          _id: correspondingBooking?._id || event.id,
-          googleCalendarEventId: event.id,
-          title: event.summary || 'Untitled Event',
-          customerName: event.summary || 'Untitled Event',
-          name: event.summary || 'Untitled Event',
-          date: eventDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit' }),
-          time: timeStr,
-          color: "#4285F4", // Google blue
-          appointmentDate: eventDate.toISOString(),
-          source: 'calendar',
-          originalEvent: event,
-          convexBooking: correspondingBooking, // Keep reference to Convex booking if exists
-        };
+        console.log('Calendar event:', event.id, 'summary:', event.summary, 'found booking:', !!correspondingBooking);
+
+        // If we found the Convex booking, use its data for display and editing
+        if (correspondingBooking) {
+          return {
+            ...correspondingBooking, // Include all booking fields (customerName, customerEmail, etc.)
+            // Override display fields with formatted values
+            title: `Appointment with ${correspondingBooking.customerName}`,
+            name: correspondingBooking.customerName,
+            date: eventDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit' }),
+            time: timeStr,
+            color: "#4285F4", // Google blue to indicate it's synced
+            source: 'calendar',
+            googleCalendarEventId: event.id,
+          };
+        } else {
+          // Calendar event without a Convex booking (external event)
+          return {
+            _id: event.id,
+            googleCalendarEventId: event.id,
+            title: event.summary || 'Untitled Event',
+            customerName: event.summary || 'Untitled Event',
+            name: event.summary || 'Untitled Event',
+            date: eventDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit' }),
+            time: timeStr,
+            color: "#4285F4",
+            appointmentDate: eventDate.toISOString(),
+            source: 'calendar',
+            originalEvent: event,
+            isExternalEvent: true, // Flag to indicate this is not from our system
+          };
+        }
       });
     } else {
       // Calendar not connected, show Convex bookings
@@ -678,6 +700,11 @@ const BookingsPage = () => {
                             label: "Edit",
                             icon: <FaEdit />,
                             onClick: () => {
+                              // Don't allow editing external calendar events (those without a Convex booking)
+                              if (booking.isExternalEvent) {
+                                toast.error('Cannot edit external calendar events');
+                                return;
+                              }
                               setSelectedBooking(booking);
                               setModalMode("edit");
                               setShowAddAppointmentModal(true);
@@ -686,7 +713,14 @@ const BookingsPage = () => {
                           {
                             label: "Delete",
                             icon: <RiDeleteBin5Line />,
-                            onClick: () => handleDeleteClick(booking),
+                            onClick: () => {
+                              // Don't allow deleting external calendar events via this interface
+                              if (booking.isExternalEvent) {
+                                toast.error('Cannot delete external calendar events from here');
+                                return;
+                              }
+                              handleDeleteClick(booking);
+                            },
                           },
                         ]}
                       />

@@ -209,69 +209,30 @@ const BookingsPage = () => {
     };
   }, [userId, isCalendarConnected]);
 
-  // Transform and combine data whenever bookings or calendar events change
+  // Transform bookings for calendar view - ALWAYS show Convex bookings (single source of truth)
   useEffect(() => {
-    console.log('Booking - Transforming events - bookings:', bookings?.length || 0, 'Calendar events:', calendarEvents?.length || 0);
-    console.log('Booking - isCalendarConnected:', isCalendarConnected);
+    console.log('Booking - Transforming events - bookings:', bookings?.length || 0);
     
-    // If calendar is connected, ONLY show Google Calendar events
-    // Otherwise show Convex bookings
-    if (isCalendarConnected && calendarEvents && calendarEvents.length > 0) {
-      // Only show Google Calendar events (single source of truth when connected)
-      const transformedCalendarEvents = (calendarEvents || [])
-        .map((event, index) => {
-          let eventDate;
-          let eventTime = null;
+    // ALWAYS show Convex bookings - they are the source of truth
+    const transformedBookings = (bookings || []).map((booking, index) => {
+      const bookingDate = new Date(booking.appointmentDate);
+      const hours = bookingDate.getHours();
+      const minutes = bookingDate.getMinutes();
 
-          // Handle different date formats from Google Calendar
-          if (event.start?.dateTime) {
-            eventDate = new Date(event.start.dateTime);
-            const hours = eventDate.getHours();
-            const minutes = eventDate.getMinutes();
-            eventTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-          } else if (event.start?.date) {
-            eventDate = new Date(event.start.date);
-            // All-day event
-            eventTime = null;
-          } else {
-            return null;
-          }
+      return {
+        id: `booking-${booking._id}`,
+        title: `${booking.customerName}`,
+        date: toLocalDateString(bookingDate),
+        color: booking.googleCalendarEventId ? "#4285F4" : "#F19B11", // Blue if synced to calendar, orange if not
+        time: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
+        source: 'booking',
+        data: booking
+      };
+    });
 
-          return {
-            id: `calendar-${event.id || index}`,
-            title: event.summary || 'Untitled Event',
-            date: toLocalDateString(eventDate),
-            color: "blue",
-            time: eventTime,
-            source: 'calendar',
-            data: event
-          };
-        }).filter(Boolean);
-
-      console.log('Booking - Showing ONLY Google Calendar events:', transformedCalendarEvents);
-      setCombinedEvents(transformedCalendarEvents);
-    } else {
-      // Calendar not connected, show Convex bookings
-      const transformedBookings = (bookings || []).map((booking, index) => {
-        const bookingDate = new Date(booking.appointmentDate);
-        const hours = bookingDate.getHours();
-        const minutes = bookingDate.getMinutes();
-
-        return {
-          id: `booking-${booking._id}`,
-          title: `${booking.customerName}`,
-          date: toLocalDateString(bookingDate),
-          color: "orange",
-          time: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
-          source: 'booking',
-          data: booking
-        };
-      });
-
-      console.log('Booking - Showing Convex bookings (calendar not connected):', transformedBookings);
-      setCombinedEvents(transformedBookings);
-    }
-  }, [bookings, calendarEvents, isCalendarConnected]);
+    console.log('Booking - Showing Convex bookings:', transformedBookings);
+    setCombinedEvents(transformedBookings);
+  }, [bookings]);
 
   // Clean up URL parameters and handle calendar connection status
   useEffect(() => {
@@ -363,90 +324,29 @@ const BookingsPage = () => {
     }
   };
 
-  // Prepare bookings for list view - use calendar events if connected, otherwise use bookings
+  // Prepare bookings for list view - ALWAYS show Convex bookings (source of truth)
   const bookingsForList = React.useMemo(() => {
-    console.log('bookingsForList - isCalendarConnected:', isCalendarConnected);
-    console.log('bookingsForList - calendarEvents count:', calendarEvents?.length || 0);
     console.log('bookingsForList - bookings count:', bookings?.length || 0);
     
-    // If calendar is connected and we have calendar events, show those
-    if (isCalendarConnected && calendarEvents && calendarEvents.length > 0) {
-      return calendarEvents.map(event => {
-        let eventDate;
-        let timeStr = '';
-        
-        if (event.start?.dateTime) {
-          eventDate = new Date(event.start.dateTime);
-          const hours = eventDate.getHours();
-          const minutes = eventDate.getMinutes();
-          const isPM = hours >= 12;
-          const displayHours = hours % 12 || 12;
-          timeStr = `${displayHours}:${minutes.toString().padStart(2, '0')}${isPM ? 'pm' : 'am'}`;
-        } else if (event.start?.date) {
-          eventDate = new Date(event.start.date);
-          timeStr = 'All day';
-        } else {
-          eventDate = new Date();
-          timeStr = '';
-        }
+    // ALWAYS show Convex bookings - they are the source of truth
+    return (bookings || []).map(booking => {
+      const bookingDate = new Date(booking.appointmentDate);
+      const hours = bookingDate.getHours();
+      const minutes = bookingDate.getMinutes();
+      const isPM = hours >= 12;
+      const displayHours = hours % 12 || 12;
 
-        // Try to find the corresponding booking in Convex to get the full booking data
-        const correspondingBooking = (bookings || []).find(b => b.googleCalendarEventId === event.id);
-
-        console.log('Calendar event:', event.id, 'summary:', event.summary, 'found booking:', !!correspondingBooking);
-
-        // If we found the Convex booking, use its data for display and editing
-        if (correspondingBooking) {
-          return {
-            ...correspondingBooking, // Include all booking fields (customerName, customerEmail, etc.)
-            // Override display fields with formatted values
-            title: `Appointment with ${correspondingBooking.customerName}`,
-            name: correspondingBooking.customerName,
-            date: eventDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit' }),
-            time: timeStr,
-            color: "#4285F4", // Google blue to indicate it's synced
-            source: 'calendar',
-            googleCalendarEventId: event.id,
-          };
-        } else {
-          // Calendar event without a Convex booking (external event)
-          return {
-            _id: event.id,
-            googleCalendarEventId: event.id,
-            title: event.summary || 'Untitled Event',
-            customerName: event.summary || 'Untitled Event',
-            name: event.summary || 'Untitled Event',
-            date: eventDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit' }),
-            time: timeStr,
-            color: "#4285F4",
-            appointmentDate: eventDate.toISOString(),
-            source: 'calendar',
-            originalEvent: event,
-            isExternalEvent: true, // Flag to indicate this is not from our system
-          };
-        }
-      });
-    } else {
-      // Calendar not connected, show Convex bookings
-      return (bookings || []).map(booking => {
-        const bookingDate = new Date(booking.appointmentDate);
-        const hours = bookingDate.getHours();
-        const minutes = bookingDate.getMinutes();
-        const isPM = hours >= 12;
-        const displayHours = hours % 12 || 12;
-
-        return {
-          ...booking,
-          title: `Appointment with ${booking.customerName}`,
-          name: booking.customerName,
-          date: bookingDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit' }),
-          time: `${displayHours}:${minutes.toString().padStart(2, '0')}${isPM ? 'pm' : 'am'}`,
-          color: "#F19B11",
-          source: 'booking',
-        };
-      });
-    }
-  }, [bookings, calendarEvents, isCalendarConnected]);
+      return {
+        ...booking,
+        title: `Appointment with ${booking.customerName}`,
+        name: booking.customerName,
+        date: bookingDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit' }),
+        time: `${displayHours}:${minutes.toString().padStart(2, '0')}${isPM ? 'pm' : 'am'}`,
+        color: booking.googleCalendarEventId ? "#4285F4" : "#F19B11", // Blue if synced, orange if not
+        source: 'booking',
+      };
+    });
+  }, [bookings]);
 
   return (
     <AppLayout>
@@ -700,11 +600,6 @@ const BookingsPage = () => {
                             label: "Edit",
                             icon: <FaEdit />,
                             onClick: () => {
-                              // Don't allow editing external calendar events (those without a Convex booking)
-                              if (booking.isExternalEvent) {
-                                toast.error('Cannot edit external calendar events');
-                                return;
-                              }
                               setSelectedBooking(booking);
                               setModalMode("edit");
                               setShowAddAppointmentModal(true);
@@ -713,14 +608,7 @@ const BookingsPage = () => {
                           {
                             label: "Delete",
                             icon: <RiDeleteBin5Line />,
-                            onClick: () => {
-                              // Don't allow deleting external calendar events via this interface
-                              if (booking.isExternalEvent) {
-                                toast.error('Cannot delete external calendar events from here');
-                                return;
-                              }
-                              handleDeleteClick(booking);
-                            },
+                            onClick: () => handleDeleteClick(booking),
                           },
                         ]}
                       />

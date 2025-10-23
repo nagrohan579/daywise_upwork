@@ -415,6 +415,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await googleCalendarService.handleCallback(code, userId, req);
 
       if (result.success) {
+        // Sync existing bookings to Google Calendar
+        try {
+          console.log('Calendar connected successfully, syncing existing bookings...');
+          
+          // Get all confirmed bookings for this user that don't have a calendar event yet
+          const bookings = await storage.getBookingsByUser(userId);
+          const bookingsToSync = bookings.filter(b => 
+            b.status === 'confirmed' && !b.googleCalendarEventId
+          );
+          
+          console.log(`Found ${bookingsToSync.length} bookings to sync to Google Calendar`);
+          
+          for (const booking of bookingsToSync) {
+            try {
+              const appointmentDateObj = new Date(booking.appointmentDate);
+              const appointmentEnd = new Date(appointmentDateObj.getTime() + (booking.duration || 30) * 60 * 1000);
+              const customEventId = `daywise_${booking._id}`.replace(/[^a-v0-9]/g, '').substring(0, 64);
+              
+              const calendarResult = await googleCalendarService.createCalendarEvent(userId, {
+                summary: `Appointment - ${booking.customerName}`,
+                description: `Appointment with ${booking.customerName} (${booking.customerEmail})`,
+                start: appointmentDateObj,
+                end: appointmentEnd,
+                attendees: [booking.customerEmail],
+                customEventId: customEventId, // Use custom ID for idempotency
+              });
+              
+              if (calendarResult.success && calendarResult.eventId) {
+                await storage.updateBooking(booking._id, { 
+                  googleCalendarEventId: calendarResult.eventId 
+                });
+                console.log(`✅ Synced booking ${booking._id} to calendar event ${calendarResult.eventId}`);
+                if (calendarResult.alreadyExists) {
+                  console.log('Note: Event already existed (preventing duplicate)');
+                }
+              }
+            } catch (syncError) {
+              console.error(`Failed to sync booking ${booking._id}:`, syncError);
+              // Continue with other bookings even if one fails
+            }
+          }
+          
+          console.log('Finished syncing existing bookings to Google Calendar');
+        } catch (syncError) {
+          console.error('Error during booking sync:', syncError);
+          // Don't fail the connection if sync fails
+        }
+        
         // Redirect back to booking page with success parameter
         return res.redirect(`${frontendUrl}/booking?calendar_connected=true`);
       } else {
@@ -1553,6 +1601,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('POST /api/bookings - Booking created successfully:', booking._id);
 
       // Create Google Calendar event if connected
+      // Generate a custom event ID based on booking ID for idempotency
+      const customEventId = `daywise_${booking._id}`.replace(/[^a-v0-9]/g, '').substring(0, 64);
       const appointmentDateObj = new Date(appointmentTimestamp);
       const appointmentEnd = new Date(appointmentDateObj.getTime() + 30 * 60 * 1000); // 30 min default
       
@@ -1561,13 +1611,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: `Appointment with ${customerName} (${customerEmail})`,
         start: appointmentDateObj,
         end: appointmentEnd,
-        attendees: [customerEmail]
+        attendees: [customerEmail],
+        customEventId: customEventId, // Use custom ID for idempotency
       }).then(async (result) => {
         // Update booking with Google Calendar event ID
         if (result.success && result.eventId && booking._id) {
           try {
             await storage.updateBooking(booking._id, { googleCalendarEventId: result.eventId });
             console.log(`✅ Google Calendar event created and linked to booking: ${result.eventId}`);
+            if (result.alreadyExists) {
+              console.log('Note: Event already existed (idempotency check passed)');
+            }
           } catch (error) {
             console.error('Failed to update booking with Google Calendar event ID:', error);
           }
@@ -1897,35 +1951,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Booking not found after update" });
       }
 
-      // Update Google Calendar event if date/time changed or status changed to cancelled
+      // Update Google Calendar event if it exists, or create one if calendar is now connected
       if (existingBooking.googleCalendarEventId) {
         try {
           // If cancelled, delete the Google Calendar event
           if (booking.status === 'cancelled' && existingBooking.status !== 'cancelled') {
-            await googleCalendarService.deleteCalendarEvent(session.userId, existingBooking.googleCalendarEventId);
-            console.log(`✅ Google Calendar event deleted: ${existingBooking.googleCalendarEventId}`);
+            const deleteResult = await googleCalendarService.deleteCalendarEvent(session.userId, existingBooking.googleCalendarEventId);
+            if (deleteResult.success) {
+              console.log(`✅ Google Calendar event deleted: ${existingBooking.googleCalendarEventId}`);
+              // Clear the googleCalendarEventId from booking
+              await storage.updateBooking(req.params.id, { googleCalendarEventId: null });
+            }
           }
-          // If date/time changed, update the Google Calendar event
-          else if (existingBooking.appointmentDate !== booking.appointmentDate) {
+          // Update the Google Calendar event if any booking details changed
+          else if (
+            existingBooking.appointmentDate !== booking.appointmentDate ||
+            existingBooking.customerName !== booking.customerName ||
+            existingBooking.customerEmail !== booking.customerEmail ||
+            existingBooking.duration !== booking.duration
+          ) {
             const appointmentDateObj = new Date(booking.appointmentDate);
             const appointmentEnd = new Date(appointmentDateObj.getTime() + (booking.duration || 30) * 60 * 1000);
             
-            await googleCalendarService.updateCalendarEvent(session.userId, existingBooking.googleCalendarEventId, {
+            const updateResult = await googleCalendarService.updateCalendarEvent(session.userId, existingBooking.googleCalendarEventId, {
               start: appointmentDateObj,
               end: appointmentEnd,
               summary: `Appointment - ${booking.customerName}`,
-              description: `Appointment with ${booking.customerName} (${booking.customerEmail})`
+              description: `Appointment with ${booking.customerName} (${booking.customerEmail})`,
+              attendees: [booking.customerEmail]
             });
-            console.log(`✅ Google Calendar event updated: ${existingBooking.googleCalendarEventId}`);
+            
+            if (updateResult.success) {
+              console.log(`✅ Google Calendar event updated: ${existingBooking.googleCalendarEventId}`);
+            } else if (updateResult.notFound) {
+              // Event was deleted from Google Calendar - clear the ID and try to create a new one
+              console.log('⚠️ Calendar event not found (deleted by user), creating new event');
+              await storage.updateBooking(req.params.id, { googleCalendarEventId: null });
+              
+              // Create new calendar event
+              const customEventId = `daywise_${booking._id}`.replace(/[^a-v0-9]/g, '').substring(0, 64);
+              const createResult = await googleCalendarService.createCalendarEvent(session.userId, {
+                summary: `Appointment - ${booking.customerName}`,
+                description: `Appointment with ${booking.customerName} (${booking.customerEmail})`,
+                start: appointmentDateObj,
+                end: appointmentEnd,
+                attendees: [booking.customerEmail],
+                customEventId: customEventId,
+              });
+              
+              if (createResult.success && createResult.eventId) {
+                await storage.updateBooking(req.params.id, { googleCalendarEventId: createResult.eventId });
+                console.log(`✅ New Google Calendar event created: ${createResult.eventId}`);
+              }
+            }
           }
         } catch (calendarError) {
           console.error('Failed to update Google Calendar event:', calendarError);
           // Don't fail the booking update if calendar sync fails
         }
+      } else {
+        // No existing calendar event - check if calendar is now connected and create one
+        try {
+          const appointmentDateObj = new Date(booking.appointmentDate);
+          const appointmentEnd = new Date(appointmentDateObj.getTime() + (booking.duration || 30) * 60 * 1000);
+          const customEventId = `daywise_${booking._id}`.replace(/[^a-v0-9]/g, '').substring(0, 64);
+          
+          const result = await googleCalendarService.createCalendarEvent(session.userId, {
+            summary: `Appointment - ${booking.customerName}`,
+            description: `Appointment with ${booking.customerName} (${booking.customerEmail})`,
+            start: appointmentDateObj,
+            end: appointmentEnd,
+            attendees: [booking.customerEmail],
+            customEventId: customEventId,
+          });
+          
+          if (result.success && result.eventId) {
+            await storage.updateBooking(req.params.id, { googleCalendarEventId: result.eventId });
+            console.log(`✅ Google Calendar event created during update: ${result.eventId}`);
+          }
+        } catch (calendarError) {
+          console.log('Google Calendar not connected or creation failed during update:', calendarError);
+          // This is fine - user might not have calendar connected
+        }
       }
-      // Note: We don't create a new calendar event during edit if one doesn't exist
-      // Calendar events should be created during initial booking creation only
-      // This prevents duplicate entries in the calendar view
       
       console.log(`PUT /api/bookings/${req.params.id} - Update completed, sending response`);
       

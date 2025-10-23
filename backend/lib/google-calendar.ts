@@ -192,12 +192,14 @@ export class GoogleCalendarService {
     start: Date;
     end: Date;
     attendees?: string[];
+    customEventId?: string; // Allow custom event ID for idempotency
   }) {
     try {
       console.log('=== Google Calendar Event Creation Start ===');
       console.log('Creating Google Calendar event for user:', userId);
       console.log('userId type:', typeof userId);
       console.log('userId value:', JSON.stringify(userId));
+      console.log('Custom Event ID:', eventData.customEventId);
       console.log('Event data:', JSON.stringify(eventData, null, 2));
       
       // Check if user has Google Calendar credentials
@@ -227,8 +229,35 @@ export class GoogleCalendarService {
         throw new Error('Google Calendar not connected for this user');
       }
       
+      // If custom event ID is provided, first check if event already exists (idempotency)
+      if (eventData.customEventId) {
+        try {
+          const existingEvent = await this.executeWithTokenRefresh(userId, async (calendar) => {
+            return await calendar.events.get({
+              calendarId: 'primary',
+              eventId: eventData.customEventId!,
+            });
+          });
+          
+          if (existingEvent?.data?.id) {
+            console.log('Event with this ID already exists, returning existing event:', existingEvent.data.id);
+            return {
+              success: true,
+              eventId: existingEvent.data.id,
+              eventLink: existingEvent.data.htmlLink,
+              alreadyExists: true,
+            };
+          }
+        } catch (checkError: any) {
+          // Event doesn't exist (404), proceed with creation
+          if (checkError?.code !== 404) {
+            console.log('Error checking for existing event (not 404), proceeding with creation');
+          }
+        }
+      }
+      
       const event = await this.executeWithTokenRefresh(userId, async (calendar) => {
-        const requestBody = {
+        const requestBody: any = {
           summary: eventData.summary,
           description: eventData.description,
           start: {
@@ -241,6 +270,11 @@ export class GoogleCalendarService {
           },
           attendees: eventData.attendees?.map(email => ({ email })),
         };
+        
+        // Add custom event ID if provided (for idempotency)
+        if (eventData.customEventId) {
+          requestBody.id = eventData.customEventId;
+        }
         
         console.log('Google Calendar API request body:', JSON.stringify(requestBody, null, 2));
         
@@ -345,12 +379,24 @@ export class GoogleCalendarService {
         eventId: event.data.id,
         eventLink: event.data.htmlLink,
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('=== Google Calendar Event Update Error ===');
       console.error('Error updating calendar event:', error);
       console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error);
       console.error('Error message:', error instanceof Error ? error.message : 'Unknown');
+      console.error('Error code:', error?.code);
       console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      
+      // Check if event was not found (deleted from Google Calendar)
+      if (error?.code === 404 || error?.message?.includes('404') || error?.message?.includes('not found')) {
+        console.log('Event not found in Google Calendar (may have been deleted by user)');
+        return {
+          success: false,
+          error: 'Event not found in Google Calendar',
+          notFound: true,
+        };
+      }
+      
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -360,6 +406,10 @@ export class GoogleCalendarService {
 
   async deleteCalendarEvent(userId: string, eventId: string) {
     try {
+      console.log('=== Google Calendar Event Deletion Start ===');
+      console.log('Deleting Google Calendar event for user:', userId);
+      console.log('Event ID:', eventId);
+      
       await this.executeWithTokenRefresh(userId, async (calendar) => {
         return await calendar.events.delete({
           calendarId: 'primary',
@@ -367,11 +417,24 @@ export class GoogleCalendarService {
         });
       });
 
+      console.log('=== Google Calendar Event Deletion Success ===');
       return {
         success: true,
       };
-    } catch (error) {
+    } catch (error: any) {
+      console.error('=== Google Calendar Event Deletion Error ===');
       console.error('Error deleting calendar event:', error);
+      console.error('Error code:', error?.code);
+      
+      // If event not found (already deleted), treat as success
+      if (error?.code === 404 || error?.message?.includes('404') || error?.message?.includes('not found')) {
+        console.log('Event not found in Google Calendar (already deleted or never existed)');
+        return {
+          success: true,
+          notFound: true,
+        };
+      }
+      
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

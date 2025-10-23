@@ -1241,9 +1241,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         console.log('Checking Google Calendar connection status from DB...');
         const calendarStatus = await googleCalendarService.getConnectionStatus(user._id);
-        googleCalendarConnected = calendarStatus.isConnected === true;
+        googleCalendarConnected = calendarStatus.connected === true;
         console.log('✅ Calendar status retrieved:', { 
-          isConnected: calendarStatus.isConnected,
+          connected: calendarStatus.connected,
           connectedAccount: calendarStatus.connectedAccount,
           isSynced: calendarStatus.isSynced 
         });

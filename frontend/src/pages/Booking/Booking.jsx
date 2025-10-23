@@ -241,9 +241,13 @@ const BookingsPage = () => {
 
     if (calendarConnected) {
       toast.success('Google Calendar connected successfully!');
+      // Immediately update the connection state
+      setIsCalendarConnected(true);
+      // Refresh calendar status from database
+      checkCalendarStatus();
       fetchCalendarEvents(true);
     }
-    
+
     if (calendarError) {
       toast.error('Failed to connect Google Calendar');
     }

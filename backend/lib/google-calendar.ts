@@ -488,20 +488,23 @@ export class GoogleCalendarService {
       if (!credentials) {
         console.log('No credentials found for user:', userId);
         return {
-          isConnected: false,
+          connected: false,
           connectedAccount: null,
           isSynced: false,
         };
       }
 
+      // Return connected: true when credentials exist, regardless of isConnected field
+      const isConnected = credentials.isConnected !== false && !!credentials.accessToken && !!credentials.refreshToken;
+
       console.log('Credentials found, returning status:', {
-        isConnected: credentials.isConnected,
+        connected: isConnected,
         connectedAccount: credentials.scope || 'Unknown',
         isSynced: credentials.isSynced,
       });
 
       return {
-        isConnected: credentials.isConnected,
+        connected: isConnected,
         connectedAccount: credentials.scope || 'Unknown',
         isSynced: credentials.isSynced,
       };
@@ -509,7 +512,7 @@ export class GoogleCalendarService {
       console.error('Error getting connection status:', error);
       console.error('Error details:', error instanceof Error ? error.message : 'Unknown', error instanceof Error ? error.stack : 'No stack');
       return {
-        isConnected: false,
+        connected: false,
         connectedAccount: null,
         isSynced: false,
       };

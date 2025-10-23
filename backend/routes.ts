@@ -429,9 +429,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.redirect(`${frontendUrl}/booking?calendar_error=invalid_callback`);
       }
 
+      console.log('=== Google Calendar Callback Start ===');
+      console.log('UserId from state:', userId);
+      console.log('Session ID:', req.sessionID);
+      
       const result = await googleCalendarService.handleCallback(code, userId, req);
 
       if (result.success) {
+        console.log('✅ Google Calendar connection successful for user:', userId);
+        
         // Sync existing bookings to Google Calendar
         try {
           console.log('Calendar connected successfully, syncing existing bookings...');
@@ -480,9 +486,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Don't fail the connection if sync fails
         }
         
+        // Force session save to ensure cookie is updated before redirect
+        await new Promise<void>((resolve, reject) => {
+          req.session.save((err) => {
+            if (err) {
+              console.error('Error saving session after calendar connection:', err);
+              reject(err);
+            } else {
+              console.log('✅ Session saved successfully after calendar connection');
+              resolve();
+            }
+          });
+        });
+        
+        console.log('=== Google Calendar Callback Complete - Redirecting ===');
         // Redirect back to booking page with success parameter
         return res.redirect(`${frontendUrl}/booking?calendar_connected=true`);
       } else {
+        console.error('❌ Google Calendar connection failed:', result.error);
         // Redirect back with error
         return res.redirect(`${frontendUrl}/booking?calendar_error=${encodeURIComponent(result.error || 'connection_failed')}`);
       }
@@ -1187,7 +1208,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/auth/me", async (req, res) => {
     try {
+      const requestTimestamp = new Date().toISOString();
       console.log('=== Auth /api/auth/me Debug ===');
+      console.log('Request timestamp:', requestTimestamp);
       console.log('Request headers:', JSON.stringify(req.headers, null, 2));
       console.log('Cookies received:', req.headers.cookie);
       console.log('Session ID:', req.sessionID);
@@ -1197,30 +1220,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('================================');
       
       if (!(req.session as any).userId) {
-        console.log('No userId in session - returning 401');
+        console.log('❌ No userId in session - returning 401');
         return res.status(401).json({ message: "Not authenticated" });
       }
       
-      const user = await storage.getUser((req.session as any).userId);
+      const userId = (req.session as any).userId;
+      console.log('✅ UserId found in session:', userId);
+      
+      // ALWAYS fetch fresh user data from DB (never rely on cached session)
+      const user = await storage.getUser(userId);
       if (!user) {
-        console.log('User not found in storage for userId:', (req.session as any).userId);
+        console.log('❌ User not found in storage for userId:', userId);
         return res.status(401).json({ message: "User not found" });
       }
       
-      // Check if Google Calendar is connected by querying credentials
+      console.log('✅ User loaded from DB:', { id: user._id, email: user.email, name: user.name });
+      
+      // ALWAYS check fresh Google Calendar connection status from DB
       let googleCalendarConnected = false;
       try {
+        console.log('Checking Google Calendar connection status from DB...');
         const calendarStatus = await googleCalendarService.getConnectionStatus(user._id);
         googleCalendarConnected = calendarStatus.isConnected === true;
+        console.log('✅ Calendar status retrieved:', { 
+          isConnected: calendarStatus.isConnected,
+          connectedAccount: calendarStatus.connectedAccount,
+          isSynced: calendarStatus.isSynced 
+        });
       } catch (error) {
-        console.log('Error checking calendar status:', error);
+        console.log('⚠️ Error checking calendar status:', error);
         googleCalendarConnected = false;
       }
       
-      console.log('Auth me - Found user:', { id: user._id, email: user.email, name: user.name });
-      console.log('Auth me - Google Calendar Connected:', googleCalendarConnected);
-      console.log('Auth me - User ID type:', typeof user._id);
-      console.log('Auth me - User ID value:', user._id);
+      console.log('Auth me - Final user state:', { 
+        id: user._id, 
+        email: user.email, 
+        name: user.name,
+        googleCalendarConnected 
+      });
+      console.log('Auth me - Response timestamp:', new Date().toISOString());
+      console.log('================================');
       
       // Return comprehensive user data for account page
       res.json({ 
@@ -1239,10 +1278,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           slug: user.slug,
           googleId: user.googleId,
           emailVerified: user.emailVerified,
-          googleCalendarConnected: googleCalendarConnected // Add calendar connection status
+          googleCalendarConnected: googleCalendarConnected // ✅ Fresh from DB, never cached
         } 
       });
     } catch (error) {
+      console.error('❌ /api/auth/me error:', error);
       res.status(500).json({ message: "Failed to get user info", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });

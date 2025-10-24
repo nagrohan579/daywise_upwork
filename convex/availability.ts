@@ -74,16 +74,40 @@ export const updateWeekly = mutation({
       await ctx.db.delete(item._id);
     }
 
-    // Insert new availability
+    // Ensure all 7 days exist in the schedule
+    const allDays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const completeSchedule = { ...weeklySchedule };
+    
+    // Add missing days with empty arrays
+    allDays.forEach(day => {
+      if (!completeSchedule[day]) {
+        completeSchedule[day] = [];
+      }
+    });
+
+    // Insert new availability - create entries for ALL days
     const results = [];
-    for (const [weekday, slots] of Object.entries(weeklySchedule)) {
-      for (const slot of slots as any[]) {
+    for (const [weekday, slots] of Object.entries(completeSchedule)) {
+      if (Array.isArray(slots) && slots.length > 0) {
+        // Day has time slots - create entries with isAvailable: true
+        for (const slot of slots as any[]) {
+          const id = await ctx.db.insert("availability", {
+            userId,
+            weekday,
+            startTime: slot.start,
+            endTime: slot.end,
+            isAvailable: true,
+          });
+          results.push(await ctx.db.get(id));
+        }
+      } else {
+        // Day has no time slots (unavailable) - create entry with isAvailable: false
         const id = await ctx.db.insert("availability", {
           userId,
           weekday,
-          startTime: slot.start,
-          endTime: slot.end,
-          isAvailable: true,
+          startTime: "00:00", // Default time for unavailable days
+          endTime: "00:00",   // Default time for unavailable days
+          isAvailable: false,
         });
         results.push(await ctx.db.get(id));
       }

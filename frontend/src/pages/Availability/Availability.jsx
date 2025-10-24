@@ -87,10 +87,14 @@ const Availability = () => {
 
       availabilityData.forEach(item => {
         if (grouped[item.weekday]) {
-          grouped[item.weekday].push({
-            start: item.startTime,
-            end: item.endTime,
-          });
+          // Only add time slots if the day is available
+          if (item.isAvailable && item.startTime && item.endTime) {
+            grouped[item.weekday].push({
+              start: item.startTime,
+              end: item.endTime,
+            });
+          }
+          // If isAvailable is false, the day remains as empty array (unavailable)
         }
       });
 

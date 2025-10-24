@@ -1010,6 +1010,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       await storage.createUserSubscription(subscriptionPayload);
 
+      // Create default availability for new user (Mon-Fri 9am-5pm, Sat-Sun unavailable)
+      const defaultWeeklySchedule = {
+        monday: [{ start: "09:00", end: "17:00" }],
+        tuesday: [{ start: "09:00", end: "17:00" }],
+        wednesday: [{ start: "09:00", end: "17:00" }],
+        thursday: [{ start: "09:00", end: "17:00" }],
+        friday: [{ start: "09:00", end: "17:00" }],
+        saturday: [], // Empty array = unavailable (will create entry with isAvailable: false)
+        sunday: [],   // Empty array = unavailable (will create entry with isAvailable: false)
+      };
+
+      await storage.updateWeeklyAvailability(user._id, defaultWeeklySchedule);
+
       // Send verification email
       try {
         // Determine frontend URL based on environment

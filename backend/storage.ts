@@ -621,15 +621,16 @@ export async function createDemoData() {
       sortOrder: 2
     });
 
-    // Create default availability for demo user
-    const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-    for (const weekday of weekdays) {
+    // Create default availability for demo user (Mon-Fri available, Sat-Sun unavailable)
+    const allDays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    for (const weekday of allDays) {
+      const isWeekday = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].includes(weekday);
       await storage.createAvailability({
         userId: demoUser._id,
         weekday,
-        startTime: "09:00",
-        endTime: "17:00",
-        isAvailable: true
+        startTime: isWeekday ? "09:00" : "00:00",
+        endTime: isWeekday ? "17:00" : "00:00",
+        isAvailable: isWeekday
       });
     }
 

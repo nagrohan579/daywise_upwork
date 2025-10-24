@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useEffect, useRef } from "react";
 import { FaChevronLeft, FaChevronRight, FaChevronDown } from "react-icons/fa6";
 import "./CalendarTest.css";
 import AddAppointmentModal from "../ui/modals/AddAppointmentModal";
@@ -26,11 +26,37 @@ const CalendarApp = ({ events = [] }) => {
   const [showViewDropdown, setShowViewDropdown] = useState(false);
   const [showAddAppointmentModal, setShowAddAppointmentModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const timeGridRef = useRef(null);
 
   const handleEventClick = useCallback((event) => {
     setSelectedEvent(event);
     setShowAddAppointmentModal(true);
   }, []);
+
+  // Auto-scroll to first booking when day view loads
+  useEffect(() => {
+    if (view === "day" && timeGridRef.current) {
+      const displayDate = currentDate;
+      const dayEvents = getEventsForDate(displayDate);
+      const timedEvents = dayEvents.filter((e) => e.time);
+      
+      const getFirstBookingHour = () => {
+        if (timedEvents.length === 0) return 8; // Default to 8am if no bookings
+        
+        const earliestHour = Math.min(...timedEvents.map(e => {
+          const eventHour = parseInt(e.time.split(":")[0]);
+          return eventHour;
+        }));
+        
+        // Scroll to 1 hour before the first booking, but not before 6am
+        return Math.max(earliestHour - 1, 6);
+      };
+
+      const firstHour = getFirstBookingHour();
+      const scrollPosition = firstHour * 60; // 60px per hour slot
+      timeGridRef.current.scrollTop = scrollPosition;
+    }
+  }, [view, currentDate]);
 
   const styles = {
     container: {
@@ -363,7 +389,7 @@ const CalendarApp = ({ events = [] }) => {
           borderRadius: "3px",
           marginBottom: "4px",
           color: "white",
-          background: eventColors[event.color] || "#3b82f6",
+          background: event.color || eventColors[event.color] || "#3b82f6",
           display: "flex",
           alignItems: "center",
           gap: "6px",
@@ -560,7 +586,7 @@ const CalendarApp = ({ events = [] }) => {
   };
 
   const renderDayView = () => {
-    const hours = Array.from({ length: 17 }, (_, i) => i);
+    const hours = Array.from({ length: 24 }, (_, i) => i);
     const displayDate = currentDate;
     const dayEvents = getEventsForDate(displayDate);
 
@@ -593,7 +619,7 @@ const CalendarApp = ({ events = [] }) => {
           </div>
         )}
 
-        <div style={styles.timeGrid}>
+        <div style={styles.timeGrid} ref={timeGridRef}>
           {hours.map((hour) => {
             const hourEvents = getEventForHour(hour);
             const timeLabel =
@@ -614,7 +640,7 @@ const CalendarApp = ({ events = [] }) => {
                       key={event.id}
                       style={{
                         ...styles.timeEvent,
-                        background: eventColors[event.color],
+                        background: event.color || eventColors[event.color] || "#3b82f6",
                       }}
                     >
                       {event.title}

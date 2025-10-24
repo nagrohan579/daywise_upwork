@@ -15,30 +15,36 @@
   color: #e63946;
 }
 
-.color-options {
-  display: flex;
-  gap: 12px;
+.color-picker-container {
+  position: relative;
+  display: inline-block;
 }
 
-.color-circle {
+.color-preview-circle {
   width: 32px;
   height: 32px;
   border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px #E0E9FE, 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease-in-out;
   cursor: pointer;
-  border: 2px solid transparent;
-  transition: border-color 0.2s ease-in-out;
 }
 
-.color-circle:hover {
-  border-color: #64748b33;
-}
-
-.color-circle.active {
-  /* border-color: #0053F1;  */
-
-  border: 3px solid #0053f1;
-  box-shadow: 0 0 6px rgba(0, 83, 241, 0.6);
+.color-preview-circle:hover {
+  box-shadow: 0 0 0 1px #0053F1, 0 2px 8px rgba(0, 83, 241, 0.2);
   transform: scale(1.05);
+}
+
+.color-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 32px;
+  height: 32px;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+  border-radius: 50%;
 }
 
 .color-error-text {

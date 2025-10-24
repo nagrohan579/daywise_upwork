@@ -238,7 +238,6 @@ const ServicesModal = ({
           <ColorPicker
             label="Service color*"
             name="serviceColor"
-            options={["#F19B11", "#D01DC7", "#5162FA"]}
             value={formData.color}
             onChange={(val) => handleInputChange('color', val)}
           />

@@ -1,7 +1,44 @@
-import React from "react";
+import React, { useRef, useEffect, useState } from "react";
 import "./ColorPicker.css";
 
-const ColorPicker = ({ label, name, options = [], value, onChange, error }) => {
+const ColorPicker = ({ label, name, value, onChange, error }) => {
+  const colorInputRef = useRef(null);
+  const containerRef = useRef(null);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+
+  const handleColorClick = () => {
+    colorInputRef.current?.click();
+    setIsPickerOpen(true);
+  };
+
+  const handleColorChange = (e) => {
+    onChange(e.target.value);
+    setIsPickerOpen(false);
+  };
+
+  // Close picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsPickerOpen(false);
+        // Force close the color picker by blurring the input
+        if (colorInputRef.current) {
+          colorInputRef.current.blur();
+        }
+      }
+    };
+
+    if (isPickerOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isPickerOpen]);
+
   return (
     <div className="color-group">
       {label && (
@@ -10,15 +47,19 @@ const ColorPicker = ({ label, name, options = [], value, onChange, error }) => {
         </label>
       )}
 
-      <div className="color-options">
-        {options.map((color, index) => (
-          <div
-            key={index}
-            className={`color-circle ${value === color ? "active" : ""}`}
-            style={{ backgroundColor: color }}
-            onClick={() => onChange(color)}
-          />
-        ))}
+      <div className="color-picker-container" ref={containerRef}>
+        <div 
+          className="color-preview-circle"
+          style={{ backgroundColor: value || "#F19B11" }}
+          onClick={handleColorClick}
+        />
+        <input
+          ref={colorInputRef}
+          type="color"
+          value={value || "#F19B11"}
+          onChange={handleColorChange}
+          className="color-input"
+        />
       </div>
 
       {error && <p className="color-error-text">{error}</p>}

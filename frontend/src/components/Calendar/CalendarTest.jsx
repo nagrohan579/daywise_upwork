@@ -295,6 +295,7 @@ const CalendarApp = ({ events = [] }) => {
       borderRadius: "4px",
       color: "white",
       fontSize: "13px",
+      cursor: "pointer",
     },
   };
 
@@ -642,6 +643,7 @@ const CalendarApp = ({ events = [] }) => {
                         ...styles.timeEvent,
                         background: event.color || eventColors[event.color] || "#3b82f6",
                       }}
+                      onClick={() => handleEventClick(event)}
                     >
                       {event.title}
                     </div>

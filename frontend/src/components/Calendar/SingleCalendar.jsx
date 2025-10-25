@@ -30,23 +30,21 @@ const tileClassName = ({ date, view }) => {
   return null;
 };
 
-const SingleCalendar = ({ onSelectTime, onNext, notShowTime }) => {
+const SingleCalendar = ({ onSelectTime, onNext, notShowTime, availableTimeSlots = [], onDateSelect, loadingTimeSlots = false, selectedAppointmentType = null }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState(null);
   const isMobile = useMobile(999);
 
-  const timeSlots = [
-    "12:00 PM",
-    "12:30 PM",
-    "2:00 PM",
-    "2:30 PM",
-    "4:00 PM",
-    "8:00 PM",
-  ];
+  const timeSlots = availableTimeSlots;
 
   const handleDateChange = (date) => {
     setSelectedDate(date);
     setSelectedTime(null);
+
+    // Call the parent's handleDateSelect function to fetch time slots
+    if (typeof onDateSelect === "function") {
+      onDateSelect(date);
+    }
 
     // 👇 Automatically move to next step on mobile
     if (isMobile && typeof onNext === "function") {
@@ -65,6 +63,21 @@ const SingleCalendar = ({ onSelectTime, onNext, notShowTime }) => {
       onNext({ time: selectedTime, date: selectedDate });
     } else {
       alert(`You selected ${selectedTime} on ${selectedDate.toDateString()}`);
+    }
+  };
+
+  const handleWrapperClick = (e) => {
+    console.log('Wrapper clicked');
+    console.log('Target:', e.target);
+    console.log('Closest time-slot-container:', e.target.closest('.time-slot-container'));
+    
+    // If clicking outside the time-slot-container, reset selection
+    if (!e.target.closest('.time-slot-container')) {
+      console.log('Clicked outside time-slot-container - resetting');
+      setSelectedTime(null);
+      if (typeof onSelectTime === "function") onSelectTime(null);
+    } else {
+      console.log('Clicked inside time-slot-container - not resetting');
     }
   };
 
@@ -106,7 +119,7 @@ const SingleCalendar = ({ onSelectTime, onNext, notShowTime }) => {
         </div>
       </div>
 
-      <div className={`time-slot-wrapper ${notShowTime ? "hide" : ""}`}>
+      <div className={`time-slot-wrapper ${notShowTime ? "hide" : ""}`} onClick={handleWrapperClick}>
         <div className="selected-date">
           <h3>
             {selectedDate.toLocaleDateString("en-US", {
@@ -119,25 +132,38 @@ const SingleCalendar = ({ onSelectTime, onNext, notShowTime }) => {
         </div>
 
         <div className="time-slot-container">
-          {timeSlots.map((time, index) => (
-            <div key={index} className="time-slot-row">
-              {selectedTime === time ? (
-                <div className="time-slot-selected">
-                  <div className="selected-time-text">{time}</div>
-                  <button className="next-btn" onClick={handleNext}>
-                    Next
-                  </button>
-                </div>
-              ) : (
-                <button
-                  className="time-slot-btn"
-                  onClick={() => handleTimeSelect(time)}
-                >
-                  {time}
-                </button>
-              )}
+          {loadingTimeSlots ? (
+            <div className="time-slots-loading">
+              <div className="time-slots-loading-content">
+                <div className="time-slots-spinner"></div>
+                <p className="time-slots-loading-text">Loading time slots...</p>
+              </div>
             </div>
-          ))}
+          ) : timeSlots.length > 0 ? (
+            timeSlots.map((time, index) => (
+              <div key={index} className="time-slot-row">
+                {selectedTime === time ? (
+                  <div className="time-slot-selected">
+                    <div className="selected-time-text">{time}</div>
+                    <button className="next-btn" onClick={handleNext}>
+                      Next
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className="time-slot-btn"
+                    onClick={() => handleTimeSelect(time)}
+                  >
+                    {time}
+                  </button>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="no-slots-message">
+              <p>{selectedAppointmentType ? "No available time slots for this date" : "Select an appointment type to see available time slots"}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

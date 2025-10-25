@@ -60,7 +60,7 @@
   margin-inline: auto;
   border-radius: 20px;
   width: 100%;
-  max-height: 90vh;
+  max-height: 95vh;
   overflow: hidden;
   background-color: #FFFFFF;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
@@ -68,29 +68,41 @@
 .booking-steps-container .main-wrapper .steps-one {
   display: flex;
   width: 100%;
-  max-height: 90vh;
+  max-height: 95vh;
 }
 .booking-steps-container .main-wrapper .steps-one .left {
   flex: 0.5;
   padding: 30px;
   border-right: 1px solid #E2E8F0;
   overflow-y: auto;
-  max-height: 90vh;
+  max-height: 95vh;
 }
 .booking-steps-container .main-wrapper .steps-one .left .daywise-branding {
   margin-bottom: 21px;
 }
 .booking-steps-container .daywise-branding button {
-  font-size: 11px;
-  line-height: 16px;
-  width: 136px;
-  height: 30px;
+  font-size: 12px;
+  line-height: 1.2;
+  padding: 8px 20px;
+  height: auto;
+  min-width: 140px;
   font-weight: 500;
   background-color: #0053F1;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 50px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: none;
+  text-decoration: none;
+}
+
+.booking-steps-container .daywise-branding button:hover {
+  background-color: #0041C7;
+  transform: translateY(-1px);
 }
 
 .steps-one .left .profile-con .profile-wrapper {
@@ -164,8 +176,17 @@
 .booking-steps-container .main-wrapper .steps-one .right {
   flex: 1;
   padding: 30px;
-  overflow-y: auto;
-  max-height: 90vh;
+  overflow: hidden;
+  height: 100%;
+}
+
+/* Override for calendar - allow it to display fully */
+.booking-steps-container .main-wrapper .steps-one .right .single-calendar-container {
+  overflow: visible !important;
+}
+
+.booking-steps-container .main-wrapper .steps-one .right .single-calendar-container .react-calendar {
+  overflow: visible !important;
 }
 
 .booking-steps-container .step-two {
@@ -236,6 +257,8 @@
 .booking-steps-container .step-two .right {
   flex: 1;
   padding: 30px;
+  overflow: hidden;
+  height: 100%;
 }
 
 .booking-steps-container .step-two .right h1 {
@@ -413,9 +436,21 @@
 .step-two-mobile .time-slot-wrapper .time-slot-container {
   display: grid;
   grid-template-columns: 1fr;
-  min-width: 225px;
+  min-width: 200px;
   gap: 10px;
   position: relative;
+  max-height: 420px; /* Increased height to show one more time slot */
+  overflow-y: auto; /* Enable vertical scrolling */
+  padding-right: 8px; /* Add padding for scrollbar */
+  /* Hide scrollbar */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  justify-items: center; /* Center the grid items horizontally */
+  width: 90%;
+}
+
+.step-two-mobile .time-slot-wrapper .time-slot-container::-webkit-scrollbar {
+  display: none; /* WebKit */
 }
 .step-two-mobile .time-slot-wrapper .time-slot-container .time-slot-btn {
   border: 1px solid #0053f1;
@@ -446,6 +481,7 @@
   padding: 12px 20px;
   height: 52px;
   width: 100%;
+  min-width: 225px;
 }
 
 .step-two-mobile .time-slot-wrapper .time-slot-container .time-slot-selected .selected-time-text {
@@ -470,6 +506,63 @@
   background-color: #f0f0f0;
 }
 
+
+/* No slots message styling */
+.no-slots-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.no-slots-message p {
+  color: #64748B;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Time slots loader animation */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.time-slots-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  min-height: 100px;
+}
+
+.time-slots-loading-content {
+  text-align: center;
+}
+
+.time-slots-spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 8px;
+}
+
+.time-slots-loading-text {
+  color: #64748b;
+  font-size: 12px;
+  font-family: Inter, sans-serif;
+  margin: 0;
+}
+
 @media (max-width: 1100px) {
   .booking-steps-container .main-wrapper {
     max-width: 95%;
@@ -488,10 +581,11 @@
     padding: 40px 20px;
   }
   .booking-steps-container {
-    height: auto;
-    min-height: auto;
+    height: 100vh;
+    min-height: 100vh;
     align-items: start;
-    margin: 10px 0px 40px 0px;
+    margin: 0;
+    padding: 20px;
   }
 }
 @media (max-width: 999px) {
@@ -593,14 +687,32 @@
   font-size: 12px;
   color: #64748B;
   padding-bottom: 10px;
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+  width: 100%;
 }
 
 .booking-steps-container .react-calendar__month-view__weekdays__weekday {
-  padding: 8px;
+  padding: 8px 6px;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .booking-steps-container .react-calendar__month-view__weekdays__weekday abbr {
   text-decoration: none;
+}
+
+.booking-steps-container .react-calendar__month-view__days {
+  width: 100%;
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+  gap: 0 !important;
+}
+
+.booking-steps-container .react-calendar__month-view__days__day {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .booking-steps-container .react-calendar__tile {
@@ -653,17 +765,29 @@
 
 /* Custom button styling */
 .booking-steps-container .powered-by-button {
-  font-size: 11px;
-  line-height: 16px;
-  width: 136px;
-  height: 30px;
+  font-size: 12px;
+  line-height: 1.2;
+  padding: 8px 20px;
+  height: auto;
+  min-width: 140px;
   font-weight: 500;
   background-color: #0053F1;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 50px;
   cursor: pointer;
   font-family: 'Inter', sans-serif;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: none;
+  text-decoration: none;
+}
+
+.booking-steps-container .powered-by-button:hover {
+  background-color: #0041C7;
+  transform: translateY(-1px);
 }
 
 /* Time Slot Mobile Styling */
@@ -676,9 +800,21 @@
 .step-two-mobile .time-slot-wrapper .time-slot-container {
   display: grid;
   grid-template-columns: 1fr;
-  min-width: 225px;
+  min-width: 200px;
   gap: 10px;
   position: relative;
+  max-height: 420px; /* Increased height to show one more time slot */
+  overflow-y: auto; /* Enable vertical scrolling */
+  padding-right: 8px; /* Add padding for scrollbar */
+  /* Hide scrollbar */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  justify-items: center; /* Center the grid items horizontally */
+  width: 90%;
+}
+
+.step-two-mobile .time-slot-wrapper .time-slot-container::-webkit-scrollbar {
+  display: none; /* WebKit */
 }
 
 .step-two-mobile .time-slot-wrapper .time-slot-container .time-slot-btn {
@@ -817,6 +953,8 @@
 .booking-steps-container .step-two .right {
   flex: 1;
   padding: 30px;
+  overflow: hidden;
+  height: 100%;
 }
 
 .booking-steps-container .step-two .right h1 {

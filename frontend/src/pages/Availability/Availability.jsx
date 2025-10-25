@@ -26,6 +26,8 @@ const Availability = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState(null);
+  const [dateExceptions, setDateExceptions] = useState([]);
+  const [services, setServices] = useState([]);
 
   // State for weekly availability - key is day name, value is array of time ranges
   const [weeklyAvailability, setWeeklyAvailability] = useState({
@@ -41,6 +43,8 @@ const Availability = () => {
   // Fetch availability data on mount
   useEffect(() => {
     fetchAvailability();
+    fetchDateExceptions();
+    fetchServices();
   }, []);
 
   const fetchAvailability = async () => {
@@ -120,6 +124,59 @@ const Availability = () => {
     }
   };
 
+  const fetchDateExceptions = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+      // Get current user
+      const meResponse = await fetch(`${apiUrl}/api/auth/me`, {
+        credentials: 'include',
+      });
+
+      if (meResponse.status === 401) {
+        return;
+      }
+
+      const meData = await meResponse.json();
+      const currentUserId = meData.user.id;
+
+      // Fetch date exceptions
+      const response = await fetch(`${apiUrl}/api/availability-exceptions`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch date exceptions');
+      }
+
+      const exceptions = await response.json();
+      console.log('Fetched date exceptions:', exceptions);
+      
+      // Filter only unavailable exceptions
+      const unavailableExceptions = exceptions.filter(exception => exception.type === 'unavailable');
+      setDateExceptions(unavailableExceptions);
+    } catch (error) {
+      console.error('Error fetching date exceptions:', error);
+    }
+  };
+
+  const fetchServices = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      
+      const response = await fetch(`${apiUrl}/api/appointment-types`, {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setServices(data);
+      }
+    } catch (error) {
+      console.error('Error fetching services:', error);
+    }
+  };
+
   const handleSaveChanges = async () => {
     setSaving(true);
     try {
@@ -165,6 +222,32 @@ const Availability = () => {
   const handleAddClick = () => {
     setModalMode("create");
     setShowDateSpecificHour(true);
+  };
+
+  const handleDeleteException = async (exceptionId) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+      const response = await fetch(`${apiUrl}/api/availability-exceptions/${exceptionId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete exception');
+      }
+
+      toast.success('Unavailable date removed successfully!');
+      await fetchDateExceptions(); // Refresh the list
+    } catch (error) {
+      console.error('Error deleting exception:', error);
+      toast.error('Failed to delete exception');
+    }
+  };
+
+  const handleEditException = (exception) => {
+    // For now, just show a message that edit is not implemented
+    toast.info('Edit functionality will be implemented in the next phase');
   };
 
   return (
@@ -249,38 +332,44 @@ const Availability = () => {
                 </div>
 
                 <div className="show-date-specific-hour">
-                  <div className="wrapper">
-                    <div className="box">
-                      <div className="top">
-                        <h4>Sep 30, 2025</h4>
-                        <RxCross2 color="#64748B" />
-                      </div>
-                      <div className="bottom">
-                        <button>
-                          <InfoIcon width={20} height={20} />
-                          Unavailable
-                        </button>
-                        <EditIcon onClick={handleEditClick} />
-                      </div>
+                  {dateExceptions.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '20px', color: '#64748B' }}>
+                      No unavailable dates set
                     </div>
-                    <PlusIcon />
-                  </div>
-                  <div className="wrapper">
-                    <div className="box">
-                      <div className="top">
-                        <h4>Oct 4, 2025</h4>
-                        <RxCross2 color="#64748B" />
+                  ) : (
+                    dateExceptions.map((exception) => (
+                      <div key={exception._id} className="wrapper">
+                        <div className="box">
+                          <div className="top">
+                            <h4>{new Date(exception.date).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric', 
+                              year: 'numeric' 
+                            })}</h4>
+                            <RxCross2 
+                              color="#64748B" 
+                              style={{ cursor: 'pointer' }}
+                              onClick={() => handleDeleteException(exception._id)}
+                            />
+                          </div>
+                          <div className="bottom">
+                            <button>
+                              <InfoIcon width={20} height={20} />
+                              {exception.appointmentTypeId ? 
+                                (() => {
+                                  const service = services.find(s => s._id === exception.appointmentTypeId);
+                                  return service ? service.name : 'Unknown Service';
+                                })() : 
+                                'All Services'
+                              }
+                            </button>
+                            <EditIcon onClick={() => handleEditException(exception)} />
+                          </div>
+                        </div>
+                        <PlusIcon />
                       </div>
-                      <div className="bottom">
-                        <button>
-                          <InfoIcon width={20} height={20} />
-                          Unavailable
-                        </button>
-                        <EditIcon />
-                      </div>
-                    </div>
-                    <PlusIcon />
-                  </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -292,6 +381,7 @@ const Availability = () => {
         showDateSpecificHour={showDateSpecificHour}
         setShowDateSpecificHour={setShowDateSpecificHour}
         mode={modalMode}
+        onSuccess={fetchDateExceptions}
       />
     </AppLayout>
   );

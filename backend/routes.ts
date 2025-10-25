@@ -1283,6 +1283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           picture: user.picture, 
           isAdmin: user.isAdmin,
           businessName: user.businessName,
+          welcomeMessage: user.welcomeMessage,
           timezone: user.timezone,
           country: user.country,
           primaryColor: user.primaryColor,
@@ -2339,9 +2340,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Date ${date} is day ${dayOfWeek} (${dayName})`);
       
       // Filter availability for this day of week
-      const dayAvailability = availability.filter(slot => 
-        slot.weekday === dayName && slot.isAvailable
-      );
+      // Be tolerant: support different casing, abbreviated names, or numeric weekdays stored in DB
+      const dayAvailability = availability.filter(slot => {
+        const rawWeekday = slot.weekday || '';
+        const wk = String(rawWeekday).toLowerCase().trim();
+        const abbr = dayName.slice(0,3);
+        const dayNum = String(dayOfWeek);
+        const matches = wk === dayName || wk === abbr || wk === dayNum;
+        const available = slot.isAvailable !== false; // treat undefined as available
+        if (!matches) {
+          console.log(`Skipping availability slot for weekday='${rawWeekday}' (normalized='${wk}') - does not match '${dayName}'/${abbr}/${dayNum}`);
+        }
+        if (!available) {
+          console.log(`Slot for weekday='${rawWeekday}' is marked unavailable`);
+        }
+        return matches && available;
+      });
       console.log(`Found ${dayAvailability.length} availability slots for ${dayName}:`, dayAvailability);
       
       if (dayAvailability.length === 0) {
@@ -2394,17 +2408,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bufferTimeAfter = appointmentType.bufferTime || 0; // Legacy field name for "after"
       const totalSlotTime = appointmentDuration + bufferTimeAfter;
       
+      console.log(`Slot generation params:`, {
+        appointmentDuration,
+        bufferTimeBefore,
+        bufferTimeAfter,
+        totalSlotTime,
+        existingBookings: dateBookings.length,
+        requestDateStr: dateStr
+      });
+      
       // Sort availability by start time
       dayAvailability.sort((a, b) => a.startTime.localeCompare(b.startTime));
       
       for (const availSlot of dayAvailability) {
+        console.log(`Processing availability slot: ${availSlot.startTime} - ${availSlot.endTime}`);
         const [startHour, startMin] = availSlot.startTime.split(':').map(Number);
         const [endHour, endMin] = availSlot.endTime.split(':').map(Number);
         
         const startTimeMinutes = startHour * 60 + startMin;
         const endTimeMinutes = endHour * 60 + endMin;
         
+        console.log(`Time range in minutes: ${startTimeMinutes} to ${endTimeMinutes}`);
+        
         let currentTimeMinutes = startTimeMinutes;
+        let slotIndex = 0;
         
         while (currentTimeMinutes + appointmentDuration <= endTimeMinutes) {
           const slotHour = Math.floor(currentTimeMinutes / 60);
@@ -2413,6 +2440,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Create the appointment time for conflict checking
           const appointmentDateTime = new Date(requestDate);
           appointmentDateTime.setHours(slotHour, slotMin, 0, 0);
+          
+          console.log(`Checking slot ${slotIndex++}: ${slotHour}:${slotMin.toString().padStart(2, '0')} (${appointmentDateTime.toISOString()})`);
           
           // Check for conflicts with existing bookings (including buffer times)
           const hasConflict = dateBookings.some(booking => {
@@ -2431,7 +2460,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const slotEffectiveEnd = new Date(appointmentDateTime.getTime() + appointmentDuration * 60 * 1000 + bufferTimeAfter * 60 * 1000);
             
             // Check for overlap between the effective time ranges
-            return slotEffectiveStart < bookingEffectiveEnd && slotEffectiveEnd > bookingEffectiveStart;
+            const overlap = slotEffectiveStart < bookingEffectiveEnd && slotEffectiveEnd > bookingEffectiveStart;
+            if (overlap) {
+              console.log(`  ❌ Conflict with existing booking at ${bookingStart.toISOString()}`);
+            }
+            return overlap;
           });
           
           if (!hasConflict) {
@@ -2443,7 +2476,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               minute: '2-digit',
               hour12: true 
             });
+            console.log(`  ✅ Slot available: ${timeString}`);
             slots.push(timeString);
+          } else {
+            console.log(`  ⏭️  Slot skipped due to conflict`);
           }
           
           currentTimeMinutes += totalSlotTime;

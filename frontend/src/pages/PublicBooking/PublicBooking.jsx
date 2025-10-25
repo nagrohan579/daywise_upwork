@@ -23,6 +23,7 @@ const PublicBooking = () => {
   const [userData, setUserData] = useState(null);
   const [appointmentTypes, setAppointmentTypes] = useState([]);
   const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
+  const [loadingTimeSlots, setLoadingTimeSlots] = useState(false);
   const [selectedAppointmentType, setSelectedAppointmentType] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
@@ -100,29 +101,77 @@ const PublicBooking = () => {
     }
   };
 
-  const generateTimeSlots = () => {
-    const slots = [];
-    for (let hour = 9; hour < 17; hour++) {
-      slots.push(`${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? 'PM' : 'AM'}`);
-      slots.push(`${hour > 12 ? hour - 12 : hour}:30 ${hour >= 12 ? 'PM' : 'AM'}`);
+  const fetchAvailableTimeSlots = async (userId, appointmentTypeId, selectedDate) => {
+    setLoadingTimeSlots(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      
+      // Format date as YYYY-MM-DD in LOCAL timezone (not UTC)
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDate.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      
+      console.log('Fetching time slots with params:', {
+        userId,
+        appointmentTypeId,
+        date: dateStr,
+        selectedDateLocal: selectedDate.toString(),
+        url: `${apiUrl}/api/availability/slots?userId=${userId}&appointmentTypeId=${appointmentTypeId}&date=${dateStr}`
+      });
+      
+      const response = await fetch(
+        `${apiUrl}/api/availability/slots?userId=${userId}&appointmentTypeId=${appointmentTypeId}&date=${dateStr}`
+      );
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', response.status, errorText);
+        throw new Error('Failed to fetch available slots');
+      }
+      
+      const data = await response.json();
+      console.log('API Response:', data);
+      return data.slots || [];
+    } catch (error) {
+      console.error('Error fetching time slots:', error);
+      toast.error('Failed to load available time slots');
+      return [];
+    } finally {
+      setLoadingTimeSlots(false);
     }
-    return slots;
   };
 
-  const handleAppointmentTypeChange = (typeName) => {
+  const handleAppointmentTypeChange = async (typeName) => {
+    console.log('Appointment type changed to:', typeName);
     const selected = appointmentTypes.find(t => t.name === typeName);
+    console.log('Selected appointment type:', selected);
     setSelectedAppointmentType(selected);
     setSelectedTime(null);
-    if (selectedDate) {
-      setAvailableTimeSlots(generateTimeSlots());
+    
+    // Set today's date as default if no date is selected
+    const dateToUse = selectedDate || new Date();
+    if (!selectedDate) {
+      setSelectedDate(dateToUse);
+    }
+    
+    console.log('Using date:', dateToUse);
+    console.log('User data:', userData);
+    
+    if (userData) {
+      const slots = await fetchAvailableTimeSlots(userData.id, selected._id, dateToUse);
+      console.log('Fetched slots:', slots);
+      setAvailableTimeSlots(slots);
     }
   };
 
-  const handleDateSelect = (date) => {
+  const handleDateSelect = async (date) => {
     setSelectedDate(date);
     setSelectedTime(null);
-    if (selectedAppointmentType) {
-      setAvailableTimeSlots(generateTimeSlots());
+    
+    if (selectedAppointmentType && userData) {
+      const slots = await fetchAvailableTimeSlots(userData.id, selectedAppointmentType._id, date);
+      setAvailableTimeSlots(slots);
     }
   };
 
@@ -346,10 +395,8 @@ const PublicBooking = () => {
 
                 <div className="business-wrapper">
                   <h2>{userData.businessName || "Business Name Here"}</h2>
-                  {userData.welcomeMessage ? (
+                  {userData.welcomeMessage && (
                     <p>{userData.welcomeMessage}</p>
-                  ) : (
-                    <p>Your business welcome message appears here.</p>
                   )}
                 </div>
 
@@ -372,7 +419,14 @@ const PublicBooking = () => {
             </div>
 
             <div className="right">
-              <SingleCalendar onNext={goToNext} notShowTime={isMobile} />
+              <SingleCalendar 
+                onNext={goToNext} 
+                notShowTime={isMobile}
+                availableTimeSlots={availableTimeSlots}
+                onDateSelect={handleDateSelect}
+                loadingTimeSlots={loadingTimeSlots}
+                selectedAppointmentType={selectedAppointmentType}
+              />
             </div>
           </div>
         )}
@@ -418,25 +472,38 @@ const PublicBooking = () => {
               <div className="bottom">
                 <div className="time-slot-wrapper">
                   <div className="time-slot-container">
-                    {availableTimeSlots.map((time) => (
-                      <div key={time} className="time-slot-row">
-                        {selectedTime === time ? (
-                          <div className="time-slot-selected">
-                            <div className="selected-time-text">{time}</div>
-                            <button className="next-btn" onClick={goToNext}>
-                              Next
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            className="time-slot-btn"
-                            onClick={() => handleTimeSelect(time)}
-                          >
-                            {time}
-                          </button>
-                        )}
+                    {loadingTimeSlots ? (
+                      <div className="time-slots-loading">
+                        <div className="time-slots-loading-content">
+                          <div className="time-slots-spinner"></div>
+                          <p className="time-slots-loading-text">Loading time slots...</p>
+                        </div>
                       </div>
-                    ))}
+                    ) : availableTimeSlots.length > 0 ? (
+                      availableTimeSlots.map((time) => (
+                        <div key={time} className="time-slot-row">
+                          {selectedTime === time ? (
+                            <div className="time-slot-selected">
+                              <div className="selected-time-text">{time}</div>
+                              <button className="next-btn" onClick={goToNext}>
+                                Next
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              className="time-slot-btn"
+                              onClick={() => handleTimeSelect(time)}
+                            >
+                              {time}
+                            </button>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="no-slots-message">
+                        <p>{selectedAppointmentType ? "No available time slots for this date" : "Select an appointment type to see available time slots"}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

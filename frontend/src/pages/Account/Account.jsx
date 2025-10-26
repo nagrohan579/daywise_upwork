@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   AppLayout,
   Button,
@@ -8,6 +8,7 @@ import {
 } from "../../components";
 import { useMobile } from "../../hooks";
 import { toast } from "sonner";
+import ct from "countries-and-timezones";
 import "./Account.css";
 
 const Account = () => {
@@ -25,46 +26,89 @@ const Account = () => {
     googleId: null,
   });
 
-  // Country mapping
-  const countryMap = {
-    "US": "United States",
-    "CA": "Canada",
-    "GB": "United Kingdom",
-    "AU": "Australia",
-    "DE": "Germany",
-    "FR": "France",
-    "IN": "India",
-    "JP": "Japan",
-    "CN": "China",
-    "BR": "Brazil",
+  // Generate country and timezone data dynamically from the library
+  const { countries, timezones, countryOptions, timezoneOptions } = useMemo(() => {
+    const allCountries = ct.getAllCountries();
+    const allTimezones = ct.getAllTimezones();
+
+    // Create country options sorted by name
+    const countryOpts = Object.values(allCountries)
+      .map(country => country.name)
+      .sort();
+
+    // Create unique timezone options with UTC offset for clarity
+    const timezoneMap = new Map();
+    Object.values(allTimezones).forEach(tz => {
+      const offset = tz.utcOffset / 60; // Convert minutes to hours
+      const sign = offset >= 0 ? '+' : '';
+      const formattedOffset = `GMT${sign}${offset}`;
+      const label = `${tz.name.replace(/_/g, ' ')} (${formattedOffset})`;
+
+      // Only add if we haven't seen this exact label before
+      if (!timezoneMap.has(label)) {
+        timezoneMap.set(label, tz.name);
+      }
+    });
+
+    // Sort timezones by UTC offset
+    const sortedTimezones = Array.from(timezoneMap.entries())
+      .sort((a, b) => {
+        const tzA = allTimezones[a[1]];
+        const tzB = allTimezones[b[1]];
+        return tzA.utcOffset - tzB.utcOffset;
+      })
+      .map(([label]) => label);
+
+    return {
+      countries: allCountries,
+      timezones: allTimezones,
+      countryOptions: countryOpts,
+      timezoneOptions: sortedTimezones
+    };
+  }, []);
+
+  const getCountryLabel = (code) => {
+    const country = ct.getCountry(code);
+    return country ? country.name : code;
   };
 
-  // Timezone mapping
-  const timezoneMap = {
-    "America/Los_Angeles": "Pacific Time (US & Canada)",
-    "America/Denver": "Mountain Time (US & Canada)",
-    "America/Chicago": "Central Time (US & Canada)",
-    "America/New_York": "Eastern Time (US & Canada)",
-    "America/Halifax": "Atlantic Time (Canada)",
-    "UTC": "Greenwich Mean Time (GMT)",
-    "Europe/Paris": "Central European Time (CET)",
-    "Europe/Athens": "Eastern European Time (EET)",
-    "Asia/Kolkata": "India Standard Time (IST)",
-    "Asia/Shanghai": "China Standard Time (CST)",
-    "Asia/Tokyo": "Japan Standard Time (JST)",
-    "Australia/Sydney": "Australia Eastern Standard Time (AEST)",
-  };
-
-  const getCountryLabel = (code) => countryMap[code] || code;
   const getCountryCode = (label) => {
-    const entry = Object.entries(countryMap).find(([_, v]) => v === label);
-    return entry ? entry[0] : label;
+    const country = Object.values(countries).find(c => c.name === label);
+    return country ? country.id : label;
   };
 
-  const getTimezoneLabel = (value) => timezoneMap[value] || value;
+  const getTimezoneLabel = (value) => {
+    // Try to get the timezone by name
+    let tz = timezones[value];
+
+    // If not found, try using ct.getTimezone which handles legacy names
+    if (!tz && value) {
+      try {
+        tz = ct.getTimezone(value);
+      } catch (e) {
+        console.warn(`Timezone not found: ${value}`);
+      }
+    }
+
+    if (tz) {
+      const offset = tz.utcOffset / 60;
+      const sign = offset >= 0 ? '+' : '';
+      const formattedOffset = `GMT${sign}${offset}`;
+      return `${tz.name.replace(/_/g, ' ')} (${formattedOffset})`;
+    }
+    return value;
+  };
+
   const getTimezoneValue = (label) => {
-    const entry = Object.entries(timezoneMap).find(([_, v]) => v === label);
-    return entry ? entry[0] : label;
+    // Extract the timezone name from the label (format: "Name (GMT±X)")
+    const match = label.match(/^(.+?)\s*\(GMT/);
+    if (match) {
+      const name = match[1].trim().replace(/ /g, '_');
+      // Find the timezone with this name
+      const tz = Object.values(timezones).find(t => t.name.replace(/_/g, ' ') === match[1].trim());
+      return tz ? tz.name : name;
+    }
+    return label;
   };
 
   // Fetch user data on mount
@@ -111,6 +155,31 @@ const Account = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleCountryChange = (countryName) => {
+    const countryCode = getCountryCode(countryName);
+    const country = ct.getCountry(countryCode);
+
+    if (country && country.timezones && country.timezones.length > 0) {
+      // Auto-select the first (primary) timezone for this country
+      const primaryTimezone = country.timezones[0];
+      const timezoneLabel = getTimezoneLabel(primaryTimezone);
+
+      setUserData(prev => ({
+        ...prev,
+        country: countryCode,
+        timezone: primaryTimezone
+      }));
+
+      toast.success(`Timezone automatically set to ${timezoneLabel}`);
+    } else {
+      // If no timezone found, just update country
+      setUserData(prev => ({
+        ...prev,
+        country: countryCode
+      }));
+    }
   };
 
   const handleSaveChanges = async (e) => {
@@ -326,20 +395,9 @@ const Account = () => {
                 placeholder="Select your country"
                 label={"Country"}
                 value={getCountryLabel(userData.country)}
-                onChange={(value) => handleInputChange('country', getCountryCode(value))}
+                onChange={handleCountryChange}
                 style={{ backgroundColor: "#F9FAFF", borderRadius: "12px" }}
-                options={[
-                  "United States",
-                  "Canada",
-                  "United Kingdom",
-                  "Australia",
-                  "Germany",
-                  "France",
-                  "India",
-                  "Japan",
-                  "China",
-                  "Brazil",
-                ]}
+                options={countryOptions}
               />
             </div>
             <div className="select-con">
@@ -350,20 +408,7 @@ const Account = () => {
                 onChange={(value) => handleInputChange('timezone', getTimezoneValue(value))}
                 showCurrentTime={true}
                 style={{ backgroundColor: "#F9FAFF", borderRadius: "12px" }}
-                options={[
-                  "Pacific Time (US & Canada)",
-                  "Mountain Time (US & Canada)",
-                  "Central Time (US & Canada)",
-                  "Eastern Time (US & Canada)",
-                  "Atlantic Time (Canada)",
-                  "Greenwich Mean Time (GMT)",
-                  "Central European Time (CET)",
-                  "Eastern European Time (EET)",
-                  "India Standard Time (IST)",
-                  "China Standard Time (CST)",
-                  "Japan Standard Time (JST)",
-                  "Australia Eastern Standard Time (AEST)",
-                ]}
+                options={timezoneOptions}
               />
             </div>
           </div>

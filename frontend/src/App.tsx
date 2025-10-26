@@ -19,6 +19,8 @@ import BillingPage from "./pages/Billing";
 import PublicBookingPage from "./pages/PublicBooking";
 import TermsPage from "./pages/Terms";
 import PrivacyPolicyPage from "./pages/PrivacyPolicy";
+import FeedbackPage from "./pages/Feedback/Feedback";
+import PaymentsPage from "./pages/Payments/Payments";
 import AdminLogin from "./pages/Admin/AdminLogin";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 
@@ -44,6 +46,8 @@ function App() {
         <Route path="/setting" element={<SettingsPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="/billing" element={<BillingPage />} />
+        <Route path="/payments" element={<PaymentsPage />} />
+        <Route path="/feedback" element={<FeedbackPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/admin/login" element={<AdminLogin />} />

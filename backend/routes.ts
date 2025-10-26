@@ -7,7 +7,12 @@ import fs from "fs";
 import path from "path";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import { storage, createDemoData } from "./storage";
+import moment from "moment-timezone";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+import { toUTC, toLocal, getDayOfWeek, getDateInTimezone, customerDateToUTC } from "./lib/timezoneUtils";
+import { storage } from "./storage";
 import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
 import { insertUserSchema, insertBookingSchema, insertAvailabilitySchema, insertBlockedDateSchema, insertAppointmentTypeSchema, insertAvailabilityPatternSchema, insertAppointmentTypeAvailabilitySchema, insertAvailabilityExceptionSchema, insertSubscriptionPlanSchema, insertUserSubscriptionSchema, insertBrandingSchema, insertFeedbackSchema, availabilitySettingsSchema, loginSchema, signupSchema, resendVerificationSchema, changePasswordSchema, changeEmailSchema, disconnectGoogleSchema, forgotPasswordSchema, resetPasswordSchema, checkoutStartSchema, validateCouponSchema } from "./schemas";
 import { applyDefaults, FeaturesShape } from "./lib/features";
@@ -22,9 +27,10 @@ import { FeatureGate } from "./featureGating";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Initialize demo data on startup
-  await createDemoData();
-  
+  // Initialize dayjs plugins
+  dayjs.extend(utc);
+  dayjs.extend(timezone);
+
   // Initialize Google OAuth client
   const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -83,13 +89,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log(`Google OAuth Start - Host: ${host}, Redirect URI: ${redirectUri}`);
     console.log(`Environment check - BASE_URL: ${process.env.BASE_URL}, NODE_ENV: ${process.env.NODE_ENV}`);
 
+    // Read timezone and country from query parameters
+    const { timezone, country } = req.query;
+    console.log('OAuth init - Timezone from query:', timezone);
+    console.log('OAuth init - Country from query:', country);
+
     // Only request basic profile info for login/signup (no calendar access)
     const scope = 'openid email profile';
     const responseType = 'code';
     const state = Math.random().toString(36).substring(2, 15);
 
-    // Store state in session for verification
+    // Store state, timezone, and country in session for verification and later use
     (req.session as any).oauthState = state;
+    (req.session as any).oauthTimezone = timezone;
+    (req.session as any).oauthCountry = country;
     
     // Force session save before redirect to ensure state is persisted
     req.session.save((err) => {
@@ -125,6 +138,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { code, state } = req.query;
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+      // Read timezone and country from session (stored during OAuth initiation)
+      const timezone = (req.session as any).oauthTimezone;
+      const country = (req.session as any).oauthCountry;
+      console.log('OAuth callback - Timezone from session:', timezone);
+      console.log('OAuth callback - Country from session:', country);
 
       if (!code || typeof code !== 'string') {
         return res.send(`
@@ -266,8 +285,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           picture: picture || null,
           businessName,
           slug: await ensureUniqueSlug(slug, ''),
-          timezone: 'UTC',
-          country: 'US',
+          timezone: timezone || 'UTC',
+          country: country || 'US',
           isAdmin: false,
         };
   user = await storage.createUser(userData);
@@ -952,8 +971,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Email signup endpoint with verification
   app.post("/api/auth/signup", async (req, res) => {
     try {
+      console.log('=== Signup Request Debug ===');
+      console.log('Request body:', JSON.stringify(req.body, null, 2));
+      console.log('===========================');
+
       const validatedData = signupSchema.parse(req.body);
-      const { email, name, password } = validatedData;
+      const { email, name, password, timezone, country } = validatedData;
+
+      console.log('Validated timezone:', timezone);
+      console.log('Validated country:', country);
 
       // Check if user already exists
       let existingUser = await storage.getUserByEmail(email);
@@ -980,8 +1006,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         emailVerified: false,
         businessName,
         slug: await ensureUniqueSlug(slug, ''),
-        timezone: 'UTC',
-        country: 'US',
+        timezone: timezone || 'UTC',
+        country: country || 'US',
         isAdmin: false,
         primaryColor: '#ef4444',
         secondaryColor: '#f97316',
@@ -2307,8 +2333,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log(`Raw query params:`, req.query);
     console.log(`Raw URL:`, req.url);
     try {
-      const { userId, appointmentTypeId, date, timezone = 'UTC' } = req.query;
-      console.log(`GET /api/availability/slots - Parsed Params:`, { userId, appointmentTypeId, date, timezone });
+      const { userId, appointmentTypeId, date, customerTimezone, timezone = 'UTC' } = req.query;
+      console.log(`GET /api/availability/slots - Parsed Params:`, { userId, appointmentTypeId, date, customerTimezone, timezone });
       
       if (!userId || !appointmentTypeId || !date) {
         console.log(`Missing required parameters:`, { userId, appointmentTypeId, date });
@@ -2333,30 +2359,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const availability = await storage.getAvailabilityByUser(userId as string);
       console.log(`Found ${availability.length} availability records for user ${userId}:`, availability);
       
-      // Get day of week (0 = Sunday, 1 = Monday, etc.)
-      const dayOfWeek = requestDate.getDay();
+      // Get user's timezone
+      const user = await storage.getUser(userId as string);
+      const userTimezone = user?.timezone || 'Asia/Calcutta';
+      console.log(`User timezone: ${userTimezone}`);
+      console.log(`Customer timezone: ${customerTimezone || 'not provided'}`);
+      
+      // Check if timezones are the same
+      const timezonesMatch = userTimezone === customerTimezone;
+      console.log(`Timezones match: ${timezonesMatch}`);
+      
+      // Convert the customer's selected date to UTC
+      // Customer sends date as YYYY-MM-DD in their timezone, but we need to find what day it is in the user's timezone
+      const customerTz = (customerTimezone as string) || userTimezone;
+      
+      // Parse the date in the customer's timezone
+      const customerDateInCustomerTz = dayjs.tz(date as string, customerTz);
+
+      // Convert to UTC
+      const customerDateUTC = customerDateInCustomerTz.utc();
+
+      // Now convert that UTC time to the user's timezone to determine what day of week it is for the business
+      const dateInUserTz = customerDateUTC.tz(userTimezone);
+      const dayOfWeek = dateInUserTz.day();
       const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
       const dayName = dayNames[dayOfWeek];
-      console.log(`Date ${date} is day ${dayOfWeek} (${dayName})`);
-      
-      // Filter availability for this day of week
-      // Be tolerant: support different casing, abbreviated names, or numeric weekdays stored in DB
-      const dayAvailability = availability.filter(slot => {
+
+      console.log(`Customer date ${date} in ${customerTz} → UTC: ${customerDateUTC.format('YYYY-MM-DD HH:mm:ss')} → User's timezone (${userTimezone}): ${dateInUserTz.format('YYYY-MM-DD dddd')}, day ${dayOfWeek} (${dayName})`);
+
+      // Check if customer's full day (00:00-23:59 in their TZ) spans multiple calendar days in business TZ
+      const customerDayStart = customerDateInCustomerTz.startOf('day'); // 00:00 in customer TZ
+      const customerDayEnd = customerDateInCustomerTz.endOf('day'); // 23:59:59 in customer TZ
+      const dayStartInUserTz = customerDayStart.tz(userTimezone);
+      const dayEndInUserTz = customerDayEnd.tz(userTimezone);
+      const spansDifferentDays = dayStartInUserTz.format('YYYY-MM-DD') !== dayEndInUserTz.format('YYYY-MM-DD');
+
+      console.log(`Customer's full day ${customerDayStart.format('YYYY-MM-DD HH:mm')} to ${customerDayEnd.format('YYYY-MM-DD HH:mm')} (${customerTz}) → Business TZ: ${dayStartInUserTz.format('YYYY-MM-DD HH:mm')} to ${dayEndInUserTz.format('YYYY-MM-DD HH:mm')} (${userTimezone}) - Spans different days: ${spansDifferentDays}`);
+
+      // First, check availability for the current day
+      let dayAvailability = availability.filter(slot => {
         const rawWeekday = slot.weekday || '';
         const wk = String(rawWeekday).toLowerCase().trim();
-        const abbr = dayName.slice(0,3);
-        const dayNum = String(dayOfWeek);
-        const matches = wk === dayName || wk === abbr || wk === dayNum;
-        const available = slot.isAvailable !== false; // treat undefined as available
-        if (!matches) {
-          console.log(`Skipping availability slot for weekday='${rawWeekday}' (normalized='${wk}') - does not match '${dayName}'/${abbr}/${dayNum}`);
-        }
-        if (!available) {
-          console.log(`Slot for weekday='${rawWeekday}' is marked unavailable`);
-        }
+        const available = slot.isAvailable !== false;
+        const matches = wk === dayName || wk === dayName.slice(0,3) || wk === String(dayOfWeek);
         return matches && available;
       });
       console.log(`Found ${dayAvailability.length} availability slots for ${dayName}:`, dayAvailability);
+
+      // Only check adjacent days if the customer's day actually spans different calendar days in the business timezone
+      // This handles cases where customer's selected day spans multiple days in the business's timezone
+      if (dayAvailability.length === 0 && customerTimezone && spansDifferentDays) {
+        // Check what the previous and next days are in the user's timezone
+        // For example, if customer is in GMT+10 and selects Monday, and user is in IST,
+        // the Monday in GMT+10 might be Sunday evening or Tuesday morning in IST
+        const prevDayInUserTz = dateInUserTz.subtract(1, 'day');
+        const nextDayInUserTz = dateInUserTz.add(1, 'day');
+        
+        const prevDayName = dayNames[prevDayInUserTz.day()];
+        const nextDayName = dayNames[nextDayInUserTz.day()];
+        
+        console.log(`No availability for ${dayName}, checking adjacent days due to timezone difference: ${prevDayName} and ${nextDayName}`);
+        
+        dayAvailability = availability.filter(slot => {
+          const rawWeekday = slot.weekday || '';
+          const wk = String(rawWeekday).toLowerCase().trim();
+          const available = slot.isAvailable !== false;
+          
+          const matchesPrev = wk === prevDayName || wk === prevDayName.slice(0,3);
+          const matchesNext = wk === nextDayName || wk === nextDayName.slice(0,3);
+          const matches = matchesPrev || matchesNext;
+          
+          if (matches) {
+            if (matchesPrev) console.log(`Slot for ${rawWeekday} matches adjacent day ${prevDayName}`);
+            if (matchesNext) console.log(`Slot for ${rawWeekday} matches adjacent day ${nextDayName}`);
+          }
+          
+          return matches && available;
+        });
+        console.log(`Found ${dayAvailability.length} availability slots from adjacent days:`, dayAvailability);
+      } else if (dayAvailability.length === 0) {
+        console.log(`No availability for ${dayName}, returning empty slots (not checking adjacent days - customer's day doesn't span different calendar days in business timezone)`);
+      }
       
       if (dayAvailability.length === 0) {
         console.log(`No availability for ${dayName}, returning empty slots`);
@@ -2468,16 +2551,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           
           if (!hasConflict) {
-            // Format time for display
-            const time = new Date();
-            time.setHours(slotHour, slotMin, 0, 0);
-            const timeString = time.toLocaleTimeString('en-US', { 
-              hour: 'numeric', 
-              minute: '2-digit',
-              hour12: true 
-            });
-            console.log(`  ✅ Slot available: ${timeString}`);
-            slots.push(timeString);
+            // Create the slot time in the business owner's timezone
+            const dateStr = dayjs.tz(`${date} 00:00:00`, userTimezone).format('YYYY-MM-DD');
+            const slotDateTimeInOwnerTz = dayjs.tz(`${dateStr} ${String(slotHour).padStart(2, '0')}:${String(slotMin).padStart(2, '0')}:00`, userTimezone);
+            
+            // Convert to UTC and store as ISO string
+            const slotUTC = slotDateTimeInOwnerTz.utc();
+            const isoString = slotUTC.toISOString();
+            
+            console.log(`  ✅ Slot available: ${slotHour}:${slotMin.toString().padStart(2, '0')} (${isoString})`);
+            slots.push(isoString);
           } else {
             console.log(`  ⏭️  Slot skipped due to conflict`);
           }

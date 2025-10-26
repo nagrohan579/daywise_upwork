@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import SingleCalendar from "../../components/Calendar/SingleCalendar";
@@ -11,7 +11,16 @@ import {
 import { useMobile } from "../../hooks";
 import { Input, Button, Textarea } from "../../components/index";
 import Select from "../../components/ui/Input/Select";
+import ct from 'countries-and-timezones';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+import { detectUserLocation } from "../../utils/locationDetection";
 import "./PublicBooking.css";
+
+// Initialize dayjs plugins
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const PublicBooking = () => {
   const { slug } = useParams();
@@ -32,6 +41,43 @@ const PublicBooking = () => {
   const [comments, setComments] = useState("");
   const [step, setStep] = useState(1);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [customerTimezone, setCustomerTimezone] = useState(null);
+
+  // Generate timezone options dynamically from the library (same as Account page)
+  const { timezones, timezoneOptions } = useMemo(() => {
+    const allTimezones = ct.getAllTimezones();
+
+    // Create unique timezone options with UTC offset for clarity
+    const timezoneMap = new Map();
+    Object.values(allTimezones).forEach(tz => {
+      const offset = tz.utcOffset / 60; // Convert minutes to hours
+      const sign = offset >= 0 ? '+' : '';
+      const formattedOffset = `GMT${sign}${offset}`;
+      const label = `${tz.name.replace(/_/g, ' ')} (${formattedOffset})`;
+
+      // Only add if we haven't seen this exact label before
+      if (!timezoneMap.has(label)) {
+        timezoneMap.set(label, tz.name);
+      }
+    });
+
+    // Sort timezones by UTC offset
+    const sortedTimezones = Array.from(timezoneMap.entries())
+      .sort((a, b) => {
+        const tzA = allTimezones[a[1]];
+        const tzB = allTimezones[b[1]];
+        return tzA.utcOffset - tzB.utcOffset;
+      })
+      .map(([label]) => label);
+
+    console.log('PublicBooking - Generated timezone options:', sortedTimezones.length, 'timezones');
+    console.log('PublicBooking - First 5 timezones:', sortedTimezones.slice(0, 5));
+
+    return {
+      timezones: allTimezones,
+      timezoneOptions: sortedTimezones
+    };
+  }, []);
   
   const goToNext = (data) => {
     // Validate appointment type is selected before proceeding to step 2
@@ -60,6 +106,14 @@ const PublicBooking = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Auto-detect customer's timezone on mount (same as signup flow)
+  useEffect(() => {
+    const location = detectUserLocation();
+    setCustomerTimezone(location.timezone);
+    console.log('PublicBooking - Customer timezone auto-detected:', location.timezone);
+    console.log('PublicBooking - Customer country auto-detected:', location.country);
+  }, []);
+
   useEffect(() => {
     if (!slug) {
       toast.error("Invalid booking link");
@@ -86,6 +140,8 @@ const PublicBooking = () => {
       
       const user = await userResponse.json();
       setUserData(user);
+      console.log('PublicBooking - Business user data:', user);
+      console.log('PublicBooking - Business timezone:', user.timezone);
 
       const typesResponse = await fetch(`${apiUrl}/api/appointment-types?userId=${user.id}`);
       if (typesResponse.ok) {
@@ -102,7 +158,16 @@ const PublicBooking = () => {
   };
 
   const fetchAvailableTimeSlots = async (userId, appointmentTypeId, selectedDate) => {
+    if (!userId || !appointmentTypeId || !selectedDate) {
+      console.error('Missing required params for time slots:', { userId, appointmentTypeId, selectedDate });
+      setLoadingTimeSlots(false);
+      setAvailableTimeSlots([]);
+      return [];
+    }
+    
     setLoadingTimeSlots(true);
+    setAvailableTimeSlots([]); // Clear previous slots
+    
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       
@@ -112,16 +177,20 @@ const PublicBooking = () => {
       const day = String(selectedDate.getDate()).padStart(2, '0');
       const dateStr = `${year}-${month}-${day}`;
       
+      // Get the timezone name from the customer's selected timezone or auto-detected
+      const customerTz = customerTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      
       console.log('Fetching time slots with params:', {
         userId,
         appointmentTypeId,
         date: dateStr,
+        customerTimezone: customerTz,
         selectedDateLocal: selectedDate.toString(),
-        url: `${apiUrl}/api/availability/slots?userId=${userId}&appointmentTypeId=${appointmentTypeId}&date=${dateStr}`
+        url: `${apiUrl}/api/availability/slots?userId=${userId}&appointmentTypeId=${appointmentTypeId}&date=${dateStr}&customerTimezone=${encodeURIComponent(customerTz)}`
       });
       
       const response = await fetch(
-        `${apiUrl}/api/availability/slots?userId=${userId}&appointmentTypeId=${appointmentTypeId}&date=${dateStr}`
+        `${apiUrl}/api/availability/slots?userId=${userId}&appointmentTypeId=${appointmentTypeId}&date=${dateStr}&customerTimezone=${encodeURIComponent(customerTz)}`
       );
       
       if (!response.ok) {
@@ -132,10 +201,14 @@ const PublicBooking = () => {
       
       const data = await response.json();
       console.log('API Response:', data);
-      return data.slots || [];
+      const slots = data.slots || [];
+      console.log('Setting available slots:', slots);
+      setAvailableTimeSlots(slots);
+      return slots;
     } catch (error) {
       console.error('Error fetching time slots:', error);
       toast.error('Failed to load available time slots');
+      setAvailableTimeSlots([]);
       return [];
     } finally {
       setLoadingTimeSlots(false);
@@ -146,6 +219,12 @@ const PublicBooking = () => {
     console.log('Appointment type changed to:', typeName);
     const selected = appointmentTypes.find(t => t.name === typeName);
     console.log('Selected appointment type:', selected);
+    
+    if (!selected) {
+      console.error('Appointment type not found:', typeName);
+      return;
+    }
+    
     setSelectedAppointmentType(selected);
     setSelectedTime(null);
     
@@ -158,10 +237,12 @@ const PublicBooking = () => {
     console.log('Using date:', dateToUse);
     console.log('User data:', userData);
     
-    if (userData) {
-      const slots = await fetchAvailableTimeSlots(userData.id, selected._id, dateToUse);
-      console.log('Fetched slots:', slots);
-      setAvailableTimeSlots(slots);
+    if (userData && selected?._id) {
+      console.log('Calling fetchAvailableTimeSlots with:', { userId: userData.id, appointmentTypeId: selected._id, date: dateToUse });
+      await fetchAvailableTimeSlots(userData.id, selected._id, dateToUse);
+      // Note: fetchAvailableTimeSlots now sets availableTimeSlots internally
+    } else {
+      console.warn('Cannot fetch time slots - missing user data or appointment type ID');
     }
   };
 
@@ -169,14 +250,20 @@ const PublicBooking = () => {
     setSelectedDate(date);
     setSelectedTime(null);
     
-    if (selectedAppointmentType && userData) {
-      const slots = await fetchAvailableTimeSlots(userData.id, selectedAppointmentType._id, date);
-      setAvailableTimeSlots(slots);
+    if (selectedAppointmentType?._id && userData) {
+      console.log('Calling fetchAvailableTimeSlots for date change with:', { userId: userData.id, appointmentTypeId: selectedAppointmentType._id, date });
+      await fetchAvailableTimeSlots(userData.id, selectedAppointmentType._id, date);
+      // Note: fetchAvailableTimeSlots now sets availableTimeSlots internally
+    } else {
+      console.warn('Cannot fetch time slots for date change - missing appointment type or user data');
     }
   };
 
-  const handleTimeSelect = (time) => {
-    setSelectedTime(time);
+  const handleTimeSelect = (timeSlot) => {
+    // timeSlot can be either a UTC ISO string or an object {display, original}
+    const utcTime = typeof timeSlot === 'string' ? timeSlot : timeSlot.original;
+    setSelectedTime(utcTime);
+    console.log('handleTimeSelect - Selected UTC time:', utcTime);
   };
 
   const handleCompleteBooking = async (e) => {
@@ -213,24 +300,10 @@ const PublicBooking = () => {
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      const timeMatch = selectedTime.match(/(\d+):(\d+)\s*(AM|PM)/);
-      
-      if (!timeMatch) {
-        throw new Error("Invalid time format");
-      }
-      
-      let hour = parseInt(timeMatch[1]);
-      const minute = parseInt(timeMatch[2]);
-      const period = timeMatch[3];
-      
-      if (period === 'PM' && hour !== 12) hour += 12;
-      if (period === 'AM' && hour === 12) hour = 0;
-      
-      const appointmentDateTime = new Date(selectedDate);
-      appointmentDateTime.setHours(hour, minute, 0, 0);
-      const appointmentTimestamp = appointmentDateTime.getTime();
 
-      console.log("PublicBooking - Appointment date/time:", appointmentDateTime);
+      // selectedTime is always a UTC ISO string from the backend
+      console.log("PublicBooking - selectedTime UTC ISO string:", selectedTime);
+      const appointmentTimestamp = dayjs.utc(selectedTime).valueOf();
       console.log("PublicBooking - Appointment timestamp:", appointmentTimestamp);
 
       // Generate booking token
@@ -284,7 +357,6 @@ const PublicBooking = () => {
   const formatDate = (date) => {
     if (!date) return "";
     return date.toLocaleDateString("en-US", {
-      weekday: "long",
       month: "long",
       day: "numeric",
       year: "numeric",
@@ -292,32 +364,14 @@ const PublicBooking = () => {
   };
 
   const formatTimeRange = () => {
-    if (!selectedTime || !selectedAppointmentType) return "";
-    
-    const timeMatch = selectedTime.match(/(\d+):(\d+)\s*(AM|PM)/);
-    if (!timeMatch) return selectedTime;
-    
-    let hour = parseInt(timeMatch[1]);
-    const minute = parseInt(timeMatch[2]);
-    const period = timeMatch[3];
-    
-    if (period === 'PM' && hour !== 12) hour += 12;
-    if (period === 'AM' && hour === 12) hour = 0;
-    
-    const startTime = new Date();
-    startTime.setHours(hour, minute, 0, 0);
-    
-    const endTime = new Date(startTime.getTime() + selectedAppointmentType.duration * 60000);
-    
-    const formatTime = (date) => {
-      return date.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      });
-    };
-    
-    return `${formatTime(startTime)}-${formatTime(endTime)}`;
+    if (!selectedTime || !selectedAppointmentType || !customerTimezone) return "";
+
+    // selectedTime is a UTC ISO string, convert to customer timezone
+    const startTimeUTC = dayjs.utc(selectedTime);
+    const startTimeLocal = startTimeUTC.tz(customerTimezone);
+    const endTimeLocal = startTimeLocal.add(selectedAppointmentType.duration, 'minute');
+
+    return `${startTimeLocal.format('h:mm A')}-${endTimeLocal.format('h:mm A')}`;
   };
 
   const getCurrentTimeString = () => {
@@ -329,22 +383,78 @@ const PublicBooking = () => {
   };
 
   const getTimezoneName = () => {
-    // Get user's timezone or use the business owner's timezone
-    const timezone = userData?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-    
-    // Convert timezone to readable format (e.g., "America/Los_Angeles" -> "Pacific Time - US & Canada")
-    const timezoneMap = {
-      'America/Los_Angeles': 'Pacific Time - US & Canada',
-      'America/Denver': 'Mountain Time - US & Canada',
-      'America/Chicago': 'Central Time - US & Canada',
-      'America/New_York': 'Eastern Time - US & Canada',
-      'America/Phoenix': 'Arizona',
-      'America/Anchorage': 'Alaska',
-      'Pacific/Honolulu': 'Hawaii',
-    };
-    
-    return timezoneMap[timezone] || timezone.replace(/_/g, ' ');
+    if (!customerTimezone) return "";
+    return getTimezoneLabel(customerTimezone);
   };
+
+  // Helper function to get timezone label from value (handles legacy names)
+  const getTimezoneLabel = (value) => {
+    // Try to get the timezone by name
+    let tz = timezones[value];
+
+    // If not found, try using ct.getTimezone which handles legacy names
+    if (!tz && value) {
+      try {
+        tz = ct.getTimezone(value);
+      } catch (e) {
+        console.warn(`Timezone not found: ${value}`);
+      }
+    }
+
+    if (tz) {
+      const offset = tz.utcOffset / 60;
+      const sign = offset >= 0 ? '+' : '';
+      const formattedOffset = `GMT${sign}${offset}`;
+      return `${tz.name.replace(/_/g, ' ')} (${formattedOffset})`;
+    }
+    return value;
+  };
+
+  // Helper function to get timezone value from label
+  const getTimezoneValue = (label) => {
+    const match = label.match(/^(.+?)\s+\(GMT[+-][\d.]+\)$/);
+    if (match) {
+      const timezoneName = match[1].replace(/ /g, '_');
+      // Find the timezone in our timezones object
+      const tz = Object.values(timezones).find(t => t.name === timezoneName);
+      return tz ? tz.name : timezoneName;
+    }
+    return label;
+  };
+
+  const handleTimezoneChange = (label) => {
+    const timezoneValue = getTimezoneValue(label);
+    setCustomerTimezone(timezoneValue);
+    console.log('PublicBooking - Customer timezone changed to:', timezoneValue);
+    console.log('PublicBooking - Business timezone:', userData?.timezone);
+    console.log('PublicBooking - Will convert slots from', userData?.timezone, 'to', timezoneValue);
+  };
+
+  // Convert and sort available time slots for display
+  const displayTimeSlots = useMemo(() => {
+    if (!customerTimezone || availableTimeSlots.length === 0) {
+      return [];
+    }
+
+    // Slots are UTC ISO strings from backend
+    // 1. Sort chronologically
+    // 2. Convert to customer timezone
+    // 3. Return as objects with {display, original}
+    const sortedSlots = [...availableTimeSlots].sort((a, b) => {
+      return new Date(a).getTime() - new Date(b).getTime();
+    });
+
+    return sortedSlots.map(utcIsoString => {
+      const utcTime = dayjs.utc(utcIsoString);
+      const customerTime = utcTime.tz(customerTimezone);
+      const displayTime = customerTime.format('h:mm A');
+
+      return {
+        display: displayTime,
+        original: utcIsoString
+      };
+    });
+  }, [availableTimeSlots, customerTimezone]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -419,13 +529,21 @@ const PublicBooking = () => {
             </div>
 
             <div className="right">
-              <SingleCalendar 
-                onNext={goToNext} 
+              <SingleCalendar
+                onNext={goToNext}
                 notShowTime={isMobile}
-                availableTimeSlots={availableTimeSlots}
+                availableTimeSlots={displayTimeSlots}
                 onDateSelect={handleDateSelect}
+                onTimeSelect={handleTimeSelect}
                 loadingTimeSlots={loadingTimeSlots}
                 selectedAppointmentType={selectedAppointmentType}
+                selectedTime={selectedTime}
+                timezoneOptions={timezoneOptions}
+                currentTimezone={getTimezoneLabel(customerTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone)}
+                onTimezoneChange={(value) => {
+                  console.log('SingleCalendar - Timezone changed:', value);
+                  handleTimezoneChange(value);
+                }}
               />
             </div>
           </div>
@@ -460,13 +578,21 @@ const PublicBooking = () => {
                   </div>
                   <h1 className="appoint-name">{selectedAppointmentType?.name || "30 Minute Appointment"}</h1>
                   <p>{formatDate(selectedDate)}</p>
-                  <select
-                    style={{ backgroundColor: '#F9FAFF', borderRadius: '50px' }}
-                    value={getTimezoneName()}
-                    readOnly
-                  >
-                    <option>{getTimezoneName()} {getCurrentTimeString()}</option>
-                  </select>
+                  <div style={{ marginTop: '10px' }}>
+                    {console.log('PublicBooking - Rendering timezone dropdown with options:', timezoneOptions.length)}
+                    {console.log('PublicBooking - Current timezone value:', customerTimezone)}
+                    {console.log('PublicBooking - Display value:', getTimezoneLabel(customerTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone))}
+                    <Select
+                      value={getTimezoneLabel(customerTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone)}
+                      onChange={(value) => {
+                        console.log('PublicBooking - Timezone dropdown changed:', value);
+                        handleTimezoneChange(value);
+                      }}
+                      options={timezoneOptions}
+                      placeholder="Select timezone"
+                      style={{ backgroundColor: '#F9FAFF', borderRadius: '50px' }}
+                    />
+                  </div>
                 </div>
               </div>
               <div className="bottom">
@@ -479,26 +605,30 @@ const PublicBooking = () => {
                           <p className="time-slots-loading-text">Loading time slots...</p>
                         </div>
                       </div>
-                    ) : availableTimeSlots.length > 0 ? (
-                      availableTimeSlots.map((time) => (
-                        <div key={time} className="time-slot-row">
-                          {selectedTime === time ? (
-                            <div className="time-slot-selected">
-                              <div className="selected-time-text">{time}</div>
-                              <button className="next-btn" onClick={goToNext}>
-                                Next
+                    ) : displayTimeSlots.length > 0 ? (
+                      displayTimeSlots.map((timeSlot) => {
+                        const displayTime = typeof timeSlot === 'string' ? timeSlot : timeSlot.display;
+                        const originalTime = typeof timeSlot === 'string' ? timeSlot : timeSlot.original;
+                        return (
+                          <div key={originalTime} className="time-slot-row">
+                            {selectedTime === originalTime ? (
+                              <div className="time-slot-selected">
+                                <div className="selected-time-text">{displayTime}</div>
+                                <button className="next-btn" onClick={goToNext}>
+                                  Next
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                className="time-slot-btn"
+                                onClick={() => handleTimeSelect(originalTime)}
+                              >
+                                {displayTime}
                               </button>
-                            </div>
-                          ) : (
-                            <button
-                              className="time-slot-btn"
-                              onClick={() => handleTimeSelect(time)}
-                            >
-                              {time}
-                            </button>
-                          )}
-                        </div>
-                      ))
+                            )}
+                          </div>
+                        );
+                      })
                     ) : (
                       <div className="no-slots-message">
                         <p>{selectedAppointmentType ? "No available time slots for this date" : "Select an appointment type to see available time slots"}</p>
@@ -553,7 +683,7 @@ const PublicBooking = () => {
                 </div>
                 <div className="wrap">
                   <GlobeIcon />
-                  <h4>{getTimezoneName()}</h4>
+                  <h4>Your Timezone: {getTimezoneName()}</h4>
                 </div>
               </div>
             </div>

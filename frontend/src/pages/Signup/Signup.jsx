@@ -5,6 +5,7 @@ import { SignUpSchema } from "../../lib";
 import { Link, useNavigate } from "react-router-dom";
 import Input from "../../components/ui/Input/Input";
 import { toast } from "sonner";
+import { detectUserLocation } from "../../utils/locationDetection";
 
 // Google Icon component
 const GoogleIcon = () => (
@@ -48,13 +49,20 @@ const SignupPage = () => {
 
   const onSubmit = async (data) => {
     try {
+      // Detect user's timezone and country automatically
+      const location = detectUserLocation();
+
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       const response = await fetch(`${apiUrl}/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          timezone: location.timezone,
+          country: location.country
+        }),
       });
 
       const result = await response.json();
@@ -85,9 +93,12 @@ const SignupPage = () => {
   };
 
   const handleGoogleSignup = () => {
+    // Detect user's timezone and country automatically
+    const location = detectUserLocation();
+
     // Use redirect flow for now (popup has domain issues)
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-    window.location.href = `${apiUrl}/api/auth/google`;
+    window.location.href = `${apiUrl}/api/auth/google?timezone=${encodeURIComponent(location.timezone)}&country=${encodeURIComponent(location.country)}`;
   };
 
   if (signupSuccess) {

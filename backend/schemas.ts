@@ -20,6 +20,8 @@ export const signupSchema = z.object({
   email: z.string().email("Valid email address is required").transform(val => val.toLowerCase().trim()),
   name: z.string().min(1, "Name is required").transform(val => val.trim()),
   password: z.string().min(12, "Password must be at least 12 characters long"),
+  timezone: z.string().optional(),
+  country: z.string().optional(),
 });
 
 export const resendVerificationSchema = z.object({

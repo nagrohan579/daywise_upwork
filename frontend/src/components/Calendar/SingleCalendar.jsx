@@ -6,31 +6,18 @@ import Select from "../ui/Input/Select";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 import { useMobile } from "../../hooks";
 
-// ✅ Available dates (example)
-const availableDates = [
-  new Date(2025, 9, 13),
-  new Date(2025, 9, 16),
-  new Date(2025, 9, 23),
-  new Date(2025, 9, 30),
-  new Date(2025, 9, 18),
-];
-
-// Function to highlight available days
-const tileClassName = ({ date, view }) => {
-  if (view === "month") {
-    const isAvailable = availableDates.some(
-      (d) =>
-        d.getFullYear() === date.getFullYear() &&
-        d.getMonth() === date.getMonth() &&
-        d.getDate() === date.getDate()
-    );
-
-    if (isAvailable) return "available-day"; // 👈 highlight class
-  }
-  return null;
-};
-
-const SingleCalendar = ({ onSelectTime, onNext, notShowTime, availableTimeSlots = [], onDateSelect, loadingTimeSlots = false, selectedAppointmentType = null }) => {
+const SingleCalendar = ({ 
+  onSelectTime, 
+  onNext, 
+  notShowTime, 
+  availableTimeSlots = [], 
+  onDateSelect, 
+  loadingTimeSlots = false, 
+  selectedAppointmentType = null,
+  timezoneOptions = [],
+  currentTimezone = null,
+  onTimezoneChange = null
+}) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState(null);
   const isMobile = useMobile(999);
@@ -67,17 +54,10 @@ const SingleCalendar = ({ onSelectTime, onNext, notShowTime, availableTimeSlots 
   };
 
   const handleWrapperClick = (e) => {
-    console.log('Wrapper clicked');
-    console.log('Target:', e.target);
-    console.log('Closest time-slot-container:', e.target.closest('.time-slot-container'));
-    
     // If clicking outside the time-slot-container, reset selection
     if (!e.target.closest('.time-slot-container')) {
-      console.log('Clicked outside time-slot-container - resetting');
       setSelectedTime(null);
       if (typeof onSelectTime === "function") onSelectTime(null);
-    } else {
-      console.log('Clicked inside time-slot-container - not resetting');
     }
   };
 
@@ -93,28 +73,16 @@ const SingleCalendar = ({ onSelectTime, onNext, notShowTime, availableTimeSlots 
           prevLabel={<FaChevronLeft size={14} />}
           next2Label={null}
           prev2Label={null}
-          tileClassName={tileClassName}
           // maxDetail="month"
           // view="month"
         />
         <div className="select-con">
           <Select
-            placeholder="Pacific Time - US & Canada 8:38 AM"
+            placeholder="Select timezone"
+            value={currentTimezone || ""}
+            onChange={onTimezoneChange}
             style={{ backgroundColor: "#F9FAFF", borderRadius: "50px" }}
-            options={[
-              "Pacific Time (US & Canada)",
-              "Mountain Time (US & Canada)",
-              "Central Time (US & Canada)",
-              "Eastern Time (US & Canada)",
-              "Atlantic Time (Canada)",
-              "Greenwich Mean Time (GMT)",
-              "Central European Time (CET)",
-              "Eastern European Time (EET)",
-              "India Standard Time (IST)",
-              "China Standard Time (CST)",
-              "Japan Standard Time (JST)",
-              "Australia Eastern Standard Time (AEST)",
-            ]}
+            options={timezoneOptions}
           />
         </div>
       </div>
@@ -140,25 +108,29 @@ const SingleCalendar = ({ onSelectTime, onNext, notShowTime, availableTimeSlots 
               </div>
             </div>
           ) : timeSlots.length > 0 ? (
-            timeSlots.map((time, index) => (
-              <div key={index} className="time-slot-row">
-                {selectedTime === time ? (
-                  <div className="time-slot-selected">
-                    <div className="selected-time-text">{time}</div>
-                    <button className="next-btn" onClick={handleNext}>
-                      Next
+            timeSlots.map((timeSlot) => {
+              const displayTime = typeof timeSlot === 'string' ? timeSlot : timeSlot.display;
+              const originalTime = typeof timeSlot === 'string' ? timeSlot : timeSlot.original;
+              return (
+                <div key={originalTime} className="time-slot-row">
+                  {selectedTime === originalTime ? (
+                    <div className="time-slot-selected">
+                      <div className="selected-time-text">{displayTime}</div>
+                      <button className="next-btn" onClick={handleNext}>
+                        Next
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className="time-slot-btn"
+                      onClick={() => handleTimeSelect(originalTime)}
+                    >
+                      {displayTime}
                     </button>
-                  </div>
-                ) : (
-                  <button
-                    className="time-slot-btn"
-                    onClick={() => handleTimeSelect(time)}
-                  >
-                    {time}
-                  </button>
-                )}
-              </div>
-            ))
+                  )}
+                </div>
+              );
+            })
           ) : (
             <div className="no-slots-message">
               <p>{selectedAppointmentType ? "No available time slots for this date" : "Select an appointment type to see available time slots"}</p>

@@ -10,6 +10,8 @@ import Billing from "./BillingAndSubscription/Billing";
 import Terms from "./Terms/Terms";
 import PrivacyPolicy from "./PrivacyPolicy/PrivacyPolicy";
 import PublicBooking from "./PublicBooking/PublicBooking";
+import Feedback from "./Feedback/Feedback";
+import Payments from "./Payments/Payments";
 
 export {
   Home,
@@ -24,4 +26,6 @@ export {
   Terms,
   PrivacyPolicy,
   PublicBooking,
+  Feedback,
+  Payments,
 };

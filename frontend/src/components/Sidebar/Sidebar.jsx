@@ -13,6 +13,7 @@ import {
   SettingIcon,
   AccountIcon,
   BiilingIcon,
+  PaymentIcon,
   LogoutIcon,
 } from "../SVGICONS/Svg";
 import "./Sidebar.css";
@@ -28,6 +29,7 @@ const navItems = [
   { name: "Availability", path: "/availability", icon: <AvailabilityIcon /> },
   { name: "Branding", path: "/branding", icon: <BrandingIcon /> },
   { name: "My Link", path: "/my-link", icon: <LinkIcon /> },
+  { name: "Payments", path: "/payments", icon: <PaymentIcon /> },
   { name: "Settings", path: "/setting", icon: <SettingIcon /> },
   { name: "Account", path: "/account", icon: <AccountIcon /> },
   { name: "Billing", path: "/billing", icon: <BiilingIcon /> },
@@ -88,6 +90,9 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         </nav>
 
         <div className="logout-container">
+          <Link to="/feedback" className="leave-feedback-button">
+            Leave Feedback
+          </Link>
           <button className="logout-link" onClick={handleLogout}>
             <Icon>
               <LogoutIcon />

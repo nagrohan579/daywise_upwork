@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { FaPlus } from "react-icons/fa";
 import {
   AppLayout,
@@ -10,8 +10,10 @@ import {
   Select,
   WeekTimeRange,
 } from "../../components";
+import DeleteConfirmationModal from "../../components/ui/modals/DeleteConfirmationModal";
 import { useMobile } from "../../hooks";
 import { toast } from "sonner";
+import ct from 'countries-and-timezones';
 
 import "./availability.css";
 import { RxCross2 } from "react-icons/rx";
@@ -28,6 +30,9 @@ const Availability = () => {
   const [userId, setUserId] = useState(null);
   const [dateExceptions, setDateExceptions] = useState([]);
   const [services, setServices] = useState([]);
+  const [userData, setUserData] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [exceptionToDelete, setExceptionToDelete] = useState(null);
 
   // State for weekly availability - key is day name, value is array of time ranges
   const [weeklyAvailability, setWeeklyAvailability] = useState({
@@ -65,6 +70,8 @@ const Availability = () => {
       const meData = await meResponse.json();
       const currentUserId = meData.user.id;
       setUserId(currentUserId);
+      setUserData(meData.user); // Store user data including timezone
+      console.log('Availability - User data:', meData.user);
 
       // Fetch availability data
       const response = await fetch(`${apiUrl}/api/availability/${currentUserId}`, {
@@ -224,30 +231,67 @@ const Availability = () => {
     setShowDateSpecificHour(true);
   };
 
-  const handleDeleteException = async (exceptionId) => {
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const handleDeleteClick = (exceptionId) => {
+    setExceptionToDelete(exceptionId);
+    setShowDeleteModal(true);
+  };
 
-      const response = await fetch(`${apiUrl}/api/availability-exceptions/${exceptionId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
+  const handleDeleteConfirm = async () => {
+    if (!exceptionToDelete) return;
+    
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-      if (!response.ok) {
-        throw new Error('Failed to delete exception');
-      }
+    const response = await fetch(`${apiUrl}/api/availability-exceptions/${exceptionToDelete}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
 
-      toast.success('Unavailable date removed successfully!');
-      await fetchDateExceptions(); // Refresh the list
-    } catch (error) {
-      console.error('Error deleting exception:', error);
-      toast.error('Failed to delete exception');
+    if (!response.ok) {
+      throw new Error('Failed to delete exception');
     }
+
+    return response; // Promise resolves on success
   };
 
   const handleEditException = (exception) => {
     // For now, just show a message that edit is not implemented
     toast.info('Edit functionality will be implemented in the next phase');
+  };
+
+  // Generate timezone options dynamically (same as Account and PublicBooking pages)
+  const { timezoneOptions } = useMemo(() => {
+    const allTimezones = ct.getAllTimezones();
+    const timezoneMap = new Map();
+    Object.values(allTimezones).forEach(tz => {
+      const offset = tz.utcOffset / 60;
+      const sign = offset >= 0 ? '+' : '';
+      const formattedOffset = `GMT${sign}${offset}`;
+      const label = `${tz.name.replace(/_/g, ' ')} (${formattedOffset})`;
+      if (!timezoneMap.has(label)) {
+        timezoneMap.set(label, tz.name);
+      }
+    });
+    const sortedTimezones = Array.from(timezoneMap.entries())
+      .sort((a, b) => {
+        const tzA = allTimezones[a[1]];
+        const tzB = allTimezones[b[1]];
+        return tzA.utcOffset - tzB.utcOffset;
+      })
+      .map(([label]) => label);
+    return { timezoneOptions: sortedTimezones };
+  }, []);
+
+  // Helper function to get timezone label from value
+  const getTimezoneLabel = (value) => {
+    if (!value) return "";
+    let tz = ct.getTimezone(value);
+    if (tz) {
+      const offset = tz.utcOffset / 60;
+      const sign = offset >= 0 ? '+' : '';
+      const formattedOffset = `GMT${sign}${offset}`;
+      return `${tz.name.replace(/_/g, ' ')} (${formattedOffset})`;
+    }
+    return value;
   };
 
   return (
@@ -294,26 +338,15 @@ const Availability = () => {
               </div>
 
               <Select
-                placeholder="Pacific Time - US & Canada"
+                value={userData?.timezone ? getTimezoneLabel(userData.timezone) : ""}
+                placeholder="Select timezone"
                 style={{
                   backgroundColor: "#F9FAFF",
                   borderRadius: "100px",
                   maxWidth: "233px",
                 }}
-                options={[
-                  "Pacific Time (US & Canada)",
-                  "Mountain Time (US & Canada)",
-                  "Central Time (US & Canada)",
-                  "Eastern Time (US & Canada)",
-                  "Atlantic Time (Canada)",
-                  "Greenwich Mean Time (GMT)",
-                  "Central European Time (CET)",
-                  "Eastern European Time (EET)",
-                  "India Standard Time (IST)",
-                  "China Standard Time (CST)",
-                  "Japan Standard Time (JST)",
-                  "Australia Eastern Standard Time (AEST)",
-                ]}
+                options={timezoneOptions}
+                showCurrentTime={true}
               />
             </div>
             <div className="datespecific-con">
@@ -349,7 +382,7 @@ const Availability = () => {
                             <RxCross2 
                               color="#64748B" 
                               style={{ cursor: 'pointer' }}
-                              onClick={() => handleDeleteException(exception._id)}
+                              onClick={() => handleDeleteClick(exception._id)}
                             />
                           </div>
                           <div className="bottom">
@@ -382,6 +415,12 @@ const Availability = () => {
         setShowDateSpecificHour={setShowDateSpecificHour}
         mode={modalMode}
         onSuccess={fetchDateExceptions}
+      />
+      <DeleteConfirmationModal
+        show={showDeleteModal}
+        setShow={setShowDeleteModal}
+        onConfirm={handleDeleteConfirm}
+        itemName="Date-specific hour"
       />
     </AppLayout>
   );

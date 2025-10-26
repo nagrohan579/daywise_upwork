@@ -1,0 +1,192 @@
+.payments-page {
+  font-family: Inter, sans-serif;
+}
+
+.payments-page .payments-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #64748b33;
+  padding-bottom: 24px;
+  margin-bottom: 40px;
+  width: 100%;
+}
+
+.payments-page .payments-header .wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.payments-page .payments-header-title-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.payments-page .payments-header .wrap h1 {
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 36px;
+  color: #121212;
+  font-family: Inter, sans-serif;
+  margin: 0;
+}
+
+.payments-page .payments-header .wrap p {
+  color: #64748b;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  font-family: Inter, sans-serif;
+  margin: 0;
+}
+
+.payments-page .stripe-card-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 8px;
+  width: 477px;
+  background: #F9FAFF;
+  border-radius: 12px;
+}
+
+.payments-page .stripe-card-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 30px;
+  gap: 28px;
+  width: 100%;
+}
+
+.payments-page .stripe-card-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.payments-page .stripe-logo {
+  width: 81px;
+  height: 34px;
+}
+
+.payments-page .stripe-logo svg {
+  width: 100%;
+  height: 100%;
+}
+
+.payments-page .stripe-connect-button {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 11px;
+  gap: 6px;
+  width: 102px;
+  height: 40px;
+  background: #0053F1;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.payments-page .stripe-connect-button:hover {
+  background: #0041C7;
+}
+
+.payments-page .stripe-connect-button span {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  color: #FFFFFF;
+}
+
+.payments-page .stripe-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+}
+
+.payments-page .stripe-details h2 {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 20px;
+  color: #121212;
+  margin: 0;
+}
+
+.payments-page .stripe-details p {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #121212;
+  margin: 0;
+  width: 417px;
+}
+
+.payments-page .stripe-status {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+}
+
+.payments-page .status-dot {
+  width: 11px;
+  height: 11px;
+  background: #CC0B0B;
+  border-radius: 50%;
+}
+
+.payments-page .stripe-status span {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #CC0B0B;
+}
+
+/* Responsive Design */
+@media (max-width: 991px) {
+  .payments-page {
+    padding: 20px;
+  }
+
+  .payments-page .stripe-card-container {
+    width: 100%;
+  }
+
+  .payments-page .stripe-details p {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .payments-page .payments-header h1 {
+    font-size: 20px;
+    line-height: 28px;
+  }
+
+  .payments-page .payments-header .wrap p {
+    font-size: 13px;
+    line-height: 18px;
+  }
+}
+

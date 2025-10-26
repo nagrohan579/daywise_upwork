@@ -1,3 +1,4 @@
+import "./types.d.ts";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { OAuth2Client } from 'google-auth-library';
@@ -9,8 +10,8 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import moment from "moment-timezone";
 import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
-import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
 import { toUTC, toLocal, getDayOfWeek, getDateInTimezone, customerDateToUTC } from "./lib/timezoneUtils";
 import { storage } from "./storage";
 import { sendVerificationEmail, sendPasswordResetEmail } from "./email";

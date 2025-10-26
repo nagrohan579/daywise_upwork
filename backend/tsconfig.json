@@ -21,6 +21,6 @@
       "@/*": ["./client/src/*"]
     }
   },
-  "include": ["client/src", "convex"],
+  "include": ["client/src", "convex", "types.d.ts", "routes.ts", "lib/**/*"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

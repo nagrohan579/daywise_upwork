@@ -184,8 +184,8 @@ export const insertBrandingSchema = z.object({
 
 // Feedback schemas
 export const insertFeedbackSchema = z.object({
-  name: z.string().optional(),
-  email: z.string().optional(),
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email address"),
   message: z.string().min(1, "Message is required"),
 });
 

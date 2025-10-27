@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import {
   AvailabilityIcon,
+  BellIcon,
   CalendarIcon,
   ServiceIcon,
   BrandingIcon,
@@ -16,6 +17,7 @@ import {
   PaymentIcon,
   LogoutIcon,
 } from "../SVGICONS/Svg";
+import NotificationsModal from "../ui/modals/NotificationsModal";
 import "./Sidebar.css";
 
 // Mock Icons (replace with actual SVG or library icons like Lucide, Feather)
@@ -35,9 +37,60 @@ const navItems = [
   { name: "Billing", path: "/billing", icon: <BiilingIcon /> },
 ];
 
+// Dummy notifications data
+const initialNotifications = [
+  {
+    id: 1,
+    type: 'scheduled',
+    customerName: 'John Doe',
+    serviceName: '1 hour service',
+    dateTime: 'October 13, 2025 at 11:30 am',
+    timestamp: 'Today, 10:19am',
+    action: true
+  },
+  {
+    id: 2,
+    type: 'scheduled',
+    customerName: 'Jane Smith',
+    serviceName: '30 min service',
+    dateTime: 'October 15, 2025 at 2:00 pm',
+    timestamp: 'Yesterday, 4:02pm',
+    action: true
+  },
+  {
+    id: 3,
+    type: 'rescheduled',
+    customerName: 'Mike Johnson',
+    serviceName: '1 hour service',
+    dateTime: 'October 29, 2025 at 2:00 pm',
+    timestamp: 'Wed, October 8, 2025, 10:19am',
+    action: false
+  },
+  {
+    id: 4,
+    type: 'cancelled',
+    customerName: 'Sarah Williams',
+    serviceName: '30 min service',
+    dateTime: 'October 29, 2025 at 2:00 pm',
+    timestamp: 'Mon October 2, 2025, 11:34am',
+    action: false
+  },
+  {
+    id: 5,
+    type: 'scheduled',
+    customerName: 'Robert Brown',
+    serviceName: '1 hour service',
+    dateTime: 'October 18, 2025 at 9:00 am',
+    timestamp: 'Thurs, Oct 9, 2025, 2:53pm',
+    action: true
+  }
+];
+
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState(initialNotifications);
 
   const handleLogout = async (e) => {
     e.preventDefault();
@@ -59,6 +112,15 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       console.error('Logout error:', error);
       toast.error('An error occurred during logout');
     }
+  };
+
+  const handleBellClick = (e) => {
+    e.preventDefault();
+    setShowNotifications(true);
+  };
+
+  const handleNotificationDelete = (id) => {
+    setNotifications(notifications.filter(notif => notif.id !== id));
   };
 
   return (
@@ -93,12 +155,20 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           <Link to="/feedback" className="leave-feedback-button">
             Leave Feedback
           </Link>
-          <button className="logout-link" onClick={handleLogout}>
-            <Icon>
-              <LogoutIcon />
-            </Icon>
-            Logout
-          </button>
+          <div className="logout-wrapper">
+            <button className="logout-link" onClick={handleLogout}>
+              <Icon>
+                <LogoutIcon />
+              </Icon>
+              Logout
+            </button>
+            <div className="notification-bell" onClick={handleBellClick}>
+              <BellIcon />
+              {notifications.length > 0 && (
+                <span className="notification-badge">{notifications.length}</span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -106,6 +176,14 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       {isOpen && (
         <div className="sidebar-overlay" onClick={toggleSidebar}></div>
       )}
+
+      {/* Notifications Modal */}
+      <NotificationsModal 
+        show={showNotifications} 
+        onClose={() => setShowNotifications(false)}
+        notifications={notifications}
+        onDelete={handleNotificationDelete}
+      />
     </>
   );
 };

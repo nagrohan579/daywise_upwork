@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import SingleCalendar from "../../components/Calendar/SingleCalendar";
 import {
+  BackArrowIcon,
   CalendarIcon2,
   ClockIcon,
   GlobeIcon,
@@ -493,6 +494,20 @@ const PublicBooking = () => {
               </div>
 
               <div className="profile-con">
+                {userData.picture && (
+                  <div className="profile-picture-wrapper">
+                    <img
+                      src={userData.picture}
+                      alt={`${userData.name || "User"} profile picture`}
+                      className="profile-picture"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        console.error('Failed to load profile picture:', userData.picture);
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
                 <div className="profile-wrapper">
                   {userData.logoUrl && (
                     <img
@@ -554,23 +569,10 @@ const PublicBooking = () => {
             <div className="containerr">
               <div className="top">
                 <div className="back-arrow">
-                  <svg
-                    width="25"
-                    height="25"
-                    viewBox="0 0 25 25"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
+                  <BackArrowIcon
                     onClick={goToPrev}
                     style={{ cursor: 'pointer' }}
-                  >
-                    <path
-                      d="M15.5 18.5L9.5 12.5L15.5 6.5"
-                      stroke="#121212"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                  />
                 </div>
                 <div className="heading-con">
                   <div className="daywise-branding">
@@ -645,23 +647,10 @@ const PublicBooking = () => {
           <div className="step-two">
             <div className="left">
               <div className="back-arrow">
-                <svg
-                  width="25"
-                  height="25"
-                  viewBox="0 0 25 25"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
+                <BackArrowIcon
                   onClick={goToPrev}
                   style={{ cursor: 'pointer' }}
-                >
-                  <path
-                    d="M15.5 18.5L9.5 12.5L15.5 6.5"
-                    stroke="#121212"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                />
               </div>
               <div className="daywise-branding">
                 <button className="powered-by-button">Powered by Daywise</button>

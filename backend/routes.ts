@@ -23,7 +23,7 @@ import { RESERVED_SLUGS } from "./constants";
 import { toSlug, ensureUniqueSlug, generateBusinessIdentifiers } from "./lib/slug";
 import { googleCalendarService } from "./lib/google-calendar";
 import { z } from "zod";
-import { sendCustomerConfirmation, sendBusinessNotification, sendRescheduleConfirmation, sendRescheduleBusinessNotification, sendCancellationConfirmation, sendCancellationBusinessNotification } from "./email";
+import { sendCustomerConfirmation, sendBusinessNotification, sendRescheduleConfirmation, sendRescheduleBusinessNotification, sendCancellationConfirmation, sendCancellationBusinessNotification, sendFeedbackEmail } from "./email";
 import { FeatureGate } from "./featureGating";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -2691,18 +2691,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       // Return public user data only
-      res.json({ 
+      const publicUserData = { 
         id: user._id,
         name: user.name,
         businessName: user.businessName, 
-        logoUrl: user.logoUrl, 
+        logoUrl: user.logoUrl,
+        picture: user.picture,
         welcomeMessage: user.welcomeMessage, 
         primaryColor: user.primaryColor, 
         secondaryColor: user.secondaryColor, 
         accentColor: user.accentColor, 
         timezone: user.timezone,
         slug: user.slug
-      });
+      };
+      
+      console.log('Public user data returned for slug:', req.params.slug);
+      console.log('Picture URL:', publicUserData.picture);
+      
+      res.json(publicUserData);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch user by slug", error: error instanceof Error ? error.message : "Unknown error" });
     }
@@ -4568,7 +4574,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/feedback", async (req, res) => {
     try {
       const feedbackData = insertFeedbackSchema.parse(req.body);
+      
+      // Validate that name and email are provided
+      if (!feedbackData.name || !feedbackData.email) {
+        return res.status(400).json({ 
+          message: "Name and email are required" 
+        });
+      }
+      
+      // Store feedback in database
       const feedback = await storage.createFeedback(feedbackData);
+      
+      // Send email notification
+      try {
+        await sendFeedbackEmail({
+          name: feedbackData.name,
+          email: feedbackData.email,
+          message: feedbackData.message,
+        });
+        console.log(`✅ Feedback email sent from ${feedbackData.email}`);
+      } catch (emailError) {
+        console.error('Failed to send feedback email:', emailError);
+        // Don't fail the request if email fails, feedback is still saved
+      }
+      
       res.json({ message: "Feedback submitted successfully" });
     } catch (error) {
       console.error('Create feedback error:', error);

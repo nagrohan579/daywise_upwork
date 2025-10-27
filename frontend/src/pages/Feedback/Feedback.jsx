@@ -12,10 +12,66 @@ const Feedback = () => {
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Implement feedback submission
-    toast.info("Feedback submission will be implemented soon");
+    
+    // Validate fields
+    if (!name.trim()) {
+      toast.error("Please enter your name");
+      return;
+    }
+    
+    if (!email.trim()) {
+      toast.error("Please enter your email");
+      return;
+    }
+    
+    if (!message.trim()) {
+      toast.error("Please enter a message");
+      return;
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    
+    setSubmitting(true);
+    
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/feedback`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          message: message.trim(),
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to submit feedback");
+      }
+      
+      toast.success("Feedback sent successfully!");
+      
+      // Clear all fields
+      setName("");
+      setEmail("");
+      setMessage("");
+    } catch (error) {
+      console.error("Feedback submission error:", error);
+      toast.error(error.message || "Failed to submit feedback. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (

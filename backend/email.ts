@@ -632,3 +632,64 @@ export async function sendBusinessReminder(data: BookingEmailData): Promise<bool
     html: `<p>${data.businessName}, reminder: ${data.customerName} has an appointment tomorrow at ${data.appointmentTime}.</p>`
   });
 }
+
+interface FeedbackEmailData {
+  name: string;
+  email: string;
+  message: string;
+}
+
+export async function sendFeedbackEmail(data: FeedbackEmailData): Promise<boolean> {
+  return await handleEmailSend('Feedback Submission', {
+    from: FROM_EMAIL!, // Must use verified sender email
+    to: FROM_EMAIL!, // Send to SENDGRID_FROM_EMAIL
+    replyTo: data.email, // Set reply-to as user's email so you can reply directly
+    subject: `Feedback from ${data.name}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>New Feedback</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        
+        <div style="text-align: center; margin-bottom: 40px;">
+          <div style="display: inline-block; width: 60px; height: 60px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-radius: 12px; color: white; font-weight: bold; font-size: 24px; line-height: 60px;">
+            💬
+          </div>
+        </div>
+
+        <div style="background: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          
+          <h1 style="color: #1f2937; margin-bottom: 24px; font-size: 24px; font-weight: 600;">
+            New Feedback Received
+          </h1>
+          
+          <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border-left: 4px solid #3b82f6; margin-bottom: 24px;">
+            <h3 style="margin: 0 0 15px 0; color: #1f2937;">Contact Information</h3>
+            <p style="margin: 5px 0; color: #4b5563;"><strong>Name:</strong> ${data.name}</p>
+            <p style="margin: 5px 0; color: #4b5563;"><strong>Email:</strong> ${data.email}</p>
+          </div>
+          
+          <div style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb; margin-bottom: 24px;">
+            <h3 style="margin: 0 0 15px 0; color: #1f2937;">Message</h3>
+            <p style="margin: 0; color: #4b5563; white-space: pre-wrap;">${data.message}</p>
+          </div>
+          
+          <p style="color: #9ca3af; margin: 0; font-size: 14px; text-align: center;">
+            You can reply directly to this email to respond to ${data.name}
+          </p>
+          
+        </div>
+        
+        <div style="text-align: center; margin-top: 24px; color: #9ca3af; font-size: 12px;">
+          <p>© ${new Date().getFullYear()} DayWise Feedback System</p>
+        </div>
+        
+      </body>
+      </html>
+    `,
+  });
+}

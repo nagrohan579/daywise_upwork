@@ -105,6 +105,17 @@
   transform: translateY(-1px);
 }
 
+.steps-one .left .profile-con .profile-picture-wrapper {
+  margin-bottom: 6px;
+}
+
+.steps-one .left .profile-con .profile-picture-wrapper .profile-picture {
+  width: 49px;
+  height: 49px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .steps-one .left .profile-con .profile-wrapper {
   margin-bottom: 21px;
 }
@@ -171,6 +182,10 @@
   line-height: 20px;
   vertical-align: middle;
   margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .booking-steps-container .main-wrapper .steps-one .right {
@@ -232,6 +247,10 @@
   vertical-align: middle;
   margin: 0;
   color: #64748b;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 .booking-steps-container .step-two .left .booking-details {
   display: flex;
@@ -924,6 +943,10 @@
   vertical-align: middle;
   margin: 0;
   color: #64748b;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .booking-steps-container .step-two .left .booking-details {

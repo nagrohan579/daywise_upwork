@@ -109,19 +109,9 @@ const Availability = () => {
         }
       });
 
-      // Set default values for days with no data
-      Object.keys(grouped).forEach(day => {
-        if (grouped[day].length === 0) {
-          // Sunday and Saturday default to unavailable
-          if (day === 'sunday' || day === 'saturday') {
-            grouped[day] = [];
-          } else {
-            // Weekdays default to 9-5
-            grouped[day] = [{ start: "09:00", end: "17:00" }];
-          }
-        }
-      });
+      console.log('Grouped availability:', grouped);
 
+      // No need to apply defaults - backend provides complete data for all 7 days
       setWeeklyAvailability(grouped);
     } catch (error) {
       console.error('Error fetching availability:', error);
@@ -189,6 +179,9 @@ const Availability = () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+      console.log('=== SAVING WEEKLY AVAILABILITY ===');
+      console.log('Current weeklyAvailability state:', weeklyAvailability);
+
       const response = await fetch(`${apiUrl}/api/availability/weekly`, {
         method: 'PUT',
         headers: {
@@ -205,7 +198,15 @@ const Availability = () => {
         throw new Error(errorData.message || 'Failed to save availability');
       }
 
+      const responseData = await response.json();
+      console.log('Save response:', responseData);
+
       toast.success('Availability saved successfully!');
+
+      // Add a small delay to ensure Convex has processed the mutation
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      console.log('Fetching updated availability...');
       await fetchAvailability(); // Refresh data
     } catch (error) {
       console.error('Error saving availability:', error);

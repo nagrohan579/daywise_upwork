@@ -1893,22 +1893,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         const appointmentDate = new Date(bookingData.appointmentDate);
-        const bookingUrl = `${req.protocol}://${req.get('host')}/booking-confirmation/${booking.bookingToken}`;
+
+        // Generate unique event URL for email (not stored in database)
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const eventUrl = `${frontendUrl}/event/${booking.bookingToken}`;
+        
+        console.log('Booking created with bookingToken:', booking.bookingToken);
+        console.log('Generated eventUrl:', eventUrl);
+        console.log('Frontend URL:', frontendUrl);
+
         const emailData = {
           customerName: bookingData.customerName,
           customerEmail: bookingData.customerEmail,
           businessName: businessUser.businessName || 'My Business',
           businessEmail: businessUser.email,
-          appointmentDate: appointmentDate.toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
+          appointmentDate: appointmentDate.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
           }),
-          appointmentTime: appointmentDate.toLocaleTimeString('en-US', { 
-            hour: 'numeric', 
+          appointmentTime: appointmentDate.toLocaleTimeString('en-US', {
+            hour: 'numeric',
             minute: '2-digit',
-            hour12: true 
+            hour12: true
           }),
           appointmentType: emailAppointmentType.name,
           appointmentDuration: emailAppointmentType.duration,
@@ -1919,14 +1927,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } : undefined,
           businessLogo: branding?.logoUrl,
           usePlatformBranding: branding?.usePlatformBranding || true,
-          bookingUrl: bookingUrl
+          bookingUrl: eventUrl
         };
 
         // Send emails asynchronously - don't block the response
+        console.log('Sending email with bookingUrl:', emailData.bookingUrl);
         Promise.all([
           sendCustomerConfirmation(emailData),
           sendBusinessNotification(emailData)
-        ]).catch(error => {
+        ]).then(() => {
+          console.log('Booking confirmation emails sent successfully');
+        }).catch(error => {
           console.error('Failed to send booking emails:', error);
         });
 
@@ -1936,7 +1947,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: `Appointment with ${bookingData.customerName} (${bookingData.customerEmail})\n\nService: ${emailAppointmentType.name}\nDuration: ${emailAppointmentType.duration} minutes`,
           start: appointmentDate,
           end: new Date(appointmentDate.getTime() + (emailAppointmentType.duration || 30) * 60 * 1000),
-          attendees: [bookingData.customerEmail]
+          // Don't add attendees - we send our own confirmation email
         }).then(async (result) => {
           // Update booking with Google Calendar event ID
           if (result.success && result.eventId && booking._id) {
@@ -2047,6 +2058,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(booking);
     } catch (error) {
+      res.status(500).json({ message: "Failed to fetch booking", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  // Public endpoint to fetch booking by token (for event page)
+  app.get("/api/bookings/token/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+
+      if (!token) {
+        return res.status(400).json({ message: "Token is required" });
+      }
+
+      const booking = await storage.getBookingByToken(token);
+
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      // Fetch user (business owner) details
+      const user = await storage.getUser(booking.userId);
+      if (!user) {
+        return res.status(404).json({ message: "Business owner not found" });
+      }
+
+      // Fetch appointment type details
+      let appointmentType = null;
+      if (booking.appointmentTypeId) {
+        appointmentType = await storage.getAppointmentType(booking.appointmentTypeId);
+      }
+
+      // Fetch branding for business colors/logo
+      let branding = await storage.getBranding(booking.userId);
+
+      // Return combined data
+      res.json({
+        booking,
+        user: {
+          _id: user._id,
+          name: user.name,
+          businessName: user.businessName,
+          timezone: user.timezone,
+        },
+        appointmentType,
+        branding
+      });
+    } catch (error) {
+      console.error('Error fetching booking by token:', error);
       res.status(500).json({ message: "Failed to fetch booking", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });

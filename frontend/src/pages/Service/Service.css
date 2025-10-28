@@ -89,13 +89,16 @@
   color: #121212;
 }
 .service-page .servies-card-list .bottom {
-  margin-top: 30px;
+  margin-top: 16px;
 }
 .service-page .servies-card-list .bottom .wrap {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+}
+.service-page .servies-card-list .bottom .wrap:last-child {
+  margin-bottom: 0;
 }
 .service-page .servies-card-list .bottom .wrap span {
   font-family: Inter;
@@ -106,9 +109,6 @@
   letter-spacing: 0%;
   vertical-align: middle;
   color: #64748b;
-}
-.service-page .servies-card-list .bottom .wrap:nth-child(2) {
-  margin-bottom: 0px;
 }
 
 /* Loading and empty states */
@@ -326,10 +326,13 @@
     padding: 20px;
   }
   .service-page .servies-card-list .bottom{
-    margin-top: 12px;
+    margin-top: 16px;
   }
   .service-page .servies-card-list .bottom .wrap{
-    margin-bottom: 8px;
+    margin-bottom: 12px;
+  }
+  .service-page .servies-card-list .bottom .wrap:last-child{
+    margin-bottom: 0;
   }
   .service-page .top-con h1{
     font-size: 18px;

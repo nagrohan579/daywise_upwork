@@ -68,6 +68,8 @@ interface BookingEmailData {
 }
 
 export async function sendCustomerConfirmation(data: BookingEmailData): Promise<boolean> {
+  console.log('sendCustomerConfirmation called with bookingUrl:', data.bookingUrl);
+  
   const primaryColor = data.businessColors?.primary || '#ef4444';
   const secondaryColor = data.businessColors?.secondary || '#f97316';
   const logoSection = data.businessLogo ? `
@@ -85,11 +87,11 @@ export async function sendCustomerConfirmation(data: BookingEmailData): Promise<
       </a>
     </div>` : '';
   
-  return await handleEmailSend('Customer Confirmation', {
-    from: FROM_EMAIL!,
-    to: data.customerEmail,
-    subject: `Appointment Confirmed - ${data.businessName}`,
-    html: `
+  console.log('Generated bookingButton HTML (first 200 chars):', bookingButton?.substring(0, 200));
+  console.log('Is bookingButton truthy?', !!bookingButton);
+  console.log('Length of bookingButton:', bookingButton?.length);
+  
+  const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, ${primaryColor}, ${secondaryColor}); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
           ${logoSection}
@@ -110,6 +112,10 @@ export async function sendCustomerConfirmation(data: BookingEmailData): Promise<
             <p style="margin: 5px 0; color: #4b5563;"><strong>Service:</strong> ${data.appointmentType} (${data.appointmentDuration} minutes)</p>
             <p style="margin: 5px 0; color: #4b5563;"><strong>Date & Time:</strong> ${data.appointmentDate} at ${data.appointmentTime}</p>
             <p style="margin: 5px 0; color: #4b5563;"><strong>Business:</strong> ${data.businessName}</p>
+            ${data.bookingUrl ? `
+            <p style="margin: 10px 0 5px 0; color: #4b5563;"><strong>Booking Link:</strong></p>
+            <p style="margin: 5px 0; color: #3b82f6; word-break: break-all;"><a href="${data.bookingUrl}" style="color: #3b82f6; text-decoration: underline;">${data.bookingUrl}</a></p>
+            ` : ''}
           </div>
           
           ${bookingButton}
@@ -121,6 +127,16 @@ export async function sendCustomerConfirmation(data: BookingEmailData): Promise<
             <p style="margin: 5px 0; color: #4b5563;">• Contact us directly if you need to reschedule or cancel</p>
           </div>
           
+          ${data.bookingUrl ? `
+          <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 20px 0;">
+            <p style="margin: 0 0 10px 0; color: #92400e; font-weight: 600;">📅 View Your Booking Details</p>
+            <p style="margin: 5px 0; color: #92400e;">Click the link below to view or manage your appointment:</p>
+            <p style="margin: 10px 0 0 0; color: #065f46; word-break: break-all; font-size: 14px;">
+              <a href="${data.bookingUrl}" style="color: #065f46; text-decoration: underline;">${data.bookingUrl}</a>
+            </p>
+          </div>
+          ` : ''}
+          
           <p style="font-size: 14px; color: #6b7280; margin-bottom: 20px;">
             If you need to reschedule or cancel, please contact ${data.businessName} directly.
           </p>
@@ -131,7 +147,19 @@ export async function sendCustomerConfirmation(data: BookingEmailData): Promise<
           ${platformBadge}
         </div>
       </div>
-    `,
+    `;
+  
+  console.log('Full email HTML length:', emailHtml.length);
+  console.log('Email HTML contains booking button?', emailHtml.includes('View Booking Details'));
+  console.log('Email HTML contains event URL?', emailHtml.includes('localhost:5173/event'));
+  console.log('Sending email FROM:', FROM_EMAIL);
+  console.log('Sending email TO:', data.customerEmail);
+  
+  return await handleEmailSend('Customer Confirmation', {
+    from: FROM_EMAIL!,
+    to: data.customerEmail,
+    subject: `Appointment Confirmed - ${data.businessName}`,
+    html: emailHtml,
   });
 }
 

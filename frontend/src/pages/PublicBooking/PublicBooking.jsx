@@ -8,6 +8,7 @@ import {
   ClockIcon,
   GlobeIcon,
   TickIcon,
+  DollarIcon,
 } from "../../components/SVGICONS/Svg";
 import { useMobile } from "../../hooks";
 import { Input, Button, Textarea } from "../../components/index";
@@ -43,6 +44,7 @@ const PublicBooking = () => {
   const [step, setStep] = useState(1);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [customerTimezone, setCustomerTimezone] = useState(null);
+  const [bookingEventUrl, setBookingEventUrl] = useState(null);
 
   // Generate timezone options dynamically from the library (same as Account page)
   const { timezones, timezoneOptions } = useMemo(() => {
@@ -343,6 +345,15 @@ const PublicBooking = () => {
 
       const result = await response.json();
       console.log("PublicBooking - Booking created successfully:", result);
+
+      // Store the event URL for the "View Details" button
+      if (result.booking && result.booking.bookingToken) {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const frontendUrl = import.meta.env.VITE_FRONTEND_URL || 'http://localhost:5173';
+        const eventUrl = `${frontendUrl}/event/${result.booking.bookingToken}`;
+        setBookingEventUrl(eventUrl);
+        console.log("PublicBooking - Event URL stored:", eventUrl);
+      }
 
       toast.success("Booking confirmed! Check your email for details.");
       goToNext();
@@ -672,8 +683,14 @@ const PublicBooking = () => {
                 </div>
                 <div className="wrap">
                   <GlobeIcon />
-                  <h4>Your Timezone: {getTimezoneName()}</h4>
+                  <h4>{getTimezoneName()}</h4>
                 </div>
+                {selectedAppointmentType?.price !== undefined && selectedAppointmentType?.price > 0 && (
+                  <div className="wrap">
+                    <DollarIcon />
+                    <h4>${selectedAppointmentType.price}</h4>
+                  </div>
+                )}
               </div>
             </div>
             <div className="right">
@@ -744,7 +761,49 @@ const PublicBooking = () => {
                     <GlobeIcon />
                     <h4>{getTimezoneName()}</h4>
                   </div>
+                  {selectedAppointmentType?.price > 0 && (
+                    <div className="wrap">
+                      <DollarIcon />
+                      <h4>${selectedAppointmentType.price}</h4>
+                    </div>
+                  )}
                 </div>
+              </div>
+              <div className="success-buttons">
+                <Button
+                  text="View Details"
+                  onClick={() => {
+                    if (bookingEventUrl) {
+                      // Navigate to the event details page
+                      const eventPath = bookingEventUrl.replace(/^https?:\/\/[^\/]+/, '');
+                      navigate(eventPath);
+                    } else {
+                      navigate('/bookings');
+                    }
+                  }}
+                  style={{
+                    width: '186px',
+                    height: '40px',
+                    backgroundColor: '#0053F1',
+                    borderRadius: '50px',
+                    padding: '10px 12px',
+                    color: '#FFFFFF',
+                    border: 'none'
+                  }}
+                />
+                <Button
+                  text="Book Another"
+                  onClick={() => window.location.reload()}
+                  style={{
+                    width: '186px',
+                    height: '40px',
+                    backgroundColor: '#64748B',
+                    borderRadius: '50px',
+                    padding: '10px 12px',
+                    color: '#FFFFFF',
+                    border: 'none'
+                  }}
+                />
               </div>
             </div>
           </div>

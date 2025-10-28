@@ -5,6 +5,7 @@ import { RiDeleteBin5Line } from "react-icons/ri";
 import { FiClock } from "react-icons/fi";
 import { useMobile } from "../../hooks";
 import { toast } from "sonner";
+import { DollarIcon } from "../../components/SVGICONS/Svg";
 
 import { ActionMenu, AppLayout, Button, ServicesModal } from "../../components";
 import "./Service.css";
@@ -207,6 +208,12 @@ const Service = () => {
                     <FiClock color="#64748B" />
                     <span>{service.duration} minutes</span>
                   </div>
+                  {service.price > 0 && (
+                    <div className="wrap">
+                      <DollarIcon />
+                      <span>${service.price}</span>
+                    </div>
+                  )}
                   <div className="wrap">
                     <svg
                       width="18"

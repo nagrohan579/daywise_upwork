@@ -62,6 +62,7 @@ export const insertBookingSchema = z.object({
   status: z.string().optional(),
   notes: z.string().optional(),
   bookingToken: z.string(),
+  eventUrl: z.string().optional(),
 });
 
 // Availability schemas

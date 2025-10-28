@@ -21,6 +21,7 @@ import TermsPage from "./pages/Terms";
 import PrivacyPolicyPage from "./pages/PrivacyPolicy";
 import FeedbackPage from "./pages/Feedback/Feedback";
 import PaymentsPage from "./pages/Payments/Payments";
+import EventPage from "./pages/Event";
 import AdminLogin from "./pages/Admin/AdminLogin";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 
@@ -52,6 +53,7 @@ function App() {
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/event/:token" element={<EventPage />} />
         {/* Public booking page - must be last to catch slug routes */}
         <Route path="/:slug" element={<PublicBookingPage />} />
       </Routes>

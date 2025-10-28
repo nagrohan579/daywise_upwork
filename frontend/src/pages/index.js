@@ -12,6 +12,7 @@ import PrivacyPolicy from "./PrivacyPolicy/PrivacyPolicy";
 import PublicBooking from "./PublicBooking/PublicBooking";
 import Feedback from "./Feedback/Feedback";
 import Payments from "./Payments/Payments";
+import Event from "./Event/Event";
 
 export {
   Home,
@@ -28,4 +29,5 @@ export {
   PublicBooking,
   Feedback,
   Payments,
+  Event,
 };

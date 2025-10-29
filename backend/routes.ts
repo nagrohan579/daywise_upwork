@@ -25,6 +25,7 @@ import { googleCalendarService } from "./lib/google-calendar";
 import { z } from "zod";
 import { sendCustomerConfirmation, sendBusinessNotification, sendRescheduleConfirmation, sendRescheduleBusinessNotification, sendCancellationConfirmation, sendCancellationBusinessNotification, sendFeedbackEmail } from "./email";
 import { FeatureGate } from "./featureGating";
+import { uploadFile, deleteFile, isSpacesUrl } from "./services/spaces";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -3378,17 +3379,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!branding) {
         // Create default branding if none exists (only for authenticated requests)
         if (!queryUserId) {
-          branding = await storage.createBranding({ userId });
+          branding = await storage.createBranding({
+            userId,
+            primary: '#ef4444',
+            secondary: '#f97316',
+            accent: '#3b82f6',
+            logoUrl: undefined,
+            profilePictureUrl: undefined,
+            displayName: undefined,
+            showDisplayName: true,
+            showProfilePicture: true,
+            usePlatformBranding: true,
+          });
         } else {
           // For public requests, return default branding values without saving
           return res.json({
             userId,
-            primaryColor: '#ef4444',
-            secondaryColor: '#f97316',
-            accentColor: '#3b82f6',
+            primary: '#ef4444',
+            secondary: '#f97316',
+            accent: '#3b82f6',
             logoUrl: undefined,
+            profilePictureUrl: undefined,
+            displayName: undefined,
+            showDisplayName: true,
+            showProfilePicture: true,
             usePlatformBranding: true,
-            createdAt: new Date(),
             updatedAt: Date.now()
           });
         }
@@ -3454,13 +3469,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const session = req.session as any;
       const userId = session.userId;
 
+      // TODO: Uncomment plan gate when ready to implement
       // plan gate using hardened getUserFeatures
-      const { getUserFeatures } = await import("./lib/plan-features");
-      const features = await getUserFeatures(userId);
-      
-      if (!features.customBranding) {
-        return res.status(403).json({ message: "Logo upload not available in your plan" });
-      }
+      // const { getUserFeatures } = await import("./lib/plan-features");
+      // const features = await getUserFeatures(userId);
+
+      // if (!features.customBranding) {
+      //   return res.status(403).json({ message: "Logo upload not available in your plan" });
+      // }
 
       const file = req.file;
       if (!file) return res.status(400).json({ message: "No file provided" });
@@ -3468,13 +3484,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Only PNG/JPG/GIF allowed" });
       }
 
-      // save under server/public/uploads
-      const outDir = path.join(import.meta.dirname, "public", "uploads");
-      fs.mkdirSync(outDir, { recursive: true });
+      // Ensure branding record exists; create default if missing
+      let existingBranding = await storage.getBranding(userId);
+      if (!existingBranding) {
+        existingBranding = await storage.createBranding({
+          userId,
+          primary: '#ef4444',
+          secondary: '#f97316',
+          accent: '#3b82f6',
+          logoUrl: undefined,
+          profilePictureUrl: undefined,
+          displayName: undefined,
+          showDisplayName: true,
+          showProfilePicture: true,
+          usePlatformBranding: true,
+        });
+      }
+
+      // Get existing branding to check for old logo
+      existingBranding = await storage.getBranding(userId);
+      if (existingBranding?.logoUrl && isSpacesUrl(existingBranding.logoUrl)) {
+        // Delete old logo from DO Spaces
+        await deleteFile(existingBranding.logoUrl);
+      }
+
+      // Upload to Digital Ocean Spaces
       const ext = file.mimetype === "image/png" ? "png" : file.mimetype === "image/gif" ? "gif" : "jpg";
       const filename = `logo-${userId}-${Date.now()}.${ext}`;
-      fs.writeFileSync(path.join(outDir, filename), file.buffer);
-      const logoUrl = `/uploads/${filename}`;
+
+      const logoUrl = await uploadFile({
+        fileBuffer: file.buffer,
+        fileName: filename,
+        folder: 'business_logos',
+        contentType: file.mimetype,
+      });
 
       await storage.updateBranding(userId, { logoUrl, updatedAt: Date.now() });
       return res.json({ logoUrl });
@@ -3483,18 +3526,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete branding logo
+  app.delete("/api/branding/logo", requireAuth, async (req, res) => {
+    try {
+      const session = req.session as any;
+      const userId = session.userId;
+
+      const existing = await storage.getBranding(userId);
+      const currentUrl = existing?.logoUrl;
+
+      if (currentUrl && isSpacesUrl(currentUrl)) {
+        await deleteFile(currentUrl);
+      }
+
+      // Clear optional field at the DB layer to ensure it is removed
+      await storage.clearBrandingField(userId, "logoUrl");
+      return res.json({ success: true });
+    } catch (e: any) {
+      return res.status(500).json({ message: e?.message ?? "Delete failed" });
+    }
+  });
+
   app.post("/api/branding/profile", requireAuth, upload.single("file"), async (req, res) => {
     try {
       const session = req.session as any;
       const userId = session.userId;
 
+      // TODO: Uncomment plan gate when ready to implement
       // plan gate using hardened getUserFeatures
-      const { getUserFeatures } = await import("./lib/plan-features");
-      const features = await getUserFeatures(userId);
-      
-      if (!features.customBranding) {
-        return res.status(403).json({ message: "Profile picture upload not available in your plan" });
-      }
+      // const { getUserFeatures } = await import("./lib/plan-features");
+      // const features = await getUserFeatures(userId);
+
+      // if (!features.customBranding) {
+      //   return res.status(403).json({ message: "Profile picture upload not available in your plan" });
+      // }
 
       const file = req.file;
       if (!file) return res.status(400).json({ message: "No file provided" });
@@ -3502,18 +3567,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Only PNG/JPG/GIF allowed" });
       }
 
-      // save under server/public/uploads
-      const outDir = path.join(import.meta.dirname, "public", "uploads");
-      fs.mkdirSync(outDir, { recursive: true });
+      // Ensure branding record exists; create default if missing
+      let existingBranding = await storage.getBranding(userId);
+      if (!existingBranding) {
+        existingBranding = await storage.createBranding({
+          userId,
+          primary: '#ef4444',
+          secondary: '#f97316',
+          accent: '#3b82f6',
+          logoUrl: undefined,
+          profilePictureUrl: undefined,
+          displayName: undefined,
+          showDisplayName: true,
+          showProfilePicture: true,
+          usePlatformBranding: true,
+        });
+      }
+
+      // Get existing branding to check for old profile picture
+      if (existingBranding?.profilePictureUrl && isSpacesUrl(existingBranding.profilePictureUrl)) {
+        // Delete old profile picture from DO Spaces
+        await deleteFile(existingBranding.profilePictureUrl);
+      }
+
+      // Upload to Digital Ocean Spaces
       const ext = file.mimetype === "image/png" ? "png" : file.mimetype === "image/gif" ? "gif" : "jpg";
       const filename = `profile-${userId}-${Date.now()}.${ext}`;
-      fs.writeFileSync(path.join(outDir, filename), file.buffer);
-      const profilePictureUrl = `/uploads/${filename}`;
+
+      const profilePictureUrl = await uploadFile({
+        fileBuffer: file.buffer,
+        fileName: filename,
+        folder: 'profile_pictures',
+        contentType: file.mimetype,
+      });
 
       await storage.updateBranding(userId, { profilePictureUrl, updatedAt: Date.now() });
       return res.json({ profilePictureUrl });
     } catch (e: any) {
       return res.status(500).json({ message: e?.message ?? "Upload failed" });
+    }
+  });
+
+  // Delete profile picture
+  app.delete("/api/branding/profile", requireAuth, async (req, res) => {
+    try {
+      const session = req.session as any;
+      const userId = session.userId;
+
+      const existing = await storage.getBranding(userId);
+      const currentUrl = existing?.profilePictureUrl;
+
+      if (currentUrl && isSpacesUrl(currentUrl)) {
+        await deleteFile(currentUrl);
+      }
+
+      // Clear optional field at the DB layer to ensure it is removed
+      await storage.clearBrandingField(userId, "profilePictureUrl");
+      return res.json({ success: true });
+    } catch (e: any) {
+      return res.status(500).json({ message: e?.message ?? "Delete failed" });
     }
   });
 

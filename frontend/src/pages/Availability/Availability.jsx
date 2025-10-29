@@ -13,7 +13,7 @@ import {
 import DeleteConfirmationModal from "../../components/ui/modals/DeleteConfirmationModal";
 import { useMobile } from "../../hooks";
 import { toast } from "sonner";
-import ct from 'countries-and-timezones';
+import { getTimezoneOptions, getTimezoneLabel, getTimezoneValue } from "../../utils/timezones";
 
 import "./availability.css";
 import { RxCross2 } from "react-icons/rx";
@@ -259,41 +259,10 @@ const Availability = () => {
     toast.info('Edit functionality will be implemented in the next phase');
   };
 
-  // Generate timezone options dynamically (same as Account and PublicBooking pages)
-  const { timezoneOptions } = useMemo(() => {
-    const allTimezones = ct.getAllTimezones();
-    const timezoneMap = new Map();
-    Object.values(allTimezones).forEach(tz => {
-      const offset = tz.utcOffset / 60;
-      const sign = offset >= 0 ? '+' : '';
-      const formattedOffset = `GMT${sign}${offset}`;
-      const label = `${tz.name.replace(/_/g, ' ')} (${formattedOffset})`;
-      if (!timezoneMap.has(label)) {
-        timezoneMap.set(label, tz.name);
-      }
-    });
-    const sortedTimezones = Array.from(timezoneMap.entries())
-      .sort((a, b) => {
-        const tzA = allTimezones[a[1]];
-        const tzB = allTimezones[b[1]];
-        return tzA.utcOffset - tzB.utcOffset;
-      })
-      .map(([label]) => label);
-    return { timezoneOptions: sortedTimezones };
+  // Get timezone options from custom timezone utilities
+  const timezoneOptions = useMemo(() => {
+    return getTimezoneOptions().map(([label]) => label);
   }, []);
-
-  // Helper function to get timezone label from value
-  const getTimezoneLabel = (value) => {
-    if (!value) return "";
-    let tz = ct.getTimezone(value);
-    if (tz) {
-      const offset = tz.utcOffset / 60;
-      const sign = offset >= 0 ? '+' : '';
-      const formattedOffset = `GMT${sign}${offset}`;
-      return `${tz.name.replace(/_/g, ' ')} (${formattedOffset})`;
-    }
-    return value;
-  };
 
   return (
     <AppLayout>

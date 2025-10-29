@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   AppLayout,
   Button,
@@ -8,6 +8,7 @@ import {
   ToggleSwitch,
 } from "../../components";
 import { RiDeleteBin5Line } from "react-icons/ri";
+import { toast } from "sonner";
 
 import "./Branding.css";
 
@@ -18,6 +19,45 @@ const Branding = () => {
   const [isShownName, setIsShownName] = useState(true);
   const [isShownProfilePic, setIsShownProfilePic] = useState(true);
   const [toggleDaywiseBranding, setToggleDayWiseBranding] = useState(true);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [profileUploading, setProfileUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch existing branding data on mount
+  useEffect(() => {
+    const fetchBranding = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const response = await fetch(`${apiUrl}/api/branding`, {
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Fetched branding data:', data);
+          if (data.logoUrl) {
+            console.log('Setting logo URL:', data.logoUrl);
+            setLogoUrl(data.logoUrl);
+          }
+          if (data.profilePictureUrl) {
+            console.log('Setting profile URL:', data.profilePictureUrl);
+            setProfileUrl(data.profilePictureUrl);
+          }
+          if (data.showDisplayName !== undefined) setIsShownName(data.showDisplayName);
+          if (data.showProfilePicture !== undefined) setIsShownProfilePic(data.showProfilePicture);
+          if (data.usePlatformBranding !== undefined) setToggleDayWiseBranding(data.usePlatformBranding);
+        } else {
+          console.error('Failed to fetch branding:', response.status);
+        }
+      } catch (error) {
+        console.error('Error fetching branding:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBranding();
+  }, []);
 
   const toggleHandlerShowName = () => {
     setIsShownName((prev) => !prev);
@@ -29,22 +69,77 @@ const Branding = () => {
     setToggleDayWiseBranding((pre) => !pre);
   };
 
-  const handleFileUpload = (event) => {
+  const handleFileUpload = async (event) => {
     const file = event.target.files[0];
-    if (file) {
-      // In a real application, you would upload this file to a server,
-      // get a public URL back, and then set the state.
-      // For this example, we'll use a local URL for display:
-      const url = URL.createObjectURL(file);
-      setLogoUrl(url);
-      console.log("File selected:", file.name);
+    if (!file) return;
+
+    // Validate file type
+    if (!['image/png', 'image/jpeg', 'image/gif'].includes(file.type)) {
+      toast.error('Only PNG, JPG, and GIF files are allowed');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    try {
+      setLogoUploading(true);
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`${apiUrl}/api/branding/logo`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Upload failed');
+      }
+
+      const data = await response.json();
+      console.log('Logo upload response:', data);
+      setLogoUrl(data.logoUrl);
+      toast.success('Logo uploaded successfully!');
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      toast.error(error.message || 'Failed to upload logo');
+    } finally {
+      setLogoUploading(false);
     }
   };
 
-  const handleDelete = () => {
-    // Logic to delete the logo on the server, then clear the state
+  const handleDelete = async () => {
+    if (!logoUrl) return;
+
+    const previous = logoUrl;
+    // Optimistic UI update
     setLogoUrl(null);
-    console.log("Logo deleted.");
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/branding/logo`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Delete failed');
+      }
+
+      toast.success('Logo removed');
+    } catch (error) {
+      console.error('Error deleting logo:', error);
+      // Revert on failure
+      setLogoUrl(previous);
+      toast.error(error.message || 'Failed to delete logo');
+    }
   };
 
   // We use a hidden file input and trigger it with a visible button click.
@@ -53,23 +148,87 @@ const Branding = () => {
   };
 
   // Set Profile Picture
-  const handleFileUploadAvatar = (event) => {
+  const handleFileUploadAvatar = async (event) => {
     const file = event.target.files[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setProfileUrl(url);
-      console.log("File selected:", file.name);
+    if (!file) return;
+
+    // Validate file type
+    if (!['image/png', 'image/jpeg', 'image/gif'].includes(file.type)) {
+      toast.error('Only PNG, JPG, and GIF files are allowed');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    try {
+      setProfileUploading(true);
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`${apiUrl}/api/branding/profile`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Upload failed');
+      }
+
+      const data = await response.json();
+      console.log('Profile picture upload response:', data);
+      setProfileUrl(data.profilePictureUrl);
+      toast.success('Profile picture uploaded successfully!');
+    } catch (error) {
+      console.error('Error uploading profile picture:', error);
+      toast.error(error.message || 'Failed to upload profile picture');
+    } finally {
+      setProfileUploading(false);
     }
   };
-  const handleDeleteAvatar = () => {
-    // Logic to delete the logo on the server, then clear the state
+
+  const handleDeleteAvatar = async () => {
+    if (!profileUrl) return;
+
+    const previous = profileUrl;
+    // Optimistic UI update
     setProfileUrl(null);
-    console.log("Logo deleted.");
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/branding/profile`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Delete failed');
+      }
+
+      toast.success('Profile picture removed');
+    } catch (error) {
+      console.error('Error deleting profile picture:', error);
+      // Revert on failure
+      setProfileUrl(previous);
+      toast.error(error.message || 'Failed to delete profile picture');
+    }
   };
 
   // We use a hidden file input and trigger it with a visible button click.
   const triggerFileInputAvatar = () => {
     document.getElementById("profile-upload-input").click();
+  };
+
+  const handleSaveChanges = () => {
+    // Images are uploaded immediately when selected, so just show success message
+    toast.success('Branding settings saved successfully!');
   };
 
   return (
@@ -115,7 +274,14 @@ const Branding = () => {
             onClick={() => setShowPreviewBooking(true)}
           />
         </div>
-        <div className="main-wrapper">
+
+        {loading ? (
+          <div className="branding-loading">
+            <div className="branding-spinner"></div>
+            <p className="branding-loading-text">Loading branding data...</p>
+          </div>
+        ) : (
+          <div className="main-wrapper">
           <div className="logo-con">
             <h3>
               <PremiumIcon />
@@ -151,8 +317,9 @@ const Branding = () => {
                   type="button"
                   className="upload-btn"
                   onClick={triggerFileInput}
+                  disabled={logoUploading}
                 >
-                  {logoUrl ? "Update Logo" : "Upload logo"}
+                  {logoUploading ? "Uploading..." : (logoUrl ? "Update Logo" : "Upload logo")}
                 </button>
 
                 {/* Delete button shown only when a logo is uploaded */}
@@ -249,8 +416,11 @@ const Branding = () => {
                   style={{ display: "none" }}
                 />
                 <div className="btn-wrap">
-                  <button onClick={triggerFileInputAvatar}>
-                    {profileUrl ? "Update Picture" : "Upload Picture"}
+                  <button
+                    onClick={triggerFileInputAvatar}
+                    disabled={profileUploading}
+                  >
+                    {profileUploading ? "Uploading..." : (profileUrl ? "Update Picture" : "Upload Picture")}
                   </button>
                   {/* Delete button shown only when a logo is uploaded */}
                   {profileUrl && (
@@ -371,18 +541,10 @@ const Branding = () => {
             />
           </div>
           <div className="btn-submit-con">
-            <Button
-              text={"Cancel"}
-              style={{
-                backgroundColor: "transparent",
-                color: "#64748B",
-                border: "1px solid #E0E9FE",
-              }}
-              onClick={() => setShowServiceModal(false)}
-            />
-            <Button text={"Save Changes"} type="submit" />
+            <Button text={"Save Changes"} onClick={handleSaveChanges} />
           </div>
         </div>
+        )}
       </div>
       <PreviewBookingModal
         showPreviewBooking={showPreviewBooking}

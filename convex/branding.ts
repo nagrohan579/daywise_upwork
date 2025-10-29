@@ -58,3 +58,28 @@ export const update = mutation({
     return await ctx.db.get(existing._id);
   },
 });
+
+export const clearField = mutation({
+  args: {
+    userId: v.id("users"),
+    field: v.string(), // only allows specific fields at runtime
+  },
+  handler: async (ctx, { userId, field }) => {
+    const existing = await ctx.db
+      .query("branding")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+
+    if (!existing) return undefined;
+
+    if (field !== "logoUrl" && field !== "profilePictureUrl") {
+      throw new Error("Unsupported field to clear");
+    }
+
+    // Build a patch with field explicitly undefined
+    const patch: any = { updatedAt: Date.now() };
+    patch[field] = undefined;
+    await ctx.db.patch(existing._id, patch);
+    return await ctx.db.get(existing._id);
+  },
+});

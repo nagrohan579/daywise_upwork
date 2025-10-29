@@ -13,11 +13,11 @@ import {
 import { useMobile } from "../../hooks";
 import { Input, Button, Textarea } from "../../components/index";
 import Select from "../../components/ui/Input/Select";
-import ct from 'countries-and-timezones';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { detectUserLocation } from "../../utils/locationDetection";
+import { getTimezoneOptions, getTimezoneLabel, getTimezoneValue, mapToSupportedTimezone } from '../../utils/timezones';
 import "./PublicBooking.css";
 
 // Initialize dayjs plugins
@@ -33,6 +33,7 @@ const PublicBooking = () => {
   const [submitting, setSubmitting] = useState(false);
   const [userData, setUserData] = useState(null);
   const [appointmentTypes, setAppointmentTypes] = useState([]);
+  const [branding, setBranding] = useState(null);
   const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
   const [loadingTimeSlots, setLoadingTimeSlots] = useState(false);
   const [selectedAppointmentType, setSelectedAppointmentType] = useState(null);
@@ -46,40 +47,13 @@ const PublicBooking = () => {
   const [customerTimezone, setCustomerTimezone] = useState(null);
   const [bookingEventUrl, setBookingEventUrl] = useState(null);
 
-  // Generate timezone options dynamically from the library (same as Account page)
-  const { timezones, timezoneOptions } = useMemo(() => {
-    const allTimezones = ct.getAllTimezones();
-
-    // Create unique timezone options with UTC offset for clarity
-    const timezoneMap = new Map();
-    Object.values(allTimezones).forEach(tz => {
-      const offset = tz.utcOffset / 60; // Convert minutes to hours
-      const sign = offset >= 0 ? '+' : '';
-      const formattedOffset = `GMT${sign}${offset}`;
-      const label = `${tz.name.replace(/_/g, ' ')} (${formattedOffset})`;
-
-      // Only add if we haven't seen this exact label before
-      if (!timezoneMap.has(label)) {
-        timezoneMap.set(label, tz.name);
-      }
-    });
-
-    // Sort timezones by UTC offset
-    const sortedTimezones = Array.from(timezoneMap.entries())
-      .sort((a, b) => {
-        const tzA = allTimezones[a[1]];
-        const tzB = allTimezones[b[1]];
-        return tzA.utcOffset - tzB.utcOffset;
-      })
-      .map(([label]) => label);
-
-    console.log('PublicBooking - Generated timezone options:', sortedTimezones.length, 'timezones');
-    console.log('PublicBooking - First 5 timezones:', sortedTimezones.slice(0, 5));
-
-    return {
-      timezones: allTimezones,
-      timezoneOptions: sortedTimezones
-    };
+  // Get timezone options from utility (limited to 20 supported timezones)
+  const timezoneOptions = useMemo(() => {
+    const options = getTimezoneOptions();
+    console.log('PublicBooking - Generated timezone options:', options.length, 'timezones');
+    console.log('PublicBooking - First 5 timezones:', options.slice(0, 5));
+    // Return just the labels for the Select component
+    return options.map(([label]) => label);
   }, []);
   
   const goToNext = (data) => {
@@ -146,6 +120,20 @@ const PublicBooking = () => {
       console.log('PublicBooking - Business user data:', user);
       console.log('PublicBooking - Business timezone:', user.timezone);
 
+      // Fetch branding for this user (public access)
+      try {
+        const brandingResponse = await fetch(`${apiUrl}/api/branding?userId=${encodeURIComponent(user.id)}`);
+        if (brandingResponse.ok) {
+          const brandingData = await brandingResponse.json();
+          console.log('PublicBooking - Branding data:', brandingData);
+          setBranding(brandingData);
+        } else {
+          console.warn('PublicBooking - Branding fetch failed with status', brandingResponse.status);
+        }
+      } catch (e) {
+        console.warn('PublicBooking - Error fetching branding:', e);
+      }
+
       const typesResponse = await fetch(`${apiUrl}/api/appointment-types?userId=${user.id}`);
       if (typesResponse.ok) {
         const types = await typesResponse.json();
@@ -181,7 +169,7 @@ const PublicBooking = () => {
       const dateStr = `${year}-${month}-${day}`;
       
       // Get the timezone name from the customer's selected timezone or auto-detected
-      const customerTz = customerTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const customerTz = customerTimezone || mapToSupportedTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
       
       console.log('Fetching time slots with params:', {
         userId,
@@ -399,41 +387,6 @@ const PublicBooking = () => {
     return getTimezoneLabel(customerTimezone);
   };
 
-  // Helper function to get timezone label from value (handles legacy names)
-  const getTimezoneLabel = (value) => {
-    // Try to get the timezone by name
-    let tz = timezones[value];
-
-    // If not found, try using ct.getTimezone which handles legacy names
-    if (!tz && value) {
-      try {
-        tz = ct.getTimezone(value);
-      } catch (e) {
-        console.warn(`Timezone not found: ${value}`);
-      }
-    }
-
-    if (tz) {
-      const offset = tz.utcOffset / 60;
-      const sign = offset >= 0 ? '+' : '';
-      const formattedOffset = `GMT${sign}${offset}`;
-      return `${tz.name.replace(/_/g, ' ')} (${formattedOffset})`;
-    }
-    return value;
-  };
-
-  // Helper function to get timezone value from label
-  const getTimezoneValue = (label) => {
-    const match = label.match(/^(.+?)\s+\(GMT[+-][\d.]+\)$/);
-    if (match) {
-      const timezoneName = match[1].replace(/ /g, '_');
-      // Find the timezone in our timezones object
-      const tz = Object.values(timezones).find(t => t.name === timezoneName);
-      return tz ? tz.name : timezoneName;
-    }
-    return label;
-  };
-
   const handleTimezoneChange = (label) => {
     const timezoneValue = getTimezoneValue(label);
     setCustomerTimezone(timezoneValue);
@@ -505,15 +458,15 @@ const PublicBooking = () => {
               </div>
 
               <div className="profile-con">
-                {userData.picture && (
+                {((branding && branding.profilePictureUrl) || userData.picture) && (
                   <div className="profile-picture-wrapper">
                     <img
-                      src={userData.picture}
+                      src={(branding && branding.profilePictureUrl) ? branding.profilePictureUrl : userData.picture}
                       alt={`${userData.name || "User"} profile picture`}
                       className="profile-picture"
                       referrerPolicy="no-referrer"
                       onError={(e) => {
-                        console.error('Failed to load profile picture:', userData.picture);
+                        console.error('Failed to load profile picture:', (branding && branding.profilePictureUrl) ? branding.profilePictureUrl : userData.picture);
                         e.currentTarget.style.display = 'none';
                       }}
                     />
@@ -565,7 +518,7 @@ const PublicBooking = () => {
                 selectedAppointmentType={selectedAppointmentType}
                 selectedTime={selectedTime}
                 timezoneOptions={timezoneOptions}
-                currentTimezone={getTimezoneLabel(customerTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone)}
+                currentTimezone={getTimezoneLabel(customerTimezone || mapToSupportedTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone))}
                 onTimezoneChange={(value) => {
                   console.log('SingleCalendar - Timezone changed:', value);
                   handleTimezoneChange(value);
@@ -594,9 +547,9 @@ const PublicBooking = () => {
                   <div style={{ marginTop: '10px' }}>
                     {console.log('PublicBooking - Rendering timezone dropdown with options:', timezoneOptions.length)}
                     {console.log('PublicBooking - Current timezone value:', customerTimezone)}
-                    {console.log('PublicBooking - Display value:', getTimezoneLabel(customerTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone))}
+                    {console.log('PublicBooking - Display value:', getTimezoneLabel(customerTimezone || mapToSupportedTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone)))}
                     <Select
-                      value={getTimezoneLabel(customerTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone)}
+                      value={getTimezoneLabel(customerTimezone || mapToSupportedTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone))}
                       onChange={(value) => {
                         console.log('PublicBooking - Timezone dropdown changed:', value);
                         handleTimezoneChange(value);

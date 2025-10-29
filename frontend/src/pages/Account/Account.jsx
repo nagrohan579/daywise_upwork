@@ -9,6 +9,7 @@ import {
 import { useMobile } from "../../hooks";
 import { toast } from "sonner";
 import ct from "countries-and-timezones";
+import { getTimezoneOptions, getTimezoneLabel, getTimezoneValue } from "../../utils/timezones";
 import "./Account.css";
 
 const Account = () => {
@@ -26,45 +27,24 @@ const Account = () => {
     googleId: null,
   });
 
-  // Generate country and timezone data dynamically from the library
-  const { countries, timezones, countryOptions, timezoneOptions } = useMemo(() => {
+  // Generate country data dynamically from the library
+  const { countries, countryOptions } = useMemo(() => {
     const allCountries = ct.getAllCountries();
-    const allTimezones = ct.getAllTimezones();
 
     // Create country options sorted by name
     const countryOpts = Object.values(allCountries)
       .map(country => country.name)
       .sort();
 
-    // Create unique timezone options with UTC offset for clarity
-    const timezoneMap = new Map();
-    Object.values(allTimezones).forEach(tz => {
-      const offset = tz.utcOffset / 60; // Convert minutes to hours
-      const sign = offset >= 0 ? '+' : '';
-      const formattedOffset = `GMT${sign}${offset}`;
-      const label = `${tz.name.replace(/_/g, ' ')} (${formattedOffset})`;
-
-      // Only add if we haven't seen this exact label before
-      if (!timezoneMap.has(label)) {
-        timezoneMap.set(label, tz.name);
-      }
-    });
-
-    // Sort timezones by UTC offset
-    const sortedTimezones = Array.from(timezoneMap.entries())
-      .sort((a, b) => {
-        const tzA = allTimezones[a[1]];
-        const tzB = allTimezones[b[1]];
-        return tzA.utcOffset - tzB.utcOffset;
-      })
-      .map(([label]) => label);
-
     return {
       countries: allCountries,
-      timezones: allTimezones,
-      countryOptions: countryOpts,
-      timezoneOptions: sortedTimezones
+      countryOptions: countryOpts
     };
+  }, []);
+
+  // Get timezone options from utilities
+  const timezoneOptions = useMemo(() => {
+    return getTimezoneOptions().map(([label]) => label);
   }, []);
 
   const getCountryLabel = (code) => {
@@ -75,40 +55,6 @@ const Account = () => {
   const getCountryCode = (label) => {
     const country = Object.values(countries).find(c => c.name === label);
     return country ? country.id : label;
-  };
-
-  const getTimezoneLabel = (value) => {
-    // Try to get the timezone by name
-    let tz = timezones[value];
-
-    // If not found, try using ct.getTimezone which handles legacy names
-    if (!tz && value) {
-      try {
-        tz = ct.getTimezone(value);
-      } catch (e) {
-        console.warn(`Timezone not found: ${value}`);
-      }
-    }
-
-    if (tz) {
-      const offset = tz.utcOffset / 60;
-      const sign = offset >= 0 ? '+' : '';
-      const formattedOffset = `GMT${sign}${offset}`;
-      return `${tz.name.replace(/_/g, ' ')} (${formattedOffset})`;
-    }
-    return value;
-  };
-
-  const getTimezoneValue = (label) => {
-    // Extract the timezone name from the label (format: "Name (GMT±X)")
-    const match = label.match(/^(.+?)\s*\(GMT/);
-    if (match) {
-      const name = match[1].trim().replace(/ /g, '_');
-      // Find the timezone with this name
-      const tz = Object.values(timezones).find(t => t.name.replace(/_/g, ' ') === match[1].trim());
-      return tz ? tz.name : name;
-    }
-    return label;
   };
 
   // Fetch user data on mount

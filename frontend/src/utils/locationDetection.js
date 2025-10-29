@@ -1,7 +1,9 @@
 import ct from 'countries-and-timezones';
+import { mapToSupportedTimezone } from './timezones';
 
 /**
  * Detects the user's timezone and country using browser APIs
+ * Maps detected timezone to one of the supported timezones
  * @returns {Object} { timezone: string, country: string }
  */
 export const detectUserLocation = () => {
@@ -26,17 +28,20 @@ export const detectUserLocation = () => {
       }
     }
 
-    console.log(`Detected location - Browser: ${browserTimezone}, Canonical: ${canonicalTimezone}, Country: ${country}`);
+    // Map to supported timezone
+    const supportedTimezone = mapToSupportedTimezone(canonicalTimezone);
+
+    console.log(`Detected location - Browser: ${browserTimezone}, Canonical: ${canonicalTimezone}, Mapped: ${supportedTimezone}, Country: ${country}`);
 
     return {
-      timezone: canonicalTimezone || 'UTC',
+      timezone: supportedTimezone,
       country: country || 'US'
     };
   } catch (error) {
     console.error('Error detecting user location:', error);
     // Return safe defaults if detection fails
     return {
-      timezone: 'UTC',
+      timezone: 'Etc/UTC',
       country: 'US'
     };
   }

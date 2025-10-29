@@ -394,6 +394,13 @@ export const storage = {
     });
   },
 
+  async clearBrandingField(userId: string, field: "logoUrl" | "profilePictureUrl") {
+    return await convex.mutation(api.branding.clearField, {
+      userId: userId as Id<"users">,
+      field,
+    });
+  },
+
   // Feedback operations
   async getAllFeedback() {
     return await convex.query(api.feedback.getAll);

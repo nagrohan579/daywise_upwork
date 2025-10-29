@@ -123,10 +123,11 @@ const RescheduleBooking = () => {
       setCustomerEmail(booking.customerEmail || "");
       setComments(booking.notes || "");
 
-      // Pre-fill timezone
+      // Pre-fill timezone - normalize to supported timezone (handles Asia/Calcutta -> Asia/Kolkata)
       const bookingTz = booking.customerTimezone || user.timezone;
-      setCustomerTimezone(bookingTz);
-      console.log('RescheduleBooking - Pre-filled timezone:', bookingTz);
+      const normalizedTz = mapToSupportedTimezone(bookingTz);
+      setCustomerTimezone(normalizedTz);
+      console.log('RescheduleBooking - Pre-filled timezone:', bookingTz, '-> normalized:', normalizedTz);
 
       // Pre-fill date from booking
       const bookingDate = new Date(booking.appointmentDate);

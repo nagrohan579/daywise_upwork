@@ -43,6 +43,7 @@ export default defineSchema({
     appointmentTypeId: v.optional(v.id("appointmentTypes")),
     customerName: v.string(),
     customerEmail: v.string(),
+    customerTimezone: v.optional(v.string()),
     appointmentDate: v.number(), // timestamp
     duration: v.optional(v.number()), // Duration in minutes - optional for internal bookings
     status: v.string(), // "confirmed", "pending", "cancelled"

@@ -613,3 +613,355 @@
   font-weight: 400;
   color: #64748B;
 }
+
+/* Reschedule Confirmation Modal */
+.reschedule-confirmation-modal .modal-dialog {
+  max-width: 346px;
+  font-family: 'Inter', sans-serif;
+}
+
+.reschedule-confirmation-modal .modal-content {
+  border-radius: 12px;
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
+  background: #F9FAFF;
+}
+
+.reschedule-modal-content {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  gap: 30px;
+  isolation: isolate;
+  width: 346px;
+  min-height: 258px;
+  background: #F9FAFF;
+  border-radius: 12px;
+  position: relative;
+}
+
+.reschedule-modal-close-btn {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 313px;
+  top: 13px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.reschedule-modal-close-btn:hover {
+  opacity: 0.7;
+}
+
+.reschedule-modal-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 10px 0px;
+  gap: 10px;
+  width: 306px;
+  min-height: 148px;
+  z-index: 0;
+}
+
+.reschedule-modal-text h3 {
+  width: 306px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 36px;
+  color: #121212;
+  margin: 0;
+  text-align: center;
+  align-self: center;
+}
+
+.reschedule-modal-subtitle {
+  width: 306px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+  color: #121212;
+  margin: 0;
+  align-self: center;
+}
+
+.reschedule-modal-info {
+  width: 306px;
+  min-height: 54px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+  color: #121212;
+  margin: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.reschedule-modal-info strong {
+  font-weight: 600;
+}
+
+.reschedule-modal-buttons {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0px;
+  gap: 20px;
+  width: 306px;
+  height: 40px;
+  z-index: 2;
+}
+
+.reschedule-modal-confirm-btn {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 12px;
+  gap: 6px;
+  width: 143px;
+  height: 40px;
+  background: #0053F1;
+  border-radius: 50px;
+  border: none;
+  color: #FFFFFF;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  cursor: pointer;
+  flex: none;
+  flex-grow: 1;
+}
+
+.reschedule-modal-confirm-btn:hover {
+  background: #0043d1;
+}
+
+.reschedule-modal-cancel-btn {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 13px;
+  gap: 6px;
+  width: 143px;
+  height: 40px;
+  background: #FFFFFF;
+  border: 1px solid #E0E9FE;
+  border-radius: 50px;
+  color: #64748B;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  cursor: pointer;
+  flex: none;
+  flex-grow: 1;
+}
+
+.reschedule-modal-cancel-btn:hover {
+  background: #F9FAFF;
+}
+
+/* Cancel Confirmation Modal */
+.cancel-confirmation-modal .modal-dialog {
+  max-width: 346px;
+  width: 100%;
+}
+
+.cancel-confirmation-modal .modal-content {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.cancel-modal-content {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  gap: 20px;
+  isolation: isolate;
+  width: 346px;
+  height: 218px;
+  background: #F9FAFF;
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  position: relative;
+}
+
+.cancel-modal-close-btn {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 313px;
+  top: 13px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.cancel-modal-close-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.cancel-modal-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 10px;
+  width: 306px;
+  min-height: 118px;
+  z-index: 0;
+}
+
+.cancel-modal-text h3 {
+  width: auto;
+  height: 36px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 36px;
+  display: flex;
+  align-items: center;
+  color: #121212;
+  margin: 0;
+  align-self: center;
+  white-space: nowrap;
+}
+
+.cancel-modal-subtitle {
+  width: 306px;
+  min-height: 36px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+  color: #121212;
+  margin: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.cancel-modal-subtitle strong {
+  font-weight: 600;
+}
+
+.cancel-modal-info {
+  width: 306px;
+  min-height: 18px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+  color: #121212;
+  margin: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.cancel-modal-buttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 0px;
+  gap: 12px;
+  width: 306px;
+  height: 40px;
+  z-index: 2;
+}
+
+.cancel-modal-delete-btn {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 12px;
+  gap: 6px;
+  width: 147px;
+  height: 40px;
+  background: #FA5151;
+  border: none;
+  border-radius: 50px;
+  color: #FFFFFF;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  cursor: pointer;
+  flex: none;
+  flex-grow: 1;
+  transition: background 0.2s;
+}
+
+.cancel-modal-delete-btn:hover {
+  background: #E74444;
+}
+
+.cancel-modal-cancel-btn {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 13px;
+  gap: 6px;
+  width: 147px;
+  height: 40px;
+  background: #FFFFFF;
+  border: 1px solid #E0E9FE;
+  border-radius: 50px;
+  color: #64748B;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  cursor: pointer;
+  flex: none;
+  flex-grow: 1;
+  transition: background 0.2s;
+}
+
+.cancel-modal-cancel-btn:hover {
+  background: #F9FAFF;
+}

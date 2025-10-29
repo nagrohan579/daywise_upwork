@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import SingleCalendar from "../../components/Calendar/SingleCalendar";
 import {
@@ -16,16 +16,15 @@ import Select from "../../components/ui/Input/Select";
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
-import { detectUserLocation } from "../../utils/locationDetection";
 import { getTimezoneOptions, getTimezoneLabel, getTimezoneValue, mapToSupportedTimezone } from '../../utils/timezones';
-import "./PublicBooking.css";
+import "../PublicBooking/PublicBooking.css";
 
 // Initialize dayjs plugins
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-const PublicBooking = () => {
-  const { slug } = useParams();
+const RescheduleBooking = () => {
+  const { token } = useParams();
   const navigate = useNavigate();
   const isMobile = useMobile(999);
 
@@ -45,30 +44,28 @@ const PublicBooking = () => {
   const [step, setStep] = useState(1);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [customerTimezone, setCustomerTimezone] = useState(null);
-  const [bookingEventUrl, setBookingEventUrl] = useState(null);
+  const [originalBooking, setOriginalBooking] = useState(null);
 
   // Get timezone options from utility (limited to 20 supported timezones)
   const timezoneOptions = useMemo(() => {
     const options = getTimezoneOptions();
-    console.log('PublicBooking - Generated timezone options:', options.length, 'timezones');
-    console.log('PublicBooking - First 5 timezones:', options.slice(0, 5));
     // Return just the labels for the Select component
     return options.map(([label]) => label);
   }, []);
-  
+
   const goToNext = (data) => {
     // Validate appointment type is selected before proceeding to step 2
     if (step === 1 && !selectedAppointmentType) {
       toast.error("Please select an appointment type to continue");
       return;
     }
-    
+
     // Validate date and time are selected before proceeding to step 3 (on desktop)
     if (step === 2 && !isMobile && (!selectedDate || !selectedTime)) {
       toast.error("Please select a date and time");
       return;
     }
-    
+
     // If data is passed from SingleCalendar, extract date and time
     if (data && typeof data === 'object') {
       if (data.date) setSelectedDate(data.date);
@@ -83,67 +80,85 @@ const PublicBooking = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Auto-detect customer's timezone on mount (same as signup flow)
   useEffect(() => {
-    const location = detectUserLocation();
-    setCustomerTimezone(location.timezone);
-    console.log('PublicBooking - Customer timezone auto-detected:', location.timezone);
-    console.log('PublicBooking - Customer country auto-detected:', location.country);
-  }, []);
-
-  useEffect(() => {
-    if (!slug) {
-      toast.error("Invalid booking link");
+    if (!token) {
+      toast.error("Invalid reschedule link");
       navigate("/");
       return;
     }
-    fetchUserData();
-  }, [slug]);
+    fetchBookingData();
+  }, [token]);
 
-  const fetchUserData = async () => {
+  const fetchBookingData = async () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      const userResponse = await fetch(`${apiUrl}/api/users/by-slug/${slug}`);
-      
-      if (!userResponse.ok) {
-        if (userResponse.status === 404) {
-          toast.error("Booking page not found");
+
+      // Fetch existing booking by token
+      const bookingResponse = await fetch(`${apiUrl}/api/bookings/token/${token}`);
+
+      if (!bookingResponse.ok) {
+        if (bookingResponse.status === 404) {
+          toast.error("Booking not found");
           navigate("/");
         } else {
-          throw new Error("Failed to load booking page");
+          throw new Error("Failed to load booking");
         }
         return;
       }
-      
-      const user = await userResponse.json();
+
+      const bookingData = await bookingResponse.json();
+      const { booking, user, appointmentType, branding: brandingData } = bookingData;
+
+      console.log('RescheduleBooking - Loaded booking:', booking);
+      console.log('RescheduleBooking - User:', user);
+      console.log('RescheduleBooking - Appointment Type:', appointmentType);
+
+      // Store original booking
+      setOriginalBooking(booking);
       setUserData(user);
-      console.log('PublicBooking - Business user data:', user);
-      console.log('PublicBooking - Business timezone:', user.timezone);
+      setBranding(brandingData);
 
-      // Fetch branding for this user (public access)
-      try {
-        const brandingResponse = await fetch(`${apiUrl}/api/branding?userId=${encodeURIComponent(user.id)}`);
-        if (brandingResponse.ok) {
-          const brandingData = await brandingResponse.json();
-          console.log('PublicBooking - Branding data:', brandingData);
-          setBranding(brandingData);
-        } else {
-          console.warn('PublicBooking - Branding fetch failed with status', brandingResponse.status);
-        }
-      } catch (e) {
-        console.warn('PublicBooking - Error fetching branding:', e);
-      }
+      // Pre-fill customer details (these will be disabled)
+      setCustomerName(booking.customerName || "");
+      setCustomerEmail(booking.customerEmail || "");
+      setComments(booking.notes || "");
 
-      const typesResponse = await fetch(`${apiUrl}/api/appointment-types?userId=${user.id}`);
+      // Pre-fill timezone
+      const bookingTz = booking.customerTimezone || user.timezone;
+      setCustomerTimezone(bookingTz);
+      console.log('RescheduleBooking - Pre-filled timezone:', bookingTz);
+
+      // Pre-fill date from booking
+      const bookingDate = new Date(booking.appointmentDate);
+      setSelectedDate(bookingDate);
+      console.log('RescheduleBooking - Pre-filled date:', bookingDate);
+
+      // Fetch appointment types (include all, not just active)
+      const typesResponse = await fetch(`${apiUrl}/api/appointment-types?userId=${user._id}`);
       if (typesResponse.ok) {
         const types = await typesResponse.json();
-        setAppointmentTypes(types.filter(type => type.isActive !== false));
+        setAppointmentTypes(types);
+
+        // Determine booked type id (fallbacks)
+        const bookedTypeId = booking.appointmentTypeId || appointmentType?._id;
+
+        // Pre-select the booked appointment type if present in list
+        if (bookedTypeId) {
+          const matchingType = types.find(t => t._id === bookedTypeId) || (appointmentType ? types.find(t => t.name === appointmentType.name) : null);
+          if (matchingType) {
+            setSelectedAppointmentType(matchingType);
+            console.log('RescheduleBooking - Pre-selected appointment type:', matchingType);
+
+            // Fetch available slots for the pre-selected date and type
+            await fetchAvailableTimeSlots(user._id, matchingType._id, bookingDate);
+          }
+        }
       }
 
       setLoading(false);
     } catch (error) {
-      console.error("Error fetching booking page data:", error);
-      toast.error("Failed to load booking page");
+      console.error("Error fetching booking data:", error);
+      toast.error("Failed to load booking");
       setLoading(false);
     }
   };
@@ -155,43 +170,41 @@ const PublicBooking = () => {
       setAvailableTimeSlots([]);
       return [];
     }
-    
+
     setLoadingTimeSlots(true);
     setAvailableTimeSlots([]); // Clear previous slots
-    
+
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      
+
       // Format date as YYYY-MM-DD in LOCAL timezone (not UTC)
       const year = selectedDate.getFullYear();
       const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
       const day = String(selectedDate.getDate()).padStart(2, '0');
       const dateStr = `${year}-${month}-${day}`;
-      
+
       // Get the timezone name from the customer's selected timezone or auto-detected
       const customerTz = customerTimezone || mapToSupportedTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
-      
+
       console.log('Fetching time slots with params:', {
         userId,
         appointmentTypeId,
         date: dateStr,
         customerTimezone: customerTz,
         selectedDateLocal: selectedDate.toString(),
-        url: `${apiUrl}/api/availability/slots?userId=${userId}&appointmentTypeId=${appointmentTypeId}&date=${dateStr}&customerTimezone=${encodeURIComponent(customerTz)}`
       });
-      
+
       const response = await fetch(
         `${apiUrl}/api/availability/slots?userId=${userId}&appointmentTypeId=${appointmentTypeId}&date=${dateStr}&customerTimezone=${encodeURIComponent(customerTz)}`
       );
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('API Error:', response.status, errorText);
         throw new Error('Failed to fetch available slots');
       }
-      
+
       const data = await response.json();
-      console.log('API Response:', data);
       const slots = data.slots || [];
       console.log('Setting available slots:', slots);
       setAvailableTimeSlots(slots);
@@ -210,28 +223,27 @@ const PublicBooking = () => {
     console.log('Appointment type changed to:', typeName);
     const selected = appointmentTypes.find(t => t.name === typeName);
     console.log('Selected appointment type:', selected);
-    
+
     if (!selected) {
       console.error('Appointment type not found:', typeName);
       return;
     }
-    
+
     setSelectedAppointmentType(selected);
     setSelectedTime(null);
-    
-    // Set today's date as default if no date is selected
+
+    // Use the currently selected date or today's date
     const dateToUse = selectedDate || new Date();
     if (!selectedDate) {
       setSelectedDate(dateToUse);
     }
-    
+
     console.log('Using date:', dateToUse);
     console.log('User data:', userData);
-    
+
     if (userData && selected?._id) {
-      console.log('Calling fetchAvailableTimeSlots with:', { userId: userData.id, appointmentTypeId: selected._id, date: dateToUse });
-      await fetchAvailableTimeSlots(userData.id, selected._id, dateToUse);
-      // Note: fetchAvailableTimeSlots now sets availableTimeSlots internally
+      console.log('Calling fetchAvailableTimeSlots with:', { userId: userData._id, appointmentTypeId: selected._id, date: dateToUse });
+      await fetchAvailableTimeSlots(userData._id, selected._id, dateToUse);
     } else {
       console.warn('Cannot fetch time slots - missing user data or appointment type ID');
     }
@@ -240,11 +252,10 @@ const PublicBooking = () => {
   const handleDateSelect = async (date) => {
     setSelectedDate(date);
     setSelectedTime(null);
-    
+
     if (selectedAppointmentType?._id && userData) {
-      console.log('Calling fetchAvailableTimeSlots for date change with:', { userId: userData.id, appointmentTypeId: selectedAppointmentType._id, date });
-      await fetchAvailableTimeSlots(userData.id, selectedAppointmentType._id, date);
-      // Note: fetchAvailableTimeSlots now sets availableTimeSlots internally
+      console.log('Calling fetchAvailableTimeSlots for date change with:', { userId: userData._id, appointmentTypeId: selectedAppointmentType._id, date });
+      await fetchAvailableTimeSlots(userData._id, selectedAppointmentType._id, date);
     } else {
       console.warn('Cannot fetch time slots for date change - missing appointment type or user data');
     }
@@ -257,100 +268,69 @@ const PublicBooking = () => {
     console.log('handleTimeSelect - Selected UTC time:', utcTime);
   };
 
-  const handleCompleteBooking = async (e) => {
+  const handleCompleteReschedule = async (e) => {
     e.preventDefault();
-    
+
     // Prevent double submission
     if (submitting) {
-      console.log("PublicBooking - Already submitting, ignoring duplicate request");
+      console.log("RescheduleBooking - Already submitting, ignoring duplicate request");
       return;
     }
-    
+
     // Validate all required fields
     if (!selectedAppointmentType) {
       toast.error("Please select an appointment type");
       return;
     }
-    
+
     if (!selectedDate || !selectedTime) {
       toast.error("Please select a date and time");
       return;
     }
-    
-    if (!customerName.trim()) {
-      toast.error("Please enter your name");
-      return;
-    }
-    if (!customerEmail.trim() || !customerEmail.includes('@')) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
 
-    console.log("PublicBooking - Starting booking creation");
+    console.log("RescheduleBooking - Starting reschedule");
     setSubmitting(true);
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
       // selectedTime is always a UTC ISO string from the backend
-      console.log("PublicBooking - selectedTime UTC ISO string:", selectedTime);
+      console.log("RescheduleBooking - selectedTime UTC ISO string:", selectedTime);
       const appointmentTimestamp = dayjs.utc(selectedTime).valueOf();
-      console.log("PublicBooking - Appointment timestamp:", appointmentTimestamp);
+      console.log("RescheduleBooking - Appointment timestamp:", appointmentTimestamp);
 
-      // Generate booking token
-      const generateBookingToken = () => {
-        return Math.random().toString(36).substring(2, 15) + 
-               Math.random().toString(36).substring(2, 15);
-      };
-
-      // Create booking using API endpoint (like AddAppointmentModal but without session)
-      const bookingPayload = {
-        userId: userData.id,
+      // Reschedule booking using API endpoint
+      const reschedulePayload = {
         appointmentTypeId: selectedAppointmentType._id,
-        customerName: customerName.trim(),
-        customerEmail: customerEmail.trim().toLowerCase(),
+        appointmentDate: selectedTime, // Send ISO string directly
         customerTimezone: customerTimezone,
-        appointmentDate: appointmentTimestamp,
-        duration: selectedAppointmentType.duration,
-        status: "confirmed",
-        notes: comments.trim() || "",
-        bookingToken: generateBookingToken(),
       };
 
-      console.log("PublicBooking - Creating booking with payload:", bookingPayload);
+      console.log("RescheduleBooking - Rescheduling with payload:", reschedulePayload);
 
-      const response = await fetch(`${apiUrl}/api/public-bookings`, {
+      const response = await fetch(`${apiUrl}/api/bookings/reschedule/${token}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(bookingPayload),
+        body: JSON.stringify(reschedulePayload),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create booking');
+        throw new Error(errorData.message || 'Failed to reschedule booking');
       }
 
       const result = await response.json();
-      console.log("PublicBooking - Booking created successfully:", result);
+      console.log("RescheduleBooking - Rescheduled successfully:", result);
 
-      // Store the event URL for the "View Details" button
-      if (result.booking && result.booking.bookingToken) {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        const frontendUrl = import.meta.env.VITE_FRONTEND_URL || 'http://localhost:5173';
-        const eventUrl = `${frontendUrl}/event/${result.booking.bookingToken}`;
-        setBookingEventUrl(eventUrl);
-        console.log("PublicBooking - Event URL stored:", eventUrl);
-      }
-
-      toast.success("Booking confirmed! Check your email for details.");
+      toast.success("Booking rescheduled! Check your email for updated details.");
       goToNext();
     } catch (error) {
-      console.error("PublicBooking - Error creating booking:", error);
-      toast.error(error.message || "Failed to complete booking");
+      console.error("RescheduleBooking - Error rescheduling booking:", error);
+      toast.error(error.message || "Failed to reschedule booking");
     } finally {
-      console.log("PublicBooking - Resetting submitting state");
+      console.log("RescheduleBooking - Resetting submitting state");
       setSubmitting(false);
     }
   };
@@ -391,9 +371,7 @@ const PublicBooking = () => {
   const handleTimezoneChange = (label) => {
     const timezoneValue = getTimezoneValue(label);
     setCustomerTimezone(timezoneValue);
-    console.log('PublicBooking - Customer timezone changed to:', timezoneValue);
-    console.log('PublicBooking - Business timezone:', userData?.timezone);
-    console.log('PublicBooking - Will convert slots from', userData?.timezone, 'to', timezoneValue);
+    console.log('RescheduleBooking - Customer timezone changed to:', timezoneValue);
   };
 
   // Convert and sort available time slots for display
@@ -431,18 +409,18 @@ const PublicBooking = () => {
       <div className="booking-steps-container">
         <div className="loading-container">
           <div className="spinner"></div>
-          <p>Loading booking page...</p>
+          <p>Loading booking details...</p>
         </div>
       </div>
     );
   }
 
-  if (!userData) {
+  if (!userData || !originalBooking) {
     return (
       <div className="booking-steps-container">
         <div className="error-container">
-          <h2>Booking Page Not Found</h2>
-          <p>The booking page you're looking for doesn't exist.</p>
+          <h2>Booking Not Found</h2>
+          <p>The booking you're trying to reschedule doesn't exist.</p>
         </div>
       </div>
     );
@@ -467,7 +445,7 @@ const PublicBooking = () => {
                       className="profile-picture"
                       referrerPolicy="no-referrer"
                       onError={(e) => {
-                        console.error('Failed to load profile picture:', (branding && branding.profilePictureUrl) ? branding.profilePictureUrl : userData.picture);
+                        console.error('Failed to load profile picture');
                         e.currentTarget.style.display = 'none';
                       }}
                     />
@@ -485,9 +463,9 @@ const PublicBooking = () => {
 
                 <div className="business-wrapper">
                   <h2>{userData.businessName || "Business Name Here"}</h2>
-                  {userData.welcomeMessage && (
-                    <p>{userData.welcomeMessage}</p>
-                  )}
+                  <p style={{ marginTop: '8px', color: '#0053F1', fontWeight: '500' }}>
+                    Rescheduling your appointment
+                  </p>
                 </div>
 
                 <div className="select-con">
@@ -546,13 +524,10 @@ const PublicBooking = () => {
                   <h1 className="appoint-name">{selectedAppointmentType?.name || "30 Minute Appointment"}</h1>
                   <p>{formatDate(selectedDate)}</p>
                   <div style={{ marginTop: '10px' }}>
-                    {console.log('PublicBooking - Rendering timezone dropdown with options:', timezoneOptions.length)}
-                    {console.log('PublicBooking - Current timezone value:', customerTimezone)}
-                    {console.log('PublicBooking - Display value:', getTimezoneLabel(customerTimezone || mapToSupportedTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone)))}
                     <Select
                       value={getTimezoneLabel(customerTimezone || mapToSupportedTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone))}
                       onChange={(value) => {
-                        console.log('PublicBooking - Timezone dropdown changed:', value);
+                        console.log('RescheduleBooking - Timezone dropdown changed:', value);
                         handleTimezoneChange(value);
                       }}
                       options={timezoneOptions}
@@ -648,37 +623,40 @@ const PublicBooking = () => {
               </div>
             </div>
             <div className="right">
-              <h1>Enter Detail</h1>
-              <form className="booking-detail" onSubmit={handleCompleteBooking}>
-                <Input 
-                  label="Name*" 
+              <h1>Confirm Details</h1>
+              <p style={{ marginBottom: '20px', color: '#64748B' }}>
+                Your contact information cannot be changed when rescheduling.
+              </p>
+              <form className="booking-detail" onSubmit={handleCompleteReschedule}>
+                <Input
+                  label="Name*"
                   placeholder="Enter name"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
+                  disabled={true}
                   required
+                  style={{ backgroundColor: '#F5F5F5', cursor: 'not-allowed' }}
                 />
-                <Input 
-                  label="Email*" 
+                <Input
+                  label="Email*"
                   placeholder="Enter email address"
                   type="email"
                   value={customerEmail}
                   onChange={(e) => setCustomerEmail(e.target.value)}
+                  disabled={true}
                   required
+                  style={{ backgroundColor: '#F5F5F5', cursor: 'not-allowed' }}
                 />
                 <Textarea
                   label="Comments (optional)"
-                  placeholder="Please share any comments or questions if needed"
+                  placeholder="Original comments"
                   value={comments}
                   onChange={(e) => setComments(e.target.value)}
-                  style={{ borderRadius: "12px" }}
+                  disabled={true}
+                  style={{ borderRadius: "12px", backgroundColor: '#F5F5F5', cursor: 'not-allowed' }}
                 />
-                <p className="terms-con-desc">
-                  By continuing, you confirm that you have read and agree
-                  to Daywise's <Link to="/terms">Terms of Use</Link> and{" "}
-                  <Link to="/privacy-policy">Privacy Notice</Link>.
-                </p>
-                <Button 
-                  text={submitting ? "Booking..." : "Complete Booking"} 
+                <Button
+                  text={submitting ? "Rescheduling..." : "Confirm Reschedule"}
                   disabled={submitting}
                   type="submit"
                 />
@@ -693,9 +671,9 @@ const PublicBooking = () => {
               <div className="heading-container">
                 <div className="wrap">
                   <TickIcon />
-                  <h3>Success! You are booked in</h3>
+                  <h3>Success! Your booking has been rescheduled</h3>
                 </div>
-                <p>A confirmation has been sent to your email.</p>
+                <p>A confirmation with updated details has been sent to your email.</p>
               </div>
               <div className="appointment-container">
                 <div className="daywise-branding">
@@ -725,33 +703,15 @@ const PublicBooking = () => {
               </div>
               <div className="success-buttons">
                 <Button
-                  text="View Details"
+                  text="View Event Details"
                   onClick={() => {
-                    if (bookingEventUrl) {
-                      // Navigate to the event details page
-                      const eventPath = bookingEventUrl.replace(/^https?:\/\/[^\/]+/, '');
-                      navigate(eventPath);
-                    } else {
-                      navigate('/bookings');
-                    }
+                    // Navigate back to the event page
+                    navigate(`/event/${token}`);
                   }}
                   style={{
                     width: '186px',
                     height: '40px',
                     backgroundColor: '#0053F1',
-                    borderRadius: '50px',
-                    padding: '10px 12px',
-                    color: '#FFFFFF',
-                    border: 'none'
-                  }}
-                />
-                <Button
-                  text="Book Another"
-                  onClick={() => window.location.reload()}
-                  style={{
-                    width: '186px',
-                    height: '40px',
-                    backgroundColor: '#64748B',
                     borderRadius: '50px',
                     padding: '10px 12px',
                     color: '#FFFFFF',
@@ -767,4 +727,4 @@ const PublicBooking = () => {
   );
 };
 
-export default PublicBooking;
+export default RescheduleBooking;

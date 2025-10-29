@@ -362,7 +362,7 @@ export class GoogleCalendarService {
     description?: string;
     start?: Date;
     end?: Date;
-    attendees?: string[];
+    attendees?: string[]; // Ignored to avoid Google sending invites
   }) {
     try {
       console.log('=== Google Calendar Event Update Start ===');
@@ -371,7 +371,7 @@ export class GoogleCalendarService {
       console.log('Update data:', JSON.stringify(eventData, null, 2));
       
       const event = await this.executeWithTokenRefresh(userId, async (calendar) => {
-        const requestBody = {
+        const requestBody: any = {
           summary: eventData.summary,
           description: eventData.description,
           start: eventData.start ? {
@@ -382,7 +382,6 @@ export class GoogleCalendarService {
             dateTime: eventData.end.toISOString(),
             timeZone: 'UTC',
           } : undefined,
-          attendees: eventData.attendees?.map(email => ({ email })),
         };
         
         console.log('Google Calendar API update request body:', JSON.stringify(requestBody, null, 2));

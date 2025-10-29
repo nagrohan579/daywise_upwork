@@ -1,16 +1,28 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ClockIcon, CalendarIcon2, GlobeIcon, DollarIcon, CopyIcon } from '../../components/SVGICONS/Svg';
 import { FaCheck } from 'react-icons/fa';
 import './Event.css';
+import { getTimezoneLabel } from '../../utils/timezones';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+import RescheduleConfirmationModal from '../../components/ui/modals/RescheduleConfirmationModal';
+import CancelConfirmationModal from '../../components/ui/modals/CancelConfirmationModal';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const Event = () => {
   const { token } = useParams();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [eventData, setEventData] = useState(null);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   useEffect(() => {
     if (token) {
@@ -43,40 +55,21 @@ const Event = () => {
     }
   };
 
-  const formatDate = (timestamp) => {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
+  const formatDate = (timestamp, tz) => {
+    const local = dayjs.utc(timestamp).tz(tz);
+    return local.format('MMMM D, YYYY');
   };
 
-  const formatTimeRange = (timestamp, duration) => {
-    const startDate = new Date(timestamp);
-    const endDate = new Date(timestamp + duration * 60 * 1000);
-
-    const startTime = startDate.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-
-    const endTime = endDate.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-
-    return `${startTime}-${endTime}`;
+  const formatTimeRange = (timestamp, duration, tz) => {
+    const startLocal = dayjs.utc(timestamp).tz(tz);
+    const endLocal = startLocal.add(duration, 'minute');
+    return `${startLocal.format('h:mm A')}-${endLocal.format('h:mm A')}`;
   };
 
-  const formatTimezone = (timezone) => {
-    if (!timezone) return '';
-    const parts = timezone.split('/');
-    const city = parts[parts.length - 1].replace(/_/g, ' ');
-    return city;
+  const formatTimezone = (tz) => {
+    if (!tz) return '';
+    // Use the same formatting as in PublicBooking to get exact same label
+    return getTimezoneLabel(tz);
   };
 
   const copyEventLink = async () => {
@@ -94,11 +87,16 @@ const Event = () => {
   };
 
   const handleReschedule = () => {
-    toast.info('Reschedule functionality coming soon!');
+    setShowRescheduleModal(true);
   };
 
   const handleCancelEvent = () => {
-    toast.info('Cancel event functionality coming soon!');
+    setShowCancelModal(true);
+  };
+
+  const handleCancelSuccess = () => {
+    // Redirect to home page after successful cancellation
+    navigate('/');
   };
 
   if (loading) {
@@ -124,8 +122,15 @@ const Event = () => {
   }
 
   const { booking, appointmentType, user, branding } = eventData;
+  const customerTz = booking?.customerTimezone || user?.timezone;
   const frontendUrl = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
   const eventUrl = `${frontendUrl}/event/${booking.bookingToken}`;
+  
+  // Format booking date and time for modal display
+  const bookingDateFormatted = formatDate(booking.appointmentDate, customerTz);
+  // Get start time in lowercase format (e.g., "4:00pm")
+  const startLocal = dayjs.utc(booking.appointmentDate).tz(customerTz);
+  const bookingTimeFormatted = startLocal.format('h:mma').toLowerCase(); // e.g., "4:00pm"
 
   return (
     <div className="event-page">
@@ -154,12 +159,12 @@ const Event = () => {
 
                 <div className="detail-row">
                   <CalendarIcon2 />
-                  <span>{formatTimeRange(booking.appointmentDate, appointmentType?.duration || booking.duration)}, {formatDate(booking.appointmentDate)}</span>
+                  <span>{formatTimeRange(booking.appointmentDate, appointmentType?.duration || booking.duration, customerTz)}, {formatDate(booking.appointmentDate, customerTz)}</span>
                 </div>
 
                 <div className="detail-row">
                   <GlobeIcon />
-                  <span>{formatTimezone(user?.timezone)}</span>
+                  <span>{formatTimezone(customerTz)}</span>
                 </div>
 
                 {appointmentType?.price > 0 && (
@@ -214,6 +219,24 @@ const Event = () => {
           </button>
         </div>
       </div>
+      
+      <RescheduleConfirmationModal
+        show={showRescheduleModal}
+        setShow={setShowRescheduleModal}
+        bookingDate={bookingDateFormatted}
+        bookingTime={bookingTimeFormatted}
+        bookingToken={booking.bookingToken}
+      />
+      
+      <CancelConfirmationModal
+        show={showCancelModal}
+        setShow={setShowCancelModal}
+        bookingDate={bookingDateFormatted}
+        bookingTime={bookingTimeFormatted}
+        bookingToken={booking.bookingToken}
+        userSlug={user?.slug}
+        onDeleteSuccess={handleCancelSuccess}
+      />
     </div>
   );
 };

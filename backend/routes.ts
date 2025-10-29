@@ -2111,6 +2111,269 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public endpoint to reschedule a booking by token
+  app.post("/api/bookings/reschedule/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { appointmentTypeId, appointmentDate, customerTimezone } = req.body;
+
+      if (!token) {
+        return res.status(400).json({ message: "Token is required" });
+      }
+
+      if (!appointmentTypeId || !appointmentDate || !customerTimezone) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Fetch the existing booking
+      const existingBooking = await storage.getBookingByToken(token);
+      if (!existingBooking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      // Fetch user (business owner) details
+      const user = await storage.getUser(existingBooking.userId);
+      if (!user) {
+        return res.status(404).json({ message: "Business owner not found" });
+      }
+
+      // Fetch appointment type
+      const appointmentType = await storage.getAppointmentType(appointmentTypeId);
+      if (!appointmentType) {
+        return res.status(404).json({ message: "Appointment type not found" });
+      }
+
+      // Validate the new time slot is available
+      const newDate = new Date(appointmentDate);
+      const newDateStr = `${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, '0')}-${String(newDate.getDate()).padStart(2, '0')}`;
+
+      // Use the availability service to check if slot is available
+      const { getAvailableSlots } = await import("./services/availability");
+      const availableSlots = await getAvailableSlots({
+        userId: user._id,
+        appointmentTypeId,
+        date: newDateStr,
+        customerTimezone,
+        excludeBookingId: existingBooking._id // Exclude current booking when checking availability
+      });
+
+      // Check if the requested slot is in the available slots
+      const requestedTimestamp = new Date(appointmentDate).getTime();
+      const isSlotAvailable = availableSlots.some(slot => {
+        const slotTime = new Date(slot).getTime();
+        return slotTime === requestedTimestamp;
+      });
+
+      if (!isSlotAvailable) {
+        return res.status(400).json({ message: "The selected time slot is no longer available" });
+      }
+
+      // IMPORTANT: Update the EXISTING booking in Convex (NOT creating a new one)
+      // This ensures no duplicates in the database or UI
+      console.log(`🔄 Rescheduling booking ${existingBooking._id} from ${new Date(existingBooking.appointmentDate).toISOString()} to ${new Date(requestedTimestamp).toISOString()}`);
+
+      const updatedBooking = await storage.updateBooking(existingBooking._id, {
+        appointmentTypeId,
+        appointmentDate: requestedTimestamp,
+        customerTimezone,
+        duration: appointmentType.duration
+      });
+
+      if (!updatedBooking) {
+        return res.status(500).json({ message: "Failed to update booking" });
+      }
+
+      console.log(`✅ Booking ${existingBooking._id} updated successfully in database - OLD entry replaced, no duplicate created`);
+
+      // IMPORTANT: Update the EXISTING Google Calendar event (NOT creating a new one)
+      // This ensures no duplicates in Google Calendar
+      if (existingBooking.googleCalendarEventId) {
+        try {
+          console.log(`🔄 Updating Google Calendar event ${existingBooking.googleCalendarEventId}`);
+
+          const appointmentEnd = new Date(requestedTimestamp + appointmentType.duration * 60 * 1000);
+          const updateResult = await googleCalendarService.updateCalendarEvent(
+            user._id,
+            existingBooking.googleCalendarEventId,
+            {
+              summary: `${appointmentType.name} - ${existingBooking.customerName}`,
+              description: `Rescheduled appointment\n\nCustomer: ${existingBooking.customerName}\nEmail: ${existingBooking.customerEmail}${existingBooking.notes ? `\n\nNotes: ${existingBooking.notes}` : ''}`,
+              start: new Date(requestedTimestamp),
+              end: appointmentEnd,
+            }
+          );
+
+          if (updateResult.success) {
+            console.log(`✅ Google Calendar event ${existingBooking.googleCalendarEventId} updated successfully - OLD event replaced, no duplicate created`);
+          } else {
+            console.warn(`⚠️ Google Calendar update failed but continuing: ${JSON.stringify(updateResult)}`);
+          }
+        } catch (error) {
+          console.error('❌ Error updating Google Calendar event:', error);
+          // Don't fail the reschedule if Google Calendar update fails
+        }
+      } else {
+        console.log(`ℹ️ No Google Calendar event to update (googleCalendarEventId not set)`);
+      }
+
+      // Send email notifications about reschedule
+      try {
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const bookingUrl = `${frontendUrl}/event/${updatedBooking.bookingToken}`;
+
+        const branding = await storage.getBranding(user._id);
+        const businessColors = branding ? {
+          primary: branding.primary,
+          secondary: branding.secondary,
+          accent: branding.accent,
+        } : undefined;
+
+        await sendRescheduleConfirmation({
+          customerName: updatedBooking.customerName,
+          customerEmail: updatedBooking.customerEmail,
+          businessName: user.businessName || user.name || 'DayWise',
+          businessEmail: user.email,
+          appointmentDate: new Date(updatedBooking.appointmentDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+          appointmentTime: new Date(updatedBooking.appointmentDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+          appointmentType: appointmentType.name,
+          appointmentDuration: appointmentType.duration,
+          businessColors,
+          businessLogo: branding?.logoUrl,
+          usePlatformBranding: branding?.usePlatformBranding,
+          bookingUrl,
+          oldAppointmentDate: new Date(existingBooking.appointmentDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+          oldAppointmentTime: new Date(existingBooking.appointmentDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+        });
+        console.log(`✅ Reschedule confirmation email sent to ${existingBooking.customerEmail}`);
+      } catch (emailError) {
+        console.error('Error sending reschedule email:', emailError);
+        // Don't fail the reschedule if email fails
+      }
+
+      res.json({
+        message: "Booking rescheduled successfully",
+        booking: updatedBooking
+      });
+    } catch (error) {
+      console.error('Error rescheduling booking:', error);
+      res.status(500).json({ message: "Failed to reschedule booking", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  // Public endpoint to cancel a booking by token
+  app.post("/api/bookings/cancel/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+
+      if (!token) {
+        return res.status(400).json({ message: "Token is required" });
+      }
+
+      // Fetch the existing booking
+      const existingBooking = await storage.getBookingByToken(token);
+      if (!existingBooking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      // Check if booking is already cancelled
+      if (existingBooking.status === 'cancelled') {
+        return res.status(400).json({ message: "Booking is already cancelled" });
+      }
+
+      // Fetch user (business owner) details
+      const user = await storage.getUser(existingBooking.userId);
+      if (!user) {
+        return res.status(404).json({ message: "Business owner not found" });
+      }
+
+      // Fetch appointment type
+      let appointmentType = null;
+      if (existingBooking.appointmentTypeId) {
+        appointmentType = await storage.getAppointmentType(existingBooking.appointmentTypeId);
+      }
+
+      // Fetch branding for emails
+      const branding = await storage.getBranding(existingBooking.userId);
+      const businessColors = branding ? {
+        primary: branding.primary || '#3b82f6',
+        secondary: branding.secondary || '#8b5cf6',
+        accent: branding.accent || '#3b82f6',
+      } : undefined;
+
+      // Delete Google Calendar event if it exists
+      if (existingBooking.googleCalendarEventId) {
+        try {
+          await googleCalendarService.deleteCalendarEvent(
+            existingBooking.userId,
+            existingBooking.googleCalendarEventId
+          );
+          console.log(`✅ Google Calendar event deleted: ${existingBooking.googleCalendarEventId}`);
+        } catch (error) {
+          console.error('Failed to delete Google Calendar event:', error);
+          // Continue with cancellation even if calendar deletion fails
+        }
+      }
+
+      // Delete the booking from Convex (not just update status)
+      await storage.deleteBooking(existingBooking._id);
+      console.log(`✅ Booking ${existingBooking._id} deleted from database`);
+
+      // Send cancellation confirmation emails
+      try {
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const bookingUrl = `${frontendUrl}/event/${existingBooking.bookingToken}`;
+
+        // Format appointment date and time in customer's timezone
+        const customerTimezone = existingBooking.customerTimezone || user.timezone || 'UTC';
+        const appointmentDate = dayjs.utc(existingBooking.appointmentDate).tz(customerTimezone);
+        
+        await sendCancellationConfirmation({
+          customerName: existingBooking.customerName,
+          customerEmail: existingBooking.customerEmail,
+          businessName: user.businessName || user.name || 'DayWise',
+          businessEmail: user.email,
+          appointmentDate: appointmentDate.format('MMMM D, YYYY'),
+          appointmentTime: appointmentDate.format('h:mm A'),
+          appointmentType: appointmentType?.name || 'Appointment',
+          appointmentDuration: appointmentType?.duration || existingBooking.duration || 30,
+          businessColors,
+          businessLogo: branding?.logoUrl,
+          usePlatformBranding: branding?.usePlatformBranding,
+          bookingUrl,
+        });
+        console.log(`✅ Cancellation confirmation email sent to ${existingBooking.customerEmail}`);
+
+        // Send business notification
+        await sendCancellationBusinessNotification({
+          customerName: existingBooking.customerName,
+          customerEmail: existingBooking.customerEmail,
+          businessName: user.businessName || user.name || 'DayWise',
+          businessEmail: user.email,
+          appointmentDate: appointmentDate.format('MMMM D, YYYY'),
+          appointmentTime: appointmentDate.format('h:mm A'),
+          appointmentType: appointmentType?.name || 'Appointment',
+          appointmentDuration: appointmentType?.duration || existingBooking.duration || 30,
+          businessColors,
+          businessLogo: branding?.logoUrl,
+          usePlatformBranding: branding?.usePlatformBranding,
+          bookingUrl,
+        });
+        console.log(`✅ Cancellation notification email sent to ${user.email}`);
+      } catch (emailError) {
+        console.error('Error sending cancellation emails:', emailError);
+        // Don't fail the cancellation if email fails
+      }
+
+      res.json({
+        message: "Booking cancelled successfully",
+        userSlug: user.slug // Return slug for redirect
+      });
+    } catch (error) {
+      console.error('Error cancelling booking:', error);
+      res.status(500).json({ message: "Failed to cancel booking", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
   app.put("/api/bookings/:id", async (req, res) => {
     try {
       // SECURITY: Require authentication for booking updates
@@ -2899,8 +3162,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Forbidden: You can only delete your own account" });
       }
 
-      // Delete the user and all associated data
-      await storage.deleteUser(req.params.id);
+      const userId = req.params.id;
+
+      // Before deleting from Convex, delete Digital Ocean images if they exist
+      try {
+        const branding = await storage.getBranding(userId);
+        
+        if (branding) {
+          // Delete logo from Digital Ocean if it exists
+          if (branding.logoUrl && isSpacesUrl(branding.logoUrl)) {
+            try {
+              await deleteFile(branding.logoUrl);
+              console.log(`✅ Deleted logo from Digital Ocean: ${branding.logoUrl}`);
+            } catch (error) {
+              console.error('Error deleting logo from Digital Ocean:', error);
+              // Continue with account deletion even if image deletion fails
+            }
+          }
+
+          // Delete profile picture from Digital Ocean if it exists
+          if (branding.profilePictureUrl && isSpacesUrl(branding.profilePictureUrl)) {
+            try {
+              await deleteFile(branding.profilePictureUrl);
+              console.log(`✅ Deleted profile picture from Digital Ocean: ${branding.profilePictureUrl}`);
+            } catch (error) {
+              console.error('Error deleting profile picture from Digital Ocean:', error);
+              // Continue with account deletion even if image deletion fails
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching/deleting branding images:', error);
+        // Continue with account deletion even if image deletion fails
+      }
+
+      // Delete the user and all associated data from Convex
+      await storage.deleteUser(userId);
 
       // Destroy the session
       req.session.destroy((err) => {

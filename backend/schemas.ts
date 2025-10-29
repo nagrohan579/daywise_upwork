@@ -57,6 +57,7 @@ export const insertBookingSchema = z.object({
   appointmentTypeId: z.string().optional(),
   customerName: z.string().min(1, "Customer name is required"),
   customerEmail: z.string().email("Valid email address is required"),
+  customerTimezone: z.string().optional(),
   appointmentDate: z.coerce.date(),
   duration: z.number().optional(),
   status: z.string().optional(),

@@ -18,7 +18,7 @@ export async function getAvailableSlots({
   userId,
   appointmentTypeId,
   date,
-  customerTimezone,
+  customerTimezone, // Kept for API compatibility but NOT used for logic
   excludeBookingId,
 }: GetAvailableSlotsParams): Promise<string[]> {
   // Load appointment type
@@ -28,27 +28,18 @@ export async function getAvailableSlots({
   // Load weekly availability
   const availability = await storage.getAvailabilityByUser(userId);
 
-  // Business timezone
+  // USER'S TIMEZONE IS THE SINGLE SOURCE OF TRUTH FOR ALL LOGIC
   const user = await storage.getUser(userId);
   const userTimezone = user?.timezone || 'UTC';
 
-  // Customer date handling
-  const customerDateInCustomerTz = dayjs.tz(date, customerTimezone || userTimezone);
-  const customerDateUTC = customerDateInCustomerTz.utc();
-  const dateInUserTz = customerDateUTC.tz(userTimezone);
+  // Interpret the date in USER'S timezone (ignore customer timezone)
+  const dateInUserTz = dayjs.tz(date, userTimezone);
   const dayOfWeek = dateInUserTz.day();
   const dayNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
   const dayName = dayNames[dayOfWeek];
 
-  // Span detection
-  const customerDayStart = customerDateInCustomerTz.startOf('day');
-  const customerDayEnd = customerDateInCustomerTz.endOf('day');
-  const dayStartInUserTz = customerDayStart.tz(userTimezone);
-  const dayEndInUserTz = customerDayEnd.tz(userTimezone);
-  const spansDifferentDays = dayStartInUserTz.format('YYYY-MM-DD') !== dayEndInUserTz.format('YYYY-MM-DD');
-
   // Filter availability by weekday
-  let dayAvailability = availability.filter(slot => {
+  const dayAvailability = availability.filter(slot => {
     const rawWeekday = (slot as any).weekday || '';
     const wk = String(rawWeekday).toLowerCase().trim();
     const available = (slot as any).isAvailable !== false;
@@ -56,39 +47,25 @@ export async function getAvailableSlots({
     return matches && available;
   });
 
-  if (dayAvailability.length === 0 && customerTimezone && spansDifferentDays) {
-    const prevDayInUserTz = dateInUserTz.subtract(1, 'day');
-    const nextDayInUserTz = dateInUserTz.add(1, 'day');
-    const prevDayName = dayNames[prevDayInUserTz.day()];
-    const nextDayName = dayNames[nextDayInUserTz.day()];
-
-    dayAvailability = availability.filter(slot => {
-      const rawWeekday = (slot as any).weekday || '';
-      const wk = String(rawWeekday).toLowerCase().trim();
-      const available = (slot as any).isAvailable !== false;
-      const matchesPrev = wk === prevDayName || wk === prevDayName.slice(0,3);
-      const matchesNext = wk === nextDayName || wk === nextDayName.slice(0,3);
-      return (matchesPrev || matchesNext) && available;
-    });
-  }
-
   if (dayAvailability.length === 0) return [];
 
-  // Exceptions
+  // Exceptions (check in user's timezone)
   const exceptions = await storage.getAvailabilityExceptionsByUser(userId);
-  const dateStr = new Date(dateInUserTz.format('YYYY-MM-DD')).toISOString().split('T')[0];
+  const dateStr = dateInUserTz.format('YYYY-MM-DD');
   const dateException = exceptions.find((exception: any) => {
-    const exceptionDate = new Date(exception.date).toISOString().split('T')[0];
+    const exceptionDate = dayjs(exception.date).format('YYYY-MM-DD');
     return exceptionDate === dateStr;
   });
   if (dateException && dateException.type === 'unavailable') return [];
 
-  // Existing bookings for that calendar date in business timezone
+  // Existing bookings for that calendar date in user's timezone
   const allBookings = await storage.getBookingsByUser(userId);
   const dateBookings = allBookings.filter((b: any) => {
     if (excludeBookingId && b._id === excludeBookingId) return false;
-    const bookingDate = new Date(b.appointmentDate).toISOString().split('T')[0];
-    return bookingDate === dateStr;
+    // Convert booking time to user's timezone and compare dates
+    const bookingInUserTz = dayjs.utc(b.appointmentDate).tz(userTimezone);
+    const bookingDateStr = bookingInUserTz.format('YYYY-MM-DD');
+    return bookingDateStr === dateStr;
   });
 
   const bookingAppointmentTypes = new Map<string, any>();

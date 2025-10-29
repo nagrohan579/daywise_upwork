@@ -4,10 +4,12 @@ import { query, mutation } from "./_generated/server";
 export const getByUser = query({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
-    return await ctx.db
+    const notifications = await ctx.db
       .query("notifications")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .collect();
+    // Sort by createdAt descending (newest first)
+    return notifications.sort((a, b) => b.createdAt - a.createdAt);
   },
 });
 
@@ -28,6 +30,9 @@ export const create = mutation({
     message: v.string(),
     type: v.string(),
     relatedBookingId: v.optional(v.id("bookings")),
+    customerName: v.string(),
+    serviceName: v.string(),
+    appointmentDate: v.number(),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("notifications", {
@@ -37,6 +42,10 @@ export const create = mutation({
       type: args.type,
       relatedBookingId: args.relatedBookingId,
       isRead: false,
+      customerName: args.customerName,
+      serviceName: args.serviceName,
+      appointmentDate: args.appointmentDate,
+      createdAt: Date.now(),
     });
   },
 });

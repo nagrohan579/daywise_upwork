@@ -207,10 +207,15 @@ export default defineSchema({
     userId: v.id("users"),
     title: v.string(),
     message: v.string(),
-    type: v.string(), // "booking_created", "booking_cancelled", etc.
+    type: v.string(), // "scheduled", "rescheduled", "cancelled"
     relatedBookingId: v.optional(v.id("bookings")),
     isRead: v.boolean(),
+    customerName: v.string(), // Customer who triggered the notification
+    serviceName: v.string(), // Appointment type name
+    appointmentDate: v.number(), // Timestamp of the appointment
+    createdAt: v.number(), // When notification was created (for sorting)
   })
     .index("by_userId", ["userId"])
-    .index("by_userId_isRead", ["userId", "isRead"]),
+    .index("by_userId_isRead", ["userId", "isRead"])
+    .index("by_userId_createdAt", ["userId", "createdAt"]),
 });

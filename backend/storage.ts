@@ -444,10 +444,17 @@ export const storage = {
   },
 
   async createNotification(notification: any) {
-    const id = await convex.mutation(api.notifications.create, notification);
-    return await convex.query(api.notifications.getByUser, {
-      userId: notification.userId,
+    const id = await convex.mutation(api.notifications.create, {
+      userId: notification.userId as Id<"users">,
+      title: notification.title,
+      message: notification.message,
+      type: notification.type,
+      relatedBookingId: notification.relatedBookingId ? notification.relatedBookingId as Id<"bookings"> : undefined,
+      customerName: notification.customerName,
+      serviceName: notification.serviceName,
+      appointmentDate: notification.appointmentDate,
     });
+    return { _id: id, ...notification, isRead: false, createdAt: Date.now() };
   },
 
   async markNotificationAsRead(id: string) {

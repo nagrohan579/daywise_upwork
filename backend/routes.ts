@@ -1942,6 +1942,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error('Failed to send booking emails:', error);
         });
 
+        // Create notification for business owner
+        try {
+          await storage.createNotification({
+            userId: businessUser._id,
+            title: 'New Booking',
+            message: `${bookingData.customerName} has scheduled ${emailAppointmentType.name}`,
+            type: 'scheduled',
+            relatedBookingId: booking._id,
+            customerName: bookingData.customerName,
+            serviceName: emailAppointmentType.name,
+            appointmentDate: appointmentDate.getTime(),
+          });
+          console.log(`✅ Notification created for new booking`);
+        } catch (notifError) {
+          console.error('Failed to create notification:', notifError);
+          // Don't fail the booking if notification creation fails
+        }
+
         // Create Google Calendar event and store the event ID
         googleCalendarService.createCalendarEvent(businessUser._id, {
           summary: `${emailAppointmentType.name} - ${bookingData.customerName}`,
@@ -2250,6 +2268,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Don't fail the reschedule if email fails
       }
 
+      // Create notification for business owner
+      try {
+        await storage.createNotification({
+          userId: user._id,
+          title: 'Booking Rescheduled',
+          message: `${updatedBooking.customerName} has rescheduled ${appointmentType.name}`,
+          type: 'rescheduled',
+          relatedBookingId: updatedBooking._id,
+          customerName: updatedBooking.customerName,
+          serviceName: appointmentType.name,
+          appointmentDate: updatedBooking.appointmentDate,
+        });
+        console.log(`✅ Notification created for rescheduled booking`);
+      } catch (notifError) {
+        console.error('Failed to create notification:', notifError);
+        // Don't fail the reschedule if notification creation fails
+      }
+
       res.json({
         message: "Booking rescheduled successfully",
         booking: updatedBooking
@@ -2362,6 +2398,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (emailError) {
         console.error('Error sending cancellation emails:', emailError);
         // Don't fail the cancellation if email fails
+      }
+
+      // Create notification for business owner
+      try {
+        await storage.createNotification({
+          userId: user._id,
+          title: 'Booking Cancelled',
+          message: `${existingBooking.customerName} has cancelled ${appointmentType?.name || 'Appointment'}`,
+          type: 'cancelled',
+          relatedBookingId: existingBooking._id,
+          customerName: existingBooking.customerName,
+          serviceName: appointmentType?.name || 'Appointment',
+          appointmentDate: existingBooking.appointmentDate,
+        });
+        console.log(`✅ Notification created for cancelled booking`);
+      } catch (notifError) {
+        console.error('Failed to create notification:', notifError);
+        // Don't fail the cancellation if notification creation fails
       }
 
       res.json({

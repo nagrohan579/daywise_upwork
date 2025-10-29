@@ -37,60 +37,93 @@ const navItems = [
   { name: "Billing", path: "/billing", icon: <BiilingIcon /> },
 ];
 
-// Dummy notifications data
-const initialNotifications = [
-  {
-    id: 1,
-    type: 'scheduled',
-    customerName: 'John Doe',
-    serviceName: '1 hour service',
-    dateTime: 'October 13, 2025 at 11:30 am',
-    timestamp: 'Today, 10:19am',
-    action: true
-  },
-  {
-    id: 2,
-    type: 'scheduled',
-    customerName: 'Jane Smith',
-    serviceName: '30 min service',
-    dateTime: 'October 15, 2025 at 2:00 pm',
-    timestamp: 'Yesterday, 4:02pm',
-    action: true
-  },
-  {
-    id: 3,
-    type: 'rescheduled',
-    customerName: 'Mike Johnson',
-    serviceName: '1 hour service',
-    dateTime: 'October 29, 2025 at 2:00 pm',
-    timestamp: 'Wed, October 8, 2025, 10:19am',
-    action: false
-  },
-  {
-    id: 4,
-    type: 'cancelled',
-    customerName: 'Sarah Williams',
-    serviceName: '30 min service',
-    dateTime: 'October 29, 2025 at 2:00 pm',
-    timestamp: 'Mon October 2, 2025, 11:34am',
-    action: false
-  },
-  {
-    id: 5,
-    type: 'scheduled',
-    customerName: 'Robert Brown',
-    serviceName: '1 hour service',
-    dateTime: 'October 18, 2025 at 9:00 am',
-    timestamp: 'Thurs, Oct 9, 2025, 2:53pm',
-    action: true
+// Helper function to format date and time
+const formatDateTime = (timestamp) => {
+  const date = new Date(timestamp);
+  return date.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  }).replace(',', ' at');
+};
+
+// Helper function to format relative timestamp
+const formatTimestamp = (createdAt) => {
+  const now = new Date();
+  const created = new Date(createdAt);
+  const diffMs = now - created;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  const timeStr = created.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  }).toLowerCase();
+
+  if (diffMins < 60) {
+    return `Today, ${timeStr}`;
+  } else if (diffHours < 24) {
+    return `Today, ${timeStr}`;
+  } else if (diffDays === 1) {
+    return `Yesterday, ${timeStr}`;
+  } else if (diffDays < 7) {
+    const dayName = created.toLocaleDateString('en-US', { weekday: 'long' });
+    return `${dayName}, ${timeStr}`;
+  } else {
+    const dateStr = created.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+    return `${dateStr}, ${timeStr}`;
   }
-];
+};
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [notifications, setNotifications] = useState([]);
+
+  // Fetch notifications on component mount
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/notifications`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Format notifications for display
+        const formattedNotifications = data.map(notif => ({
+          id: notif._id,
+          type: notif.type, // 'scheduled', 'rescheduled', 'cancelled'
+          customerName: notif.customerName,
+          serviceName: notif.serviceName,
+          dateTime: formatDateTime(notif.appointmentDate),
+          timestamp: formatTimestamp(notif.createdAt),
+          action: notif.type === 'scheduled'
+        }));
+        setNotifications(formattedNotifications);
+      } else {
+        console.error('Failed to fetch notifications');
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
 
   const handleLogout = async (e) => {
     e.preventDefault();
@@ -119,8 +152,25 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     setShowNotifications(true);
   };
 
-  const handleNotificationDelete = (id) => {
-    setNotifications(notifications.filter(notif => notif.id !== id));
+  const handleNotificationDelete = async (id) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/notifications/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        // Remove from local state
+        setNotifications(notifications.filter(notif => notif.id !== id));
+      } else {
+        console.error('Failed to delete notification');
+        toast.error('Failed to delete notification');
+      }
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      toast.error('An error occurred while deleting notification');
+    }
   };
 
   return (

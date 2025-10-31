@@ -40,14 +40,17 @@ const navItems = [
 // Helper function to format date and time
 const formatDateTime = (timestamp) => {
   const date = new Date(timestamp);
-  return date.toLocaleDateString('en-US', {
+  const dateStr = date.toLocaleDateString('en-US', {
     month: 'long',
     day: 'numeric',
-    year: 'numeric',
+    year: 'numeric'
+  }); // "November 20, 2025"
+  const timeStr = date.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true
-  }).replace(',', ' at');
+  }); // "12:30 PM"
+  return `${dateStr} at ${timeStr}`; // "November 20, 2025 at 12:30 PM"
 };
 
 // Helper function to format relative timestamp
@@ -114,7 +117,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           serviceName: notif.serviceName,
           dateTime: formatDateTime(notif.appointmentDate),
           timestamp: formatTimestamp(notif.createdAt),
-          action: notif.type === 'scheduled'
+          action: notif.type === 'scheduled' || notif.type === 'rescheduled'
         }));
         setNotifications(formattedNotifications);
       } else {

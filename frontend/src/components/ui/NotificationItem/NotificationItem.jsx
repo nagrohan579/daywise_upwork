@@ -54,7 +54,7 @@ const NotificationItem = ({ notification, onDelete }) => {
         </p>
         <div className="notification-footer">
           <span className="notification-time">{notification.timestamp}</span>
-        {notification.type === 'scheduled' && notification.action && (
+        {(notification.type === 'scheduled' || notification.type === 'rescheduled') && notification.action && (
           <button className="notification-action-button">
             Show in Calendar
             <NotifArrowIcon />

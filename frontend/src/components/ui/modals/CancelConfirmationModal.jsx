@@ -72,7 +72,7 @@ const CancelConfirmationModal = ({ show, setShow, bookingDate, bookingTime, book
           <div className="cancel-modal-text">
             <h3>Cancel Booking</h3>
             <p className="cancel-modal-subtitle">
-              Are you sure you want to cancel your booking on <strong>[{formatBookingDateTime()}]</strong>?
+              Are you sure you want to cancel your booking on <strong>{formatBookingDateTime()}</strong>?
             </p>
             <p className="cancel-modal-info">
               This action can't be undone.
@@ -84,13 +84,13 @@ const CancelConfirmationModal = ({ show, setShow, bookingDate, bookingTime, book
               className="cancel-modal-delete-btn"
               onClick={handleDelete}
             >
-              Delete
+              Yes, Cancel
             </button>
             <button 
               className="cancel-modal-cancel-btn"
               onClick={() => setShow(false)}
             >
-              Cancel
+              Back
             </button>
           </div>
         </div>

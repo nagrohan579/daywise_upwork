@@ -12,7 +12,7 @@ const NotificationsModal = ({ show, onClose, notifications, onDelete }) => {
         <div className="notifications-modal-header">
           <div>
             <h2>Notifications</h2>
-            <p>Customize your regular availability for specific dates.</p>
+            <p>View your latest booking updates.</p>
           </div>
           <button className="modal-close-button" onClick={onClose}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">

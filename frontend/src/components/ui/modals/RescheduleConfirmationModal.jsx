@@ -38,7 +38,7 @@ const RescheduleConfirmationModal = ({ show, setShow, bookingDate, bookingTime, 
             <h3>Reschedule Booking?</h3>
             <p className="reschedule-modal-subtitle">Need to change your appointment time?</p>
             <p className="reschedule-modal-info">
-              Your current booking on <strong>[{formatBookingDateTime()}]</strong> will be updated automatically once you confirm.
+              Your current booking on <strong>{formatBookingDateTime()}</strong> will be updated automatically once you confirm.
             </p>
           </div>
           

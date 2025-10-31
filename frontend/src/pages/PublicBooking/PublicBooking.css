@@ -211,6 +211,8 @@
   flex: 0.5;
   padding: 30px;
   border-right: 1px solid #E2E8F0;
+  overflow-y: auto;
+  max-height: 95vh;
 }
 .booking-steps-container .step-two .left .back-arrow {
   margin-bottom: 22px;
@@ -930,6 +932,8 @@
   flex: 0.5;
   padding: 30px;
   border-right: 1px solid #64748b33;
+  overflow-y: auto;
+  max-height: 95vh;
 }
 
 .booking-steps-container .step-two .left .back-arrow {

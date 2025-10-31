@@ -268,7 +268,12 @@ const Branding = () => {
         throw new Error(error.message || 'Failed to save branding settings');
       }
 
-      toast.success('Branding settings saved successfully!');
+      // Confirm successful save
+      const savedData = await response.json();
+      console.log('Branding settings saved successfully:', savedData);
+      toast.success('All branding settings have been saved successfully!', {
+        duration: 3000,
+      });
     } catch (error) {
       console.error('Error saving branding settings:', error);
       toast.error(error.message || 'Failed to save branding settings');
@@ -497,7 +502,7 @@ const Branding = () => {
               <div className="toggle-con">
                 <span
                   className="toggle-label "
-                  style={{ color: isShownProfilePic ? "#64748B33" : "#64748B" }}
+                  style={{ color: toggleDaywiseBranding ? "#64748B33" : "#64748B" }}
                 >
                   Hide
                 </span>
@@ -508,7 +513,7 @@ const Branding = () => {
                 />
                 <span
                   className="toggle-label "
-                  style={{ color: isShownProfilePic ? "#64748B" : "#64748B33" }}
+                  style={{ color: toggleDaywiseBranding ? "#64748B" : "#64748B33" }}
                 >
                   Show
                 </span>

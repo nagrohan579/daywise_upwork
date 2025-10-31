@@ -298,7 +298,7 @@ const AdminDashboard = () => {
                   <tr key={user.id}>
                     <td>
                       <div className="user-cell">
-                        <div className="user-name">{user.businessName || 'No Name'}</div>
+                        <div className="user-name">{user.name || 'No Name'}</div>
                         <div className="user-email">{user.email}</div>
                       </div>
                     </td>

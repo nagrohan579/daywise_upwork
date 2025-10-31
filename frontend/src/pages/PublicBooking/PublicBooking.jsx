@@ -464,27 +464,43 @@ const PublicBooking = () => {
               )}
 
               <div className="profile-con">
-                {((branding && branding.profilePictureUrl) || userData.picture) && (
-                  <div className="profile-picture-wrapper">
+                {branding?.logoUrl && (
+                  <div className="logo-wrapper">
                     <img
-                      src={(branding && branding.profilePictureUrl) ? branding.profilePictureUrl : userData.picture}
-                      alt={`${userData.name || "User"} profile picture`}
-                      className="profile-picture"
+                      src={branding.logoUrl}
+                      alt={`${userData.businessName || userData.name} logo`}
+                      className={`logo-image ${branding.logoUrl.toLowerCase().endsWith('.gif') ? 'gif-logo' : ''}`}
                       referrerPolicy="no-referrer"
                       onError={(e) => {
-                        console.error('Failed to load profile picture:', (branding && branding.profilePictureUrl) ? branding.profilePictureUrl : userData.picture);
+                        console.error('Failed to load logo:', branding.logoUrl);
                         e.currentTarget.style.display = 'none';
                       }}
                     />
                   </div>
                 )}
-                <div className="profile-wrapper">
-                  {userData.logoUrl && (
+                {userData.picture && (
+                  <div className="profile-picture-wrapper">
                     <img
-                      src={userData.logoUrl}
-                      alt={`${userData.businessName || userData.name} logo`}
+                      src={
+                        (branding?.showProfilePicture && branding?.profilePictureUrl)
+                          ? branding.profilePictureUrl
+                          : userData.picture
+                      }
+                      alt={`${userData.name || "User"} profile picture`}
+                      className="profile-picture"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        const fallbackUrl = userData.picture;
+                        console.error('Failed to load profile picture, trying fallback:', fallbackUrl);
+                        e.currentTarget.src = fallbackUrl;
+                        e.currentTarget.onerror = () => {
+                          e.currentTarget.style.display = 'none';
+                        };
+                      }}
                     />
-                  )}
+                  </div>
+                )}
+                <div className="profile-wrapper">
                   <h5>{userData.name || "User"}</h5>
                 </div>
 

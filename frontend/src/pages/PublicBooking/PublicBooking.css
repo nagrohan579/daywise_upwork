@@ -105,6 +105,38 @@
   transform: translateY(-1px);
 }
 
+/* Logo wrapper - rectangular section above profile picture */
+.steps-one .left .profile-con .logo-wrapper {
+  width: 100%;
+  min-height: 80px;
+  max-height: 120px;
+  margin-bottom: 21px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.steps-one .left .profile-con .logo-wrapper img.logo-image {
+  max-width: calc(100% - 40px);
+  max-height: calc(100% - 40px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 0;
+  margin: 0;
+  display: block;
+}
+
+/* GIF logos with transparent background should show white background (card white shade) */
+.steps-one .left .profile-con .logo-wrapper img.gif-logo {
+  background-color: #FFFFFF;
+  /* Ensure white background shows through transparent areas of GIF */
+  mix-blend-mode: normal;
+}
+
 .steps-one .left .profile-con .profile-picture-wrapper {
   margin-bottom: 6px;
 }
@@ -118,14 +150,6 @@
 
 .steps-one .left .profile-con .profile-wrapper {
   margin-bottom: 21px;
-}
-
-.steps-one .left .profile-con .profile-wrapper img {
-  width: 49px;
-  height: 49px;
-  object-fit: cover;
-  margin-bottom: 6px;
-  border-radius: 50%;
 }
 
 .steps-one .left .profile-con .profile-wrapper h5 {

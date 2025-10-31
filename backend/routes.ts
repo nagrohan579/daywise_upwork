@@ -4586,7 +4586,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         return {
           id: user._id,
-          businessName: user.businessName || user.name,
+          name: user.name || 'No Name', // User's actual name
+          businessName: user.businessName || '', // Keep business name for reference if needed
           email: user.email,
           plan: userPlan ? userPlan.name : "Free",
           bookingCount: userBookings.length,

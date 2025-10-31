@@ -14,6 +14,14 @@ const MemStore = MemoryStore(session);
 
 const app = express();
 
+// Exit process on unhandled rejections so PM2 can restart
+// This ensures Convex failures crash the backend for PM2 auto-restart
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('Exiting process for PM2 restart...');
+  process.exit(1);
+});
+
 // CORS configuration - allow frontend to access backend API
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
@@ -133,48 +141,46 @@ app.get("/robots.txt", (_req, res) => {
     const INTERVAL_MS = 10 * 60 * 1000; // run every 10 min
 
     setInterval(async () => {
-      try {
-        const rows = await storage.getBookingsDueForReminders(WINDOW_MINUTES);
-        for (const row of rows as any[]) {
-          const b = row.bookings;
-          const u = row.users;
+      // No try-catch - let errors crash the process so PM2 can restart it
+      // PM2 will keep retrying until Convex comes back online
+      const rows = await storage.getBookingsDueForReminders(WINDOW_MINUTES);
+      for (const row of rows as any[]) {
+        const b = row.bookings;
+        const u = row.users;
 
-          if (!u) {
-            console.error(`Reminder job: user not found for booking ${b.id}`);
-            continue;
-          }
-
-          // Build complete email data
-          const emailData = {
-            customerEmail: b.customerEmail,
-            customerName: b.customerName,
-            appointmentType: b.appointmentType || "Appointment",
-            appointmentDate: b.appointmentDate.toISOString(),
-            appointmentTime: b.appointmentDate.toLocaleString(),
-            appointmentDuration: b.appointmentDuration || 60,
-            businessName: u.businessName || "Business",
-            businessEmail: u.email,
-            businessColors: {
-              primary: u.primaryColor || "#ef4444",
-              secondary: u.secondaryColor || "#f97316",
-              accent: u.accentColor || "#3b82f6"
-            }
-          };
-
-          // If customer reminder not sent → send & mark
-          if (!b.customerReminderSentAt) {
-            await sendCustomerReminder(emailData);
-          }
-
-          // If business reminder not sent → send & mark
-          if (!b.businessReminderSentAt) {
-            await sendBusinessReminder(emailData);
-          }
-
-          await storage.markBookingRemindersSent(b.id, "both");
+        if (!u) {
+          console.error(`Reminder job: user not found for booking ${b.id}`);
+          continue;
         }
-      } catch (e) {
-        console.error("Reminder job error:", e);
+
+        // Build complete email data
+        const emailData = {
+          customerEmail: b.customerEmail,
+          customerName: b.customerName,
+          appointmentType: b.appointmentType || "Appointment",
+          appointmentDate: b.appointmentDate.toISOString(),
+          appointmentTime: b.appointmentDate.toLocaleString(),
+          appointmentDuration: b.appointmentDuration || 60,
+          businessName: u.businessName || "Business",
+          businessEmail: u.email,
+          businessColors: {
+            primary: u.primaryColor || "#ef4444",
+            secondary: u.secondaryColor || "#f97316",
+            accent: u.accentColor || "#3b82f6"
+          }
+        };
+
+        // If customer reminder not sent → send & mark
+        if (!b.customerReminderSentAt) {
+          await sendCustomerReminder(emailData);
+        }
+
+        // If business reminder not sent → send & mark
+        if (!b.businessReminderSentAt) {
+          await sendBusinessReminder(emailData);
+        }
+
+        await storage.markBookingRemindersSent(b.id, "both");
       }
     }, INTERVAL_MS);
   }

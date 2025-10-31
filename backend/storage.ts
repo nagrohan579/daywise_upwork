@@ -2,6 +2,7 @@
 import { convex } from "./convex-client";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
+import { retryWithBackoff } from "./lib/retry-wrapper";
 
 export const storage = {
   // User operations
@@ -420,14 +421,30 @@ export const storage = {
 
   // Reminder operations
   async getBookingsDueForReminders(windowMinutes: number) {
-    return await convex.query(api.bookings.getDueForReminders, { windowMinutes });
+    return await retryWithBackoff(
+      async () => await convex.query(api.bookings.getDueForReminders, { windowMinutes }),
+      {
+        maxRetries: 5,
+        initialDelay: 1000,
+        maxDelay: 30000,
+        operation: 'Get bookings due for reminders'
+      }
+    );
   },
 
   async markBookingRemindersSent(id: string, which: "customer" | "business" | "both") {
-    await convex.mutation(api.bookings.markRemindersSent, {
-      id: id as Id<"bookings">,
-      which,
-    });
+    await retryWithBackoff(
+      async () => await convex.mutation(api.bookings.markRemindersSent, {
+        id: id as Id<"bookings">,
+        which,
+      }),
+      {
+        maxRetries: 5,
+        initialDelay: 1000,
+        maxDelay: 30000,
+        operation: 'Mark booking reminders sent'
+      }
+    );
   },
 
   // Notification operations

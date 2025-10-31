@@ -13,29 +13,41 @@ const AdminLogin = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Hardcoded credentials - bypass Convex
-    const ADMIN_EMAIL = "admin@daywise.app";
-    const ADMIN_PASSWORD = "admin123";
-
     try {
-      // Check credentials
-      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-        toast.success('Admin login successful!');
-        
-        // Store admin session in localStorage
-        localStorage.setItem('adminLoggedIn', 'true');
-        
-        // Redirect to admin dashboard
-        setTimeout(() => {
-          navigate('/admin/dashboard');
-        }, 500);
-      } else {
-        toast.error('Invalid email or password');
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      console.log('Admin login attempt to:', `${apiUrl}/api/admin/login`);
+
+      const response = await fetch(`${apiUrl}/api/admin/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Important for session cookies
+        body: JSON.stringify({ email, password }),
+      });
+
+      console.log('Login response status:', response.status);
+      const data = await response.json();
+      console.log('Login response data:', data);
+
+      if (!response.ok) {
+        console.error('Login failed:', data.message);
+        toast.error(data.message || 'Invalid email or password');
+        setIsSubmitting(false);
+        return;
       }
+
+      console.log('Login successful, setting localStorage and navigating...');
+      toast.success('Admin login successful!');
+
+      // Store admin session in localStorage as a flag
+      localStorage.setItem('adminLoggedIn', 'true');
+
+      // Redirect to admin dashboard immediately
+      navigate('/admin/dashboard');
     } catch (error) {
       console.error('Admin login error:', error);
-      toast.error('An error occurred during login');
-    } finally {
+      toast.error('Failed to connect to server. Please try again.');
       setIsSubmitting(false);
     }
   };

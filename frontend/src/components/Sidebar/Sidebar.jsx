@@ -93,6 +93,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Fetch notifications on component mount
   useEffect(() => {
@@ -109,6 +110,11 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
       if (response.ok) {
         const data = await response.json();
+
+        // Calculate unread count
+        const unread = data.filter(n => !n.isRead).length;
+        setUnreadCount(unread);
+
         // Format notifications for display
         const formattedNotifications = data.map(notif => ({
           id: notif._id,
@@ -117,7 +123,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           serviceName: notif.serviceName,
           dateTime: formatDateTime(notif.appointmentDate),
           timestamp: formatTimestamp(notif.createdAt),
-          action: notif.type === 'scheduled' || notif.type === 'rescheduled'
+          action: notif.type === 'scheduled' || notif.type === 'rescheduled',
+          isRead: notif.isRead
         }));
         setNotifications(formattedNotifications);
       } else {
@@ -150,8 +157,31 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     }
   };
 
-  const handleBellClick = (e) => {
+  const handleBellClick = async (e) => {
     e.preventDefault();
+
+    // Mark all notifications as read when opening modal
+    if (unreadCount > 0) {
+      try {
+        const apiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const response = await fetch(`${apiUrl}/api/notifications/mark-all-read`, {
+          method: 'POST',
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          // Update local state - mark all notifications as read
+          const updatedNotifications = notifications.map(n => ({ ...n, isRead: true }));
+          setNotifications(updatedNotifications);
+          setUnreadCount(0);
+        } else {
+          console.error('Failed to mark notifications as read');
+        }
+      } catch (error) {
+        console.error('Error marking notifications as read:', error);
+      }
+    }
+
     setShowNotifications(true);
   };
 
@@ -217,8 +247,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             </button>
             <div className="notification-bell" onClick={handleBellClick}>
               <BellIcon />
-              {notifications.length > 0 && (
-                <span className="notification-badge">{notifications.length}</span>
+              {unreadCount > 0 && (
+                <span className="notification-badge">{unreadCount}</span>
               )}
             </div>
           </div>

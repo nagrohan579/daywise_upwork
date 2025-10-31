@@ -126,6 +126,9 @@ const PublicBooking = () => {
         if (brandingResponse.ok) {
           const brandingData = await brandingResponse.json();
           console.log('PublicBooking - Branding data:', brandingData);
+          console.log('PublicBooking - usePlatformBranding value:', brandingData?.usePlatformBranding);
+          console.log('PublicBooking - usePlatformBranding type:', typeof brandingData?.usePlatformBranding);
+          console.log('PublicBooking - Will show badge?', brandingData?.usePlatformBranding !== false);
           setBranding(brandingData);
         } else {
           console.warn('PublicBooking - Branding fetch failed with status', brandingResponse.status);
@@ -454,9 +457,11 @@ const PublicBooking = () => {
         {step === 1 && (
           <div className="steps-one">
             <div className="left">
-              <div className="daywise-branding">
-                <button className="powered-by-button">Powered by Daywise</button>
-              </div>
+              {branding?.usePlatformBranding !== false && (
+                <div className="daywise-branding">
+                  <button className="powered-by-button">Powered by Daywise</button>
+                </div>
+              )}
 
               <div className="profile-con">
                 {((branding && branding.profilePictureUrl) || userData.picture) && (
@@ -540,9 +545,11 @@ const PublicBooking = () => {
                   />
                 </div>
                 <div className="heading-con">
-                  <div className="daywise-branding">
-                    <button className="powered-by-button">Powered by Daywise</button>
-                  </div>
+                  {branding?.usePlatformBranding !== false && (
+                    <div className="daywise-branding">
+                      <button className="powered-by-button">Powered by Daywise</button>
+                    </div>
+                  )}
                   <h1 className="appoint-name">{selectedAppointmentType?.name || "30 Minute Appointment"}</h1>
                   <p>{formatDate(selectedDate)}</p>
                   <div style={{ marginTop: '10px' }}>
@@ -617,9 +624,11 @@ const PublicBooking = () => {
                   style={{ cursor: 'pointer' }}
                 />
               </div>
-              <div className="daywise-branding">
-                <button className="powered-by-button">Powered by Daywise</button>
-              </div>
+              {branding?.usePlatformBranding !== false && (
+                <div className="daywise-branding">
+                  <button className="powered-by-button">Powered by Daywise</button>
+                </div>
+              )}
               <div className="appointment-wrapper">
                 <h2>{selectedAppointmentType?.name || "Appointment Name Here"}</h2>
                 {selectedAppointmentType?.description && (
@@ -698,9 +707,11 @@ const PublicBooking = () => {
                 <p>A confirmation has been sent to your email.</p>
               </div>
               <div className="appointment-container">
-                <div className="daywise-branding">
-                  <button className="powered-by-button">Powered by Daywise</button>
-                </div>
+                {branding?.usePlatformBranding !== false && (
+                  <div className="daywise-branding">
+                    <button className="powered-by-button">Powered by Daywise</button>
+                  </div>
+                )}
                 <div className="booking-details">
                   <h1>{selectedAppointmentType?.name || "Appointment Name Here"}</h1>
                   <div className="wrap">

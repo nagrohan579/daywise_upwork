@@ -8,7 +8,6 @@ import helmet from "helmet";
 import cors from "cors";
 import { registerRoutes } from "./routes";
 // import { setupVite, serveStatic, log } from "./vite"; // Commented out - frontend served separately
-import { adminAuth } from "./security/adminAuth";
 import { convex } from "./convex-client";
 
 const MemStore = MemoryStore(session);
@@ -80,9 +79,8 @@ app.use(helmet({
   },
 }));
 
-// Gate admin UI and admin APIs behind HTTP Basic Auth (env-controlled)
-app.use("/admin", ...adminAuth);
-app.use("/api/admin", ...adminAuth);
+// Admin routes are protected by session-based auth in requireAdmin middleware
+// No HTTP Basic Auth - uses Convex database authentication like regular login
 
 app.use((req, res, next) => {
   const start = Date.now();

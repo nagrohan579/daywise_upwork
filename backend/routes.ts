@@ -833,6 +833,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "No account found with this email. Please sign up first." });
       }
 
+      // Block admin users from using regular login
+      if (user.isAdmin) {
+        return res.status(403).json({ message: "Admin accounts cannot use regular login. Please use the admin login portal." });
+      }
 
       // Handle regular users with password verification
       if (!user.password) {
@@ -879,20 +883,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin login endpoint - simplified, no email verification required
+  // Admin login endpoint - same as regular login, but for admin users only
   app.post("/api/admin/login", async (req, res) => {
     try {
-      const { email, password } = req.body;
+      const validatedData = loginSchema.parse(req.body);
+      const { email, password } = validatedData;
 
-      if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
-      }
-
-      // Check if user exists
+      // Check if user exists in storage (uses Convex)
       const user = await storage.getUserByEmail(email);
-
+      
       if (!user) {
-        return res.status(401).json({ message: "Invalid credentials" });
+        return res.status(401).json({ message: "Invalid email or password" });
       }
 
       // Check if user is actually an admin
@@ -905,70 +906,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid admin account configuration" });
       }
 
-      // Verify password
+      // Verify password using bcrypt (same as regular login)
       const isPasswordValid = await bcrypt.compare(password, user.password);
-
+      
       if (!isPasswordValid) {
-        return res.status(401).json({ message: "Invalid credentials" });
+        return res.status(401).json({ message: "Invalid email or password" });
       }
 
-      // Set session data
+      // Set session data (same as regular login)
       (req.session as any).userId = user._id;
-      (req.session as any).isAdmin = true;
+      (req.session as any).isAdmin = true; // Set isAdmin flag for requireAdmin middleware
       (req.session as any).user = {
         id: user._id,
         email: user.email,
         name: user.name,
-        isAdmin: true
+        isAdmin: user.isAdmin
       };
-
-      res.json({
-        message: "Admin login successful",
-        user: {
-          id: user._id,
-          email: user.email,
-          name: user.name,
+      
+      res.json({ 
+        message: "Admin login successful", 
+        user: { 
+          id: user._id, 
+          email: user.email, 
+          name: user.name, 
           isAdmin: true
-        }
+        } 
       });
-
+      
     } catch (error) {
       console.error('Admin login error:', error);
       res.status(500).json({ message: "Admin login failed", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
-  // Admin stats endpoint
-  app.get("/api/admin/stats", async (req, res) => {
-    try {
-      // Verify admin session
-      const userId = (req.session as any)?.userId;
-      const isAdmin = (req.session as any)?.isAdmin;
-
-      if (!userId || !isAdmin) {
-        return res.status(403).json({ message: "Access denied. Admin privileges required." });
-      }
-
-      // Get stats
-      const users = await storage.getAllUsers();
-      const bookings = await storage.getAllBookings();
-
-      // Count active subscriptions (users with active status)
-      const activeSubscriptions = users.filter((u: any) =>
-        u.subscription && u.subscription.status === 'active'
-      ).length;
-
-      res.json({
-        totalUsers: users.length,
-        totalBookings: bookings.length,
-        activeSubscriptions: activeSubscriptions || 0
-      });
-
-    } catch (error) {
-      console.error('Admin stats error:', error);
-      res.status(500).json({ message: "Failed to load admin stats", error: error instanceof Error ? error.message : "Unknown error" });
-    }
-  });
+  // Admin stats endpoint - REMOVED: Using the comprehensive one below with requireAdmin middleware
 
   // Email signup endpoint with verification
   app.post("/api/auth/signup", async (req, res) => {
@@ -985,8 +956,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if user already exists
       let existingUser = await storage.getUserByEmail(email);
-      
+
       if (existingUser) {
+        // Check if it's an admin account
+        if (existingUser.isAdmin) {
+          return res.status(403).json({ message: "This email is reserved for administrative use" });
+        }
         return res.status(409).json({ message: "User already exists with this email" });
       }
 
@@ -2418,9 +2393,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Don't fail the cancellation if notification creation fails
       }
 
+      // Return booking data before deletion for confirmation page
       res.json({
         message: "Booking cancelled successfully",
-        userSlug: user.slug // Return slug for redirect
+        booking: {
+          customerName: existingBooking.customerName,
+          customerEmail: existingBooking.customerEmail,
+          appointmentDate: existingBooking.appointmentDate,
+          customerTimezone: existingBooking.customerTimezone,
+          bookingToken: existingBooking.bookingToken,
+          appointmentTypeId: existingBooking.appointmentTypeId,
+          duration: existingBooking.duration,
+        },
+        user: {
+          _id: user._id,
+          id: user._id,
+          slug: user.slug,
+          businessName: user.businessName || user.name,
+        },
+        appointmentType: appointmentType ? {
+          _id: appointmentType._id,
+          name: appointmentType.name,
+          duration: appointmentType.duration,
+          price: appointmentType.price,
+        } : null,
+        branding: branding ? {
+          primary: branding.primary,
+          secondary: branding.secondary,
+          accent: branding.accent,
+          logoUrl: branding.logoUrl,
+          usePlatformBranding: branding.usePlatformBranding,
+        } : null,
       });
     } catch (error) {
       console.error('Error cancelling booking:', error);
@@ -3773,22 +3776,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { primary, secondary, accent, usePlatformBranding, displayName, showDisplayName, showProfilePicture } = req.body || {};
       
       // Plan gate using feature system (disallow custom colors on Free)
-      const { getUserFeatures } = await import("./lib/plan-features");
-      const features = await getUserFeatures(userId);
-      if (!features.customBranding) {
-        return res.status(403).json({ message: "Branding customization requires Pro Plan." });
-      }
+      // TODO: Re-enable plan gate later
+      // const { getUserFeatures } = await import("./lib/plan-features");
+      // const features = await getUserFeatures(userId);
+      // if (!features.customBranding) {
+      //   return res.status(403).json({ message: "Branding customization requires Pro Plan." });
+      // }
       
       // Validate hex colors
       const HEX_REGEX = /^#[0-9A-Fa-f]{6}$/;
       for (const color of [primary, secondary, accent]) {
-        if (!HEX_REGEX.test(color)) {
+        if (color && !HEX_REGEX.test(color)) {
           return res.status(400).json({ message: "Colors must be hex format like #FF6B4A" });
         }
       }
 
       // Determine platform branding based on features
-      const nextUsePlatformBranding = features.customBranding ? !!usePlatformBranding : true;
+      // TODO: Re-enable plan-based restriction later
+      // const nextUsePlatformBranding = features.customBranding ? !!usePlatformBranding : true;
+      const nextUsePlatformBranding = !!usePlatformBranding;
 
       let branding = await storage.getBranding(userId);
       if (!branding) {
@@ -4405,6 +4411,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allUserSubscriptions = await storage.getAllUserSubscriptions();
       const allPlans = await storage.getAllSubscriptionPlans();
       
+      console.log('[Admin Stats] Fetched data:', {
+        users: allUsers.length,
+        bookings: allBookings.length,
+        subscriptions: allUserSubscriptions.length,
+        plans: allPlans.length
+      });
+      
       const now = new Date();
       const currentMonth = now.getMonth();
       const currentYear = now.getFullYear();
@@ -4557,6 +4570,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allBookings = await storage.getAllBookings();
       const allUserSubscriptions = await storage.getAllUserSubscriptions();
       const allPlans = await storage.getAllSubscriptionPlans();
+      
+      console.log('[Admin Users] Fetched data:', {
+        users: allUsers.length,
+        bookings: allBookings.length,
+        subscriptions: allUserSubscriptions.length,
+        plans: allPlans.length
+      });
       
       // Format user data for admin interface
       const usersWithDetails = allUsers.map(user => {

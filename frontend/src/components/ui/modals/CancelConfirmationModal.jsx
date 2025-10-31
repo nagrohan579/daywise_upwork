@@ -21,10 +21,25 @@ const CancelConfirmationModal = ({ show, setShow, bookingDate, bookingTime, book
       const data = await response.json();
       setShow(false);
 
-      // Redirect to user's booking page using slug from response or prop
-      const slug = data.userSlug || userSlug;
+      // Store booking data in sessionStorage as fallback for page refresh
+      sessionStorage.setItem('cancelledBookingData', JSON.stringify({
+        booking: data.booking,
+        user: data.user,
+        appointmentType: data.appointmentType,
+        branding: data.branding,
+      }));
+
+      // Redirect to cancelled event page with booking data
+      const slug = data.user?.slug || userSlug;
       if (slug) {
-        window.location.href = `/${slug}`;
+        navigate(`/cancelled_event/${slug}`, {
+          state: {
+            booking: data.booking,
+            user: data.user,
+            appointmentType: data.appointmentType,
+            branding: data.branding,
+          }
+        });
       } else if (onDeleteSuccess) {
         onDeleteSuccess();
       } else {

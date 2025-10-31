@@ -7,6 +7,9 @@ import "./AdminDashboard.css";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const [stats, setStats] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Check if admin is logged in
@@ -14,7 +17,48 @@ const AdminDashboard = () => {
     if (!isAdminLoggedIn) {
       toast.error('Access denied. Please login.');
       navigate('/admin/login');
+      return;
     }
+
+    // Fetch admin stats and users
+    const fetchData = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        console.log('Fetching admin data from:', apiUrl);
+
+        const [statsResponse, usersResponse] = await Promise.all([
+          fetch(`${apiUrl}/api/admin/stats`, { credentials: 'include' }),
+          fetch(`${apiUrl}/api/admin/users`, { credentials: 'include' })
+        ]);
+
+        console.log('Stats response status:', statsResponse.status);
+        console.log('Users response status:', usersResponse.status);
+
+        if (!statsResponse.ok || !usersResponse.ok) {
+          const statsError = await statsResponse.text();
+          const usersError = await usersResponse.text();
+          console.error('Stats error:', statsError);
+          console.error('Users error:', usersError);
+          throw new Error('Failed to fetch admin data');
+        }
+
+        const statsData = await statsResponse.json();
+        const usersData = await usersResponse.json();
+
+        console.log('Stats data:', statsData);
+        console.log('Users data count:', usersData.length);
+
+        setStats(statsData);
+        setUsers(usersData);
+      } catch (error) {
+        console.error('Error fetching admin data:', error);
+        toast.error('Failed to load dashboard data. Check console for details.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [navigate]);
 
   const handleLogout = () => {
@@ -23,64 +67,24 @@ const AdminDashboard = () => {
     navigate('/admin/login');
   };
 
-  // Dummy data for User Growth Trend
-  const userGrowthData = [
-    { month: 'May 2025', users: 0 },
-    { month: 'Jun 2025', users: 0 },
-    { month: 'Jul 2025', users: 0 },
-    { month: 'Aug 2025', users: 12 },
-    { month: 'Sep 2025', users: 0 },
-    { month: 'Oct 2025', users: 0 },
-  ];
-
-  // Dummy data for Booking Trends
-  const bookingTrendsData = [
-    { month: 'May 2025', bookings: 0 },
-    { month: 'Jun 2025', bookings: 0 },
-    { month: 'Jul 2025', bookings: 0 },
-    { month: 'Aug 2025', bookings: 0 },
-    { month: 'Sep 2025', bookings: 70 },
-    { month: 'Oct 2025', bookings: 0 },
-  ];
-
-  // Dummy data for Subscription Distribution
-  const subscriptionData = [
-    { name: 'Free Plan', value: 20, color: '#E0E7FF' },
-    { name: 'Pro Plan', value: 5, color: '#4F46E5' },
-  ];
-
-  // Dummy users data
-  const users = [
-    {
-      id: 1,
-      name: 'User Account Name',
-      email: 'username@gmail.com',
-      plan: 'Free',
-      bookings: 0,
-      joined: '9/25/2025',
-      status: 'Active'
-    },
-    {
-      id: 2,
-      name: 'User Account Name',
-      email: 'username@gmail.com',
-      plan: 'Free',
-      bookings: 0,
-      joined: '9/25/2025',
-      status: 'Active'
-    },
-    {
-      id: 3,
-      name: 'User Account Name',
-      email: 'username@gmail.com',
-      plan: 'Pro',
-      bookings: 0,
-      joined: '9/25/2025',
-      status: 'Active'
-    },
-  ];
-
   const [showUserMenu, setShowUserMenu] = useState(null);
+
+  // Prepare subscription data for pie chart from stats
+  const subscriptionData = stats?.planDistribution?.map((plan, index) => ({
+    name: plan.planName,
+    value: plan.subscriptions,
+    color: index === 0 ? '#E0E7FF' : '#4F46E5'
+  })) || [];
+
+  if (loading) {
+    return (
+      <div className="admin-dashboard">
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <p>Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-dashboard">
@@ -102,8 +106,8 @@ const AdminDashboard = () => {
             <div className="stat-card-content">
               <div>
                 <div className="stat-label">Total Users</div>
-                <div className="stat-value">12</div>
-                <div className="stat-change positive">+0 this month</div>
+                <div className="stat-value">{stats?.totalUsers || 0}</div>
+                <div className="stat-change positive">+{stats?.newUsersThisMonth || 0} this month</div>
               </div>
               <div className="stat-icon blue">
                 <FaUsers />
@@ -115,8 +119,8 @@ const AdminDashboard = () => {
             <div className="stat-card-content">
               <div>
                 <div className="stat-label">Active Users</div>
-                <div className="stat-value">6</div>
-                <div className="stat-change positive">+20% growth</div>
+                <div className="stat-value">{stats?.activeUsers || 0}</div>
+                <div className="stat-change positive">+{stats?.userGrowthRate || 0}% growth</div>
               </div>
               <div className="stat-icon blue">
                 <FaUserCheck />
@@ -128,8 +132,8 @@ const AdminDashboard = () => {
             <div className="stat-card-content">
               <div>
                 <div className="stat-label">Monthly Revenue</div>
-                <div className="stat-value">$0</div>
-                <div className="stat-change positive">+0% this month</div>
+                <div className="stat-value">${stats?.monthlyRevenue?.toFixed(2) || '0.00'}</div>
+                <div className="stat-change positive">+{stats?.revenueGrowthRate || 0}% this month</div>
               </div>
               <div className="stat-icon blue">
                 <FaDollarSign />
@@ -141,8 +145,8 @@ const AdminDashboard = () => {
             <div className="stat-card-content">
               <div>
                 <div className="stat-label">Churn Rate</div>
-                <div className="stat-value">1.5%</div>
-                <div className="stat-change">ARR= $0.00</div>
+                <div className="stat-value">{stats?.churnRate || 0}%</div>
+                <div className="stat-change">ARPU= ${stats?.arpu?.toFixed(2) || '0.00'}</div>
               </div>
               <div className="stat-icon blue">
                 <FaPercent />
@@ -160,22 +164,22 @@ const AdminDashboard = () => {
             </div>
             <div className="chart-container">
               <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={userGrowthData}>
+                <LineChart data={stats?.userTrends || []}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                  <XAxis 
-                    dataKey="month" 
+                  <XAxis
+                    dataKey="month"
                     tick={{ fontSize: 12, fill: '#6B7280' }}
                     axisLine={{ stroke: '#E5E7EB' }}
                   />
-                  <YAxis 
+                  <YAxis
                     tick={{ fontSize: 12, fill: '#6B7280' }}
                     axisLine={{ stroke: '#E5E7EB' }}
                   />
                   <Tooltip />
-                  <Line 
-                    type="monotone" 
-                    dataKey="users" 
-                    stroke="#EF4444" 
+                  <Line
+                    type="monotone"
+                    dataKey="users"
+                    stroke="#EF4444"
                     strokeWidth={2}
                     dot={{ fill: '#EF4444', r: 4 }}
                   />
@@ -191,20 +195,20 @@ const AdminDashboard = () => {
             </div>
             <div className="chart-container">
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={bookingTrendsData}>
+                <BarChart data={stats?.bookingTrends || []}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                  <XAxis 
-                    dataKey="month" 
+                  <XAxis
+                    dataKey="month"
                     tick={{ fontSize: 12, fill: '#6B7280' }}
                     axisLine={{ stroke: '#E5E7EB' }}
                   />
-                  <YAxis 
+                  <YAxis
                     tick={{ fontSize: 12, fill: '#6B7280' }}
                     axisLine={{ stroke: '#E5E7EB' }}
                   />
                   <Tooltip />
-                  <Bar 
-                    dataKey="bookings" 
+                  <Bar
+                    dataKey="bookings"
                     fill="#EF4444"
                     radius={[4, 4, 0, 0]}
                   />
@@ -238,26 +242,18 @@ const AdminDashboard = () => {
               </ResponsiveContainer>
             </div>
             <div className="plan-details">
-              <div className="plan-item">
-                <div className="plan-info">
-                  <span className="plan-dot" style={{ backgroundColor: '#E0E7FF' }}></span>
-                  <span className="plan-name">Free Plan</span>
+              {stats?.planDistribution?.map((plan, index) => (
+                <div className="plan-item" key={plan.planName}>
+                  <div className="plan-info">
+                    <span className="plan-dot" style={{ backgroundColor: index === 0 ? '#E0E7FF' : '#4F46E5' }}></span>
+                    <span className="plan-name">{plan.planName}</span>
+                  </div>
+                  <div className="plan-stats">
+                    <span className="plan-users">{plan.subscriptions} users</span>
+                    <span className="plan-revenue">${plan.revenue?.toFixed(2) || '0.00'}/mo</span>
+                  </div>
                 </div>
-                <div className="plan-stats">
-                  <span className="plan-users">20 users</span>
-                  <span className="plan-revenue">$0.00/mo</span>
-                </div>
-              </div>
-              <div className="plan-item">
-                <div className="plan-info">
-                  <span className="plan-dot" style={{ backgroundColor: '#4F46E5' }}></span>
-                  <span className="plan-name">Pro Plan</span>
-                </div>
-                <div className="plan-stats">
-                  <span className="plan-users">5 users</span>
-                  <span className="plan-revenue">$50.00/mo</span>
-                </div>
-              </div>
+              )) || null}
             </div>
           </div>
         </div>
@@ -302,25 +298,25 @@ const AdminDashboard = () => {
                   <tr key={user.id}>
                     <td>
                       <div className="user-cell">
-                        <div className="user-name">{user.name}</div>
+                        <div className="user-name">{user.businessName || 'No Name'}</div>
                         <div className="user-email">{user.email}</div>
                       </div>
                     </td>
                     <td>
-                      <span className={`plan-badge ${user.plan.toLowerCase()}`}>
-                        {user.plan}
+                      <span className={`plan-badge ${user.plan?.toLowerCase() || 'free'}`}>
+                        {user.plan || 'Free'}
                       </span>
                     </td>
-                    <td>{user.bookings}</td>
-                    <td>{user.joined}</td>
+                    <td>{user.bookingCount || 0}</td>
+                    <td>{user.joinDate || 'N/A'}</td>
                     <td>
-                      <span className={`status-badge ${user.status.toLowerCase()}`}>
-                        {user.status}
+                      <span className={`status-badge ${user.status?.toLowerCase() || 'active'}`}>
+                        {user.status || 'Active'}
                       </span>
                     </td>
                     <td>
                       <div className="action-menu-wrapper">
-                        <button 
+                        <button
                           className="action-menu-btn"
                           onClick={() => setShowUserMenu(showUserMenu === user.id ? null : user.id)}
                         >

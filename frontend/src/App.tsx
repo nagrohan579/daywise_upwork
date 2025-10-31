@@ -22,6 +22,7 @@ import PrivacyPolicyPage from "./pages/PrivacyPolicy";
 import FeedbackPage from "./pages/Feedback/Feedback";
 import PaymentsPage from "./pages/Payments/Payments";
 import EventPage from "./pages/Event";
+import CancelledEventPage from "./pages/CancelledEvent/CancelledEvent";
 import RescheduleBookingPage from "./pages/RescheduleBooking/RescheduleBooking";
 import AdminLogin from "./pages/Admin/AdminLogin";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
@@ -56,6 +57,7 @@ function App() {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/reschedule_event/:token" element={<RescheduleBookingPage />} />
         <Route path="/event/:token" element={<EventPage />} />
+        <Route path="/cancelled_event/:slug" element={<CancelledEventPage />} />
         {/* Public booking page - must be last to catch slug routes */}
         <Route path="/:slug" element={<PublicBookingPage />} />
       </Routes>

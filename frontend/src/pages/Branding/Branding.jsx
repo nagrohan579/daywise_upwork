@@ -226,9 +226,53 @@ const Branding = () => {
     document.getElementById("profile-upload-input").click();
   };
 
-  const handleSaveChanges = () => {
-    // Images are uploaded immediately when selected, so just show success message
-    toast.success('Branding settings saved successfully!');
+  const handleSaveChanges = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      
+      // Get current branding to preserve colors and other settings
+      const currentBrandingResponse = await fetch(`${apiUrl}/api/branding`, {
+        credentials: 'include',
+      });
+      
+      let primary = '#ef4444';
+      let secondary = '#f97316';
+      let accent = '#3b82f6';
+      
+      if (currentBrandingResponse.ok) {
+        const currentBranding = await currentBrandingResponse.json();
+        primary = currentBranding.primary || primary;
+        secondary = currentBranding.secondary || secondary;
+        accent = currentBranding.accent || accent;
+      }
+
+      // Save toggle values along with existing branding colors
+      const response = await fetch(`${apiUrl}/api/branding`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          primary,
+          secondary,
+          accent,
+          usePlatformBranding: toggleDaywiseBranding,
+          showDisplayName: isShownName,
+          showProfilePicture: isShownProfilePic,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to save branding settings');
+      }
+
+      toast.success('Branding settings saved successfully!');
+    } catch (error) {
+      console.error('Error saving branding settings:', error);
+      toast.error(error.message || 'Failed to save branding settings');
+    }
   };
 
   return (

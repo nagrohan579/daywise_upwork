@@ -8,6 +8,7 @@ const adminLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
+  trustProxy: true, // Explicitly trust proxy when Express trust proxy is enabled
 });
 
 function ipAllowlist(req: Request, res: Response, next: NextFunction) {

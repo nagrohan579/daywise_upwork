@@ -178,6 +178,41 @@
   }
 }
 
+.payments-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 20px;
+  margin-top: 40px;
+}
+
+.payments-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.payments-loading-text {
+  color: #64748b;
+  font-size: 16px;
+  font-weight: 500;
+  font-family: Inter, sans-serif;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 @media (max-width: 768px) {
   .payments-page .payments-header h1 {
     font-size: 20px;

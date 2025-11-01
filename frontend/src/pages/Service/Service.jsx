@@ -21,6 +21,7 @@ const Service = () => {
   const [userId, setUserId] = useState(null);
   const [appointmentTypes, setAppointmentTypes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [appointmentTypeLimit, setAppointmentTypeLimit] = useState(null); // null = unlimited
 
   // Fetch current user
   useEffect(() => {
@@ -39,6 +40,25 @@ const Service = () => {
       }
     };
     fetchUser();
+  }, []);
+
+  // Fetch user features to check appointment type limit
+  useEffect(() => {
+    const fetchFeatures = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const response = await fetch(`${apiUrl}/api/user-subscriptions/me`, {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setAppointmentTypeLimit(data.features?.appointmentTypeLimit ?? null);
+        }
+      } catch (error) {
+        console.error('Error fetching features:', error);
+      }
+    };
+    fetchFeatures();
   }, []);
 
   // Fetch appointment types from API
@@ -73,6 +93,11 @@ const Service = () => {
   }, [userId]);
 
   const handleAddNew = () => {
+    // Check if user has reached the limit
+    if (appointmentTypeLimit !== null && appointmentTypes.length >= appointmentTypeLimit) {
+      toast.error("Upgrade to Pro plan to add more services.");
+      return;
+    }
     setModalMode("add");
     setSelectedService(null);
     setShowServiceModal(true);
@@ -151,9 +176,6 @@ const Service = () => {
             variant="primary"
             onClick={handleAddNew}
           />
-          <p style={{ display: "none" }}>
-            1/1 Services/appointments added. Upgrade to add more.
-          </p>
         </div>
         
         {loading ? (

@@ -1617,6 +1617,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User not authenticated" });
       }
 
+      // Check user's plan and enforce booking limit (5 per month for free plan)
+      const features = await getUserFeatures(userId);
+      if (features.bookingLimit !== null) {
+        // Get current bookings count for this user
+        const existingBookings = await storage.getBookingsByUser(userId);
+        
+        // Filter bookings for current month (bookings made within this calendar month)
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        
+        const currentMonthBookings = existingBookings.filter((booking: any) => {
+          const bookingDate = new Date(booking.appointmentDate);
+          return bookingDate.getMonth() === currentMonth && 
+                 bookingDate.getFullYear() === currentYear;
+        });
+        
+        const currentCount = currentMonthBookings.length;
+        
+        if (currentCount >= features.bookingLimit) {
+          return res.status(403).json({ 
+            message: `Upgrade to Pro plan to add more bookings. You have reached your monthly limit of ${features.bookingLimit} bookings.` 
+          });
+        }
+      }
+
       console.log('POST /api/bookings - User ID from session:', userId, 'Type:', typeof userId);
 
       // Validation
@@ -2724,6 +2750,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Missing required parameters: userId, appointmentTypeId, and date are required" 
         });
       }
+
+      // Check user's plan and enforce booking limit for public bookings (5 per month for free plan)
+      const features = await getUserFeatures(userId as string);
+      if (features.bookingLimit !== null) {
+        // Get current bookings count for this user
+        const existingBookings = await storage.getBookingsByUser(userId as string);
+        
+        // Filter bookings for current month (bookings made within this calendar month)
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        
+        const currentMonthBookings = existingBookings.filter((booking: any) => {
+          const bookingDate = new Date(booking.appointmentDate);
+          return bookingDate.getMonth() === currentMonth && 
+                 bookingDate.getFullYear() === currentYear;
+        });
+        
+        const currentCount = currentMonthBookings.length;
+        
+        // If free plan user has reached the monthly limit (5 bookings), return no slots
+        if (currentCount >= features.bookingLimit) {
+          console.log(`User ${userId} has reached monthly booking limit (${currentCount}/${features.bookingLimit}), returning no slots`);
+          return res.json([]); // Return empty array (no slots available)
+        }
+      }
       
       // Parse the date
       const requestDate = new Date(date as string);
@@ -3385,7 +3437,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Authentication required" });
       }
       
-      // Feature enforcement is now handled by requireFeature middleware
+      // Check user's plan and enforce appointment type limit
+      const features = await getUserFeatures(userId);
+      if (features.appointmentTypeLimit !== null) {
+        // Get current appointment types count for this user
+        const existingAppointmentTypes = await storage.getAppointmentTypesByUser(userId);
+        const currentCount = existingAppointmentTypes.length;
+        
+        if (currentCount >= features.appointmentTypeLimit) {
+          return res.status(403).json({ 
+            message: `Upgrade to Pro plan to add more services.` 
+          });
+        }
+      }
 
       const appointmentTypeData = insertAppointmentTypeSchema.parse({
         ...req.body,
@@ -3395,6 +3459,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const appointmentType = await storage.createAppointmentType(appointmentTypeData);
       res.json({ message: "Appointment type created successfully", appointmentType });
     } catch (error) {
+      // If we already sent a response (403), don't send another one
+      if (res.headersSent) {
+        return;
+      }
       res.status(400).json({ message: "Invalid appointment type data", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
@@ -4092,6 +4160,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "User subscription updated successfully", subscription: updatedSubscription });
     } catch (error) {
       res.status(500).json({ message: "Failed to update user subscription", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  // FOR TESTING PURPOSES - REMOVE ONCE TESTED
+  // Test endpoint to toggle between free and pro plan without Stripe
+  app.post("/api/subscription/test-toggle", requireAuth, async (req, res) => {
+    try {
+      const session = req.session as any;
+      const userId = session.userId;
+      const { planId } = req.body;
+
+      if (!planId || (planId !== "free" && planId !== "pro")) {
+        return res.status(400).json({ message: "planId must be 'free' or 'pro'" });
+      }
+
+      // Get existing subscription
+      let existingSubscription = await storage.getUserSubscription(userId);
+
+      if (existingSubscription) {
+        // Update existing subscription
+        await storage.updateUserSubscription(userId, {
+          planId: planId,
+          status: planId === "pro" ? "active" : "inactive",
+          updatedAt: Date.now(),
+        });
+      } else {
+        // Create new subscription
+        const subscriptionData: any = {
+          userId: userId,
+          planId: planId,
+          status: planId === "pro" ? "active" : "inactive",
+          isAnnual: false,
+          updatedAt: Date.now(),
+        };
+        await storage.createUserSubscription(subscriptionData);
+      }
+
+      // Fetch updated subscription
+      const updatedSubscription = await storage.getUserSubscription(userId);
+      res.json({ 
+        message: `Successfully switched to ${planId} plan`,
+        subscription: updatedSubscription 
+      });
+    } catch (error) {
+      console.error("Error toggling subscription:", error);
+      res.status(500).json({ 
+        message: "Failed to toggle subscription", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
     }
   });
 

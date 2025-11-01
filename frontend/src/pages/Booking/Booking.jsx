@@ -41,6 +41,7 @@ const BookingsPage = () => {
   const [bookings, setBookings] = useState([]);
   const [isCalendarConnected, setIsCalendarConnected] = useState(false);
   const [isCheckingCalendarStatus, setIsCheckingCalendarStatus] = useState(true);
+  const [bookingLimit, setBookingLimit] = useState(null); // null = unlimited
 
   const isMobile = useMobile(991);
 
@@ -67,6 +68,25 @@ const BookingsPage = () => {
       }
     };
     fetchUser();
+  }, []);
+
+  // Fetch user features to check booking limit
+  useEffect(() => {
+    const fetchFeatures = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const response = await fetch(`${apiUrl}/api/user-subscriptions/me`, {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setBookingLimit(data.features?.bookingLimit ?? null);
+        }
+      } catch (error) {
+        console.error('Error fetching features:', error);
+      }
+    };
+    fetchFeatures();
   }, []);
 
   // Fetch bookings from API
@@ -523,6 +543,24 @@ const BookingsPage = () => {
                 icon={<FaPlus color="#fff" />}
                 variant="primary"
                 onClick={() => {
+                  // Check if user has reached monthly booking limit
+                  if (bookingLimit !== null) {
+                    // Filter bookings for current month
+                    const now = new Date();
+                    const currentMonth = now.getMonth();
+                    const currentYear = now.getFullYear();
+                    
+                    const currentMonthBookings = bookings.filter((booking) => {
+                      const bookingDate = new Date(booking.appointmentDate);
+                      return bookingDate.getMonth() === currentMonth && 
+                             bookingDate.getFullYear() === currentYear;
+                    });
+                    
+                    if (currentMonthBookings.length >= bookingLimit) {
+                      toast.error("Upgrade to Pro plan to add more bookings. You have reached your monthly limit.");
+                      return;
+                    }
+                  }
                   setSelectedBooking(null); // Clear any selection
                   setModalMode("add");
                   setShowAddAppointmentModal(true);

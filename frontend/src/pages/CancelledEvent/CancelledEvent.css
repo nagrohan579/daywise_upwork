@@ -235,7 +235,7 @@
 }
 
 .cancelled-event-btn span {
-  width: 127px;
+  width: auto;
   height: 20px;
   font-family: 'Inter', sans-serif;
   font-style: normal;
@@ -245,6 +245,7 @@
   display: flex;
   align-items: center;
   text-align: center;
+  white-space: nowrap;
   color: #FFFFFF;
   flex: none;
   order: 0;

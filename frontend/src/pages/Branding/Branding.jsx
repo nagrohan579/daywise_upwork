@@ -29,18 +29,45 @@ const Branding = () => {
   const [savingProfilePic, setSavingProfilePic] = useState(false);
   const [savingDaywiseBranding, setSavingDaywiseBranding] = useState(false);
   const [savingDisplayName, setSavingDisplayName] = useState(false);
+  const [hasCustomBranding, setHasCustomBranding] = useState(false); // Pro plan feature
 
-  // Fetch existing branding data on mount
+  // Fetch existing branding data and user features on mount
   useEffect(() => {
-    const fetchBranding = async () => {
+    const fetchAllData = async () => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        const response = await fetch(`${apiUrl}/api/branding`, {
-          credentials: 'include',
-        });
+        
+        // Fetch both branding data and features in parallel
+        const [brandingResponse, featuresResponse] = await Promise.all([
+          fetch(`${apiUrl}/api/branding`, {
+            credentials: 'include',
+          }),
+          fetch(`${apiUrl}/api/user-subscriptions/me`, {
+            credentials: 'include',
+          })
+        ]);
 
-        if (response.ok) {
-          const data = await response.json();
+        // Process features first
+        let customBranding = false;
+        if (featuresResponse.ok) {
+          const featuresData = await featuresResponse.json();
+          customBranding = featuresData.features?.customBranding || false;
+          setHasCustomBranding(customBranding);
+          
+          // For free plan users, force daywise branding to be ON
+          if (!customBranding) {
+            setToggleDayWiseBranding(true);
+          }
+        } else {
+          // On error, assume free plan and force branding ON
+          customBranding = false;
+          setHasCustomBranding(false);
+          setToggleDayWiseBranding(true);
+        }
+
+        // Process branding data
+        if (brandingResponse.ok) {
+          const data = await brandingResponse.json();
           console.log('Fetched branding data:', data);
           if (data.logoUrl) {
             console.log('Setting logo URL:', data.logoUrl);
@@ -55,18 +82,26 @@ const Branding = () => {
           }
           if (data.showDisplayName !== undefined) setIsShownName(data.showDisplayName);
           if (data.showProfilePicture !== undefined) setIsShownProfilePic(data.showProfilePicture);
-          if (data.usePlatformBranding !== undefined) setToggleDayWiseBranding(data.usePlatformBranding);
+          
+          // Only set usePlatformBranding from data if user has custom branding feature
+          // Otherwise, it's already forced to true above
+          if (data.usePlatformBranding !== undefined && customBranding) {
+            setToggleDayWiseBranding(data.usePlatformBranding);
+          }
         } else {
-          console.error('Failed to fetch branding:', response.status);
+          console.error('Failed to fetch branding:', brandingResponse.status);
         }
       } catch (error) {
-        console.error('Error fetching branding:', error);
+        console.error('Error fetching branding or features:', error);
+        // On error, assume free plan and force branding ON
+        setHasCustomBranding(false);
+        setToggleDayWiseBranding(true);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBranding();
+    fetchAllData();
   }, []);
 
   // Auto-save function for branding settings
@@ -165,6 +200,12 @@ const Branding = () => {
   };
 
   const toggleHandlerDayWiseBranding = async () => {
+    // Free plan users cannot disable daywise branding
+    if (!hasCustomBranding) {
+      toast.error("This feature is available in Pro plan.");
+      return;
+    }
+    
     if (savingDaywiseBranding) return; // Prevent clicks while saving
     const newValue = !toggleDaywiseBranding;
     setSavingDaywiseBranding(true);
@@ -292,6 +333,11 @@ const Branding = () => {
 
   // We use a hidden file input and trigger it with a visible button click.
   const triggerFileInput = () => {
+    // Free plan users cannot upload logo
+    if (!hasCustomBranding) {
+      toast.error("Logo upload is available in Pro plan.");
+      return;
+    }
     document.getElementById("logo-upload-input").click();
   };
 
@@ -463,7 +509,12 @@ const Branding = () => {
                   type="button"
                   className="upload-btn"
                   onClick={triggerFileInput}
-                  disabled={logoUploading}
+                  disabled={logoUploading || !hasCustomBranding}
+                  style={{
+                    opacity: !hasCustomBranding ? 0.6 : 1,
+                    cursor: !hasCustomBranding ? "not-allowed" : "pointer",
+                    backgroundColor: !hasCustomBranding ? "#ccc" : undefined,
+                  }}
                 >
                   {logoUploading ? "Uploading..." : (logoUrl ? "Update Logo" : "Upload logo")}
                 </button>
@@ -626,7 +677,7 @@ const Branding = () => {
                 <ToggleSwitch
                   checked={toggleDaywiseBranding}
                   onchange={toggleHandlerDayWiseBranding}
-                  disabled={savingDaywiseBranding}
+                  disabled={savingDaywiseBranding || !hasCustomBranding}
                 />
                 <span
                   className="toggle-label "
@@ -651,7 +702,19 @@ const Branding = () => {
                 <PremiumIcon /> Your Brand Colors
               </h3>
             </div>
-            <div className="selection-color-con">
+            <div 
+              className="selection-color-con"
+              style={{
+                opacity: !hasCustomBranding ? 0.6 : 1,
+                pointerEvents: !hasCustomBranding ? "none" : "auto",
+                cursor: !hasCustomBranding ? "not-allowed" : "pointer",
+              }}
+              onClick={() => {
+                if (!hasCustomBranding) {
+                  toast.error("Brand colors customization is available in Pro plan.");
+                }
+              }}
+            >
               <div className="color-box">
                 <span
                   style={{ backgroundColor: "#CC0B0B" }}

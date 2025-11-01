@@ -15,7 +15,7 @@ export type FeaturesShape = {
 export const FEATURE_SPECS: Record<keyof FeaturesShape, FeatureSpec> = {
   customBranding: { type: "boolean", default: false },
   bookingLimit: { type: "number", default: 5 },
-  appointmentTypeLimit: { type: "number", default: 2 },
+  appointmentTypeLimit: { type: "number", default: 1 }, // Free plan default: 1 service
   emailConfirmations: { type: "boolean", default: true },
   emailReminders: { type: "boolean", default: false },
   prioritySupport: { type: "boolean", default: false },
@@ -36,7 +36,7 @@ export const PLAN_FEATURES: Record<string, FeaturesShape> = {
   free: {
     customBranding: false,
     bookingLimit: 5,
-    appointmentTypeLimit: 2,
+    appointmentTypeLimit: 1, // Free plan allows only 1 service/appointment type
     emailConfirmations: true,
     emailReminders: false,
     prioritySupport: false,

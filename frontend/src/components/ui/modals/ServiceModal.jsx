@@ -143,6 +143,8 @@ const ServicesModal = ({
 
         if (!response.ok) {
           const errorData = await response.json();
+          // Show backend error message (e.g., limit reached)
+          toast.error(errorData.message || 'Failed to create service');
           throw new Error(errorData.message || 'Failed to create service');
         }
 

@@ -505,7 +505,7 @@ const PublicBooking = () => {
                 {branding?.showDisplayName && (
                   <div className="profile-wrapper">
                     <h5>{branding?.displayName || userData.name}</h5>
-                  </div>
+                </div>
                 )}
 
                 <div className="business-wrapper">

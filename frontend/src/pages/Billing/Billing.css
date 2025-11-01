@@ -6,7 +6,16 @@
   border-bottom: 1px solid #64748b33;
   padding-bottom: 24px;
   margin-bottom: 60px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
 }
+
+.billing-page .top-con > div {
+  flex: 1;
+}
+
 .billing-page .top-con h1 {
   font-family: Inter, sans-serif;
   font-weight: 600;
@@ -19,6 +28,7 @@
   align-items: center;
   gap: 8px;
   color: #121212;
+  margin: 0;
 }
 .billing-page .top-con p {
   color: #64748b;

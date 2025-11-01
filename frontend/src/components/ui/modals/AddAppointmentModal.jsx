@@ -230,6 +230,8 @@ const AddAppointmentModal = ({
           console.error('AddAppointmentModal - Error message:', errorData.message);
           console.error('AddAppointmentModal - Error details:', errorData.error);
           console.error('AddAppointmentModal - Full error object:', JSON.stringify(errorData, null, 2));
+          // Show backend error message (e.g., limit reached)
+          toast.error(errorData.message || errorData.error || 'Failed to create booking');
           throw new Error(errorData.error || errorData.message || 'Failed to create booking');
         }
 

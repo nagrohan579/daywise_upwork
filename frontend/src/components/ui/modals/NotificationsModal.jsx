@@ -2,7 +2,7 @@ import React from 'react';
 import NotificationItem from '../NotificationItem/NotificationItem';
 import './modal.css';
 
-const NotificationsModal = ({ show, onClose, notifications, onDelete }) => {
+const NotificationsModal = ({ show, onClose, notifications, onDelete, onShowInCalendar }) => {
 
   if (!show) return null;
 
@@ -32,6 +32,7 @@ const NotificationsModal = ({ show, onClose, notifications, onDelete }) => {
                 key={notification.id}
                 notification={notification}
                 onDelete={onDelete}
+                onShowInCalendar={onShowInCalendar}
               />
             ))
           )}

@@ -235,9 +235,11 @@ const Select = ({
               <span className={`select-text ${!value ? "select-placeholder" : ""}`}>
                 {showCurrentTime && value && currentTime ? `${value} ${currentTime}` : (value || placeholder)}
               </span>
-              <span className="select-icon">
-                {open ? <FaChevronUp /> : <FaChevronDown />}
-              </span>
+              {!disabled && (
+                <span className="select-icon">
+                  {open ? <FaChevronUp /> : <FaChevronDown />}
+                </span>
+              )}
             </div>
 
             {open && (

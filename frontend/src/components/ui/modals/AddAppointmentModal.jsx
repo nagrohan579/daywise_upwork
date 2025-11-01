@@ -279,18 +279,20 @@ const AddAppointmentModal = ({
       onHide={() => setShowAddAppointmentModal(false)}
       centered
       backdrop="static"
-      className="addAppointmentModal "
+      className={`addAppointmentModal ${isView ? "view-mode" : ""}`}
     >
       <Modal.Header>
         <div className="content-wrap">
           <Modal.Title>
             {isEdit ? "Edit Appointment" : "Appointment Details"}
           </Modal.Title>
-          <p>
-            {isEdit
-              ? "Update the appointment details below"
-              : "Add the appointment details below"}
-          </p>
+          {!isView && (
+            <p>
+              {isEdit
+                ? "Update the appointment details below"
+                : "Add the appointment details below"}
+            </p>
+          )}
         </div>
         <button
           className="close-btn"
@@ -368,6 +370,7 @@ const AddAppointmentModal = ({
                 handleInputChange('serviceType', selectedType?._id || '');
               }}
               options={appointmentTypes.map(type => type.name)}
+              disabled={isView}
               style={{
                 border: isView ? "none" : "",
                 backgroundColor: isView ? "transparent" : "",
@@ -375,23 +378,25 @@ const AddAppointmentModal = ({
               }}
             />
           </div>
-          <div className="btn-wrap">
-            <Button
-              text="Cancel"
-              style={{
-                backgroundColor: "transparent",
-                color: "#64748B",
-                border: "1px solid #E0E9FE",
-              }}
-              onClick={() => setShowAddAppointmentModal(false)}
-              disabled={isSubmitting}
-            />
-            <Button 
-              text={isSubmitting ? (isEdit ? "Updating..." : "Creating...") : (isEdit ? "Save Changes" : "Create")} 
-              type="submit" 
-              disabled={isSubmitting || isView}
-            />
-          </div>
+          {!isView && (
+            <div className="btn-wrap">
+              <Button
+                text="Cancel"
+                style={{
+                  backgroundColor: "transparent",
+                  color: "#64748B",
+                  border: "1px solid #E0E9FE",
+                }}
+                onClick={() => setShowAddAppointmentModal(false)}
+                disabled={isSubmitting}
+              />
+              <Button 
+                text={isSubmitting ? (isEdit ? "Updating..." : "Creating...") : (isEdit ? "Save Changes" : "Create")} 
+                type="submit" 
+                disabled={isSubmitting}
+              />
+            </div>
+          )}
         </form>
       </Modal.Body>
     </Modal>

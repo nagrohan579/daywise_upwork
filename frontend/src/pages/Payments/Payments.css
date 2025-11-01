@@ -166,7 +166,7 @@
 /* Responsive Design */
 @media (max-width: 991px) {
   .payments-page {
-    padding: 20px;
+    margin-top: 42px;
   }
 
   .payments-page .stripe-card-container {

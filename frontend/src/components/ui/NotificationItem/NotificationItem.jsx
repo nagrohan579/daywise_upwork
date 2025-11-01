@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { NotifScheduleIcon, NotifRescheduleIcon, NotifCancelIcon, NotifCloseIcon, NotifArrowIcon } from '../../SVGICONS/Svg';
 import './NotificationItem.css';
 
-const NotificationItem = ({ notification, onDelete }) => {
+const NotificationItem = ({ notification, onDelete, onShowInCalendar }) => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const getIcon = () => {
@@ -55,7 +55,15 @@ const NotificationItem = ({ notification, onDelete }) => {
         <div className="notification-footer">
           <span className="notification-time">{notification.timestamp}</span>
         {(notification.type === 'scheduled' || notification.type === 'rescheduled') && notification.action && (
-          <button className="notification-action-button">
+          <button 
+            className="notification-action-button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onShowInCalendar) {
+                onShowInCalendar(notification);
+              }
+            }}
+          >
             Show in Calendar
             <NotifArrowIcon />
           </button>

@@ -61,7 +61,7 @@
 
 /* --- Hamburger Button (Visible on Mobile) --- */
 .hamburger-button {
-  position: absolute;
+  position: fixed;
   top: 15px;
   left: 15px;
   z-index: 60;
@@ -73,6 +73,7 @@
   border: none;
   align-items: center;
   gap: 20px;
+  min-height: 46px; /* Ensure consistent height to prevent shift */
 }
 
 /* ========================================================================= */
@@ -241,6 +242,16 @@
   }
 }
 @media (max-width: 991px) {
+  /* Make sidebar full height on mobile */
+  .sidebar-container {
+    height: 100vh;
+  }
+  
+  /* Push logout container to bottom using flexbox */
+  .sidebar-container .logout-container {
+    margin-top: auto;
+  }
+  
   .sidebar-header {
     margin-top: 40px;
   }

@@ -162,7 +162,12 @@ const Account = () => {
       }
 
       toast.success('Account settings saved successfully!');
-      fetchUserData(); // Refresh data
+      await fetchUserData(); // Refresh data
+
+      // Broadcast timezone change to all open pages/components
+      window.dispatchEvent(new CustomEvent('timezoneChanged', {
+        detail: { timezone: userData.timezone }
+      }));
     } catch (error) {
       console.error('Error saving changes:', error);
       toast.error(error.message || 'Failed to save changes');

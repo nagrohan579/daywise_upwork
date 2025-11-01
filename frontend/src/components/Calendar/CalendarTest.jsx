@@ -20,9 +20,19 @@ const monthNames = [
 
 const dayNames = ["Sun", "Mon", "Tues", "Wed", "Thu", "Fri", "Sat"];
 
-const CalendarApp = ({ events = [] }) => {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState("month");
+const CalendarApp = ({ events = [], initialDate = null, initialView = null, focusBookingId = null }) => {
+  const [currentDate, setCurrentDate] = useState(initialDate ? new Date(initialDate) : new Date());
+  const [view, setView] = useState(initialView || "month");
+  
+  // Update currentDate and view when initialDate or initialView changes (from URL params)
+  useEffect(() => {
+    if (initialDate) {
+      setCurrentDate(new Date(initialDate));
+    }
+    if (initialView) {
+      setView(initialView);
+    }
+  }, [initialDate, initialView]);
   const [showViewDropdown, setShowViewDropdown] = useState(false);
   const [showAddAppointmentModal, setShowAddAppointmentModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -33,14 +43,29 @@ const CalendarApp = ({ events = [] }) => {
     setShowAddAppointmentModal(true);
   }, []);
 
-  // Auto-scroll to first booking when day view loads
+  // Auto-scroll to first booking when day view loads, or to specific booking if focusBookingId is provided
   useEffect(() => {
     if (view === "day" && timeGridRef.current) {
       const displayDate = currentDate;
       const dayEvents = getEventsForDate(displayDate);
       const timedEvents = dayEvents.filter((e) => e.time);
       
-      const getFirstBookingHour = () => {
+      const getScrollHour = () => {
+        // If focusBookingId is provided, scroll to that specific booking
+        if (focusBookingId && timedEvents.length > 0) {
+          const focusEvent = timedEvents.find(e => {
+            // Check if event data contains the booking ID
+            return e.data?._id === focusBookingId || e.id === `booking-${focusBookingId}`;
+          });
+          
+          if (focusEvent) {
+            const eventHour = parseInt(focusEvent.time.split(":")[0]);
+            // Scroll to 1 hour before the booking, but not before 6am
+            return Math.max(eventHour - 1, 6);
+          }
+        }
+        
+        // Otherwise scroll to first booking
         if (timedEvents.length === 0) return 8; // Default to 8am if no bookings
         
         const earliestHour = Math.min(...timedEvents.map(e => {
@@ -52,11 +77,11 @@ const CalendarApp = ({ events = [] }) => {
         return Math.max(earliestHour - 1, 6);
       };
 
-      const firstHour = getFirstBookingHour();
-      const scrollPosition = firstHour * 60; // 60px per hour slot
+      const scrollHour = getScrollHour();
+      const scrollPosition = scrollHour * 60; // 60px per hour slot
       timeGridRef.current.scrollTop = scrollPosition;
     }
-  }, [view, currentDate]);
+  }, [view, currentDate, focusBookingId]);
 
   const styles = {
     container: {

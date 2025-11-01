@@ -14,14 +14,7 @@ import { useMobile } from "../../hooks";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import CalendarApp from "../../components/Calendar/CalendarTest";
-
-// Helper function to convert date to local date string without timezone shift
-const toLocalDateString = (date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
+import { getTimeComponents, formatDate, formatTime, toLocalDateString } from "../../utils/dateFormatting";
 
 const BookingsPage = () => {
   const [showBookingList, setShowBookingList] = useState(true);
@@ -42,10 +35,11 @@ const BookingsPage = () => {
   const [isCalendarConnected, setIsCalendarConnected] = useState(false);
   const [isCheckingCalendarStatus, setIsCheckingCalendarStatus] = useState(true);
   const [bookingLimit, setBookingLimit] = useState(null); // null = unlimited
+  const [userTimezone, setUserTimezone] = useState('Etc/UTC'); // Default to UTC
 
   const isMobile = useMobile(991);
 
-  // Fetch current user
+  // Fetch current user and timezone
   const [userId, setUserId] = useState(null);
   useEffect(() => {
     const fetchUser = async () => {
@@ -60,6 +54,10 @@ const BookingsPage = () => {
           console.log('Booking - User ID type:', typeof data.user.id);
           console.log('Booking - User ID value:', data.user.id);
           setUserId(data.user.id);
+          // Set user timezone
+          if (data.user && data.user.timezone) {
+            setUserTimezone(data.user.timezone);
+          }
         } else {
           console.error('Booking - Failed to fetch user, status:', response.status);
         }
@@ -122,6 +120,28 @@ const BookingsPage = () => {
       checkCalendarStatus(); // Check if calendar is already connected
     }
   }, [userId]);
+
+  // Listen for timezone changes from Account page
+  useEffect(() => {
+    const handleTimezoneChange = (event) => {
+      console.log('Timezone changed to:', event.detail.timezone);
+      // Update local timezone state
+      setUserTimezone(event.detail.timezone);
+      // Refresh bookings when timezone changes
+      fetchBookings();
+      // Also refresh calendar events if connected
+      if (isCalendarConnected) {
+        fetchCalendarEvents(false);
+      }
+      toast.info('Refreshing bookings with new timezone...');
+    };
+
+    window.addEventListener('timezoneChanged', handleTimezoneChange);
+
+    return () => {
+      window.removeEventListener('timezoneChanged', handleTimezoneChange);
+    };
+  }, [userId, isCalendarConnected]);
 
   // Check if Google Calendar is connected
   const checkCalendarStatus = async () => {
@@ -233,12 +253,11 @@ const BookingsPage = () => {
   // Transform bookings for calendar view - ALWAYS show Convex bookings (single source of truth)
   useEffect(() => {
     console.log('Booking - Transforming events - bookings:', bookings?.length || 0);
-    
+
     // ALWAYS show Convex bookings - they are the source of truth
     const transformedBookings = (bookings || []).map((booking, index) => {
-      const bookingDate = new Date(booking.appointmentDate);
-      const hours = bookingDate.getHours();
-      const minutes = bookingDate.getMinutes();
+      // Get hours and minutes in user's timezone
+      const { hours, minutes } = getTimeComponents(booking.appointmentDate, userTimezone);
 
       // Get appointment type name and color for display
       const appointmentTypeName = booking.appointmentType?.name || 'Appointment';
@@ -249,7 +268,7 @@ const BookingsPage = () => {
       return {
         id: `booking-${booking._id}`,
         title: `${appointmentTypeName} with ${booking.customerName}`,
-        date: toLocalDateString(bookingDate),
+        date: toLocalDateString(booking.appointmentDate, userTimezone),
         color: appointmentTypeColor, // Always use appointment type color
         time: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
         source: 'booking',
@@ -259,12 +278,16 @@ const BookingsPage = () => {
 
     console.log('Booking - Transformed bookings with colors:', transformedBookings.map(b => ({ id: b.id, color: b.color })));
     setCombinedEvents(transformedBookings);
-  }, [bookings]);
+  }, [bookings, userTimezone]);
 
   // Clean up URL parameters and handle calendar connection status
   useEffect(() => {
     const calendarConnected = searchParams.get('calendar_connected');
     const calendarError = searchParams.get('calendar_error');
+    const bookingId = searchParams.get('bookingId');
+    const dateParam = searchParams.get('date');
+    const viewParam = searchParams.get('view');
+    const dayView = searchParams.get('dayView');
 
     if (calendarConnected) {
       toast.success('Google Calendar connected successfully!');
@@ -279,6 +302,34 @@ const BookingsPage = () => {
       toast.error('Failed to connect Google Calendar');
     }
 
+    // Handle navigation from notification "Show in Calendar"
+    if (bookingId && dateParam && viewParam === 'calendar' && !isLoadingData) {
+      // Switch to calendar view
+      setShowBookingList(false);
+      setShowBookingCalendar(true);
+      
+      // Check if booking exists and is not cancelled
+      const booking = bookings.find(b => b._id === bookingId);
+      if (!booking) {
+        toast.error('This booking is no longer available.');
+      } else if (booking.status === 'cancelled') {
+        toast.error('This booking has been cancelled.');
+      }
+      // If booking exists and is not cancelled, CalendarApp will handle focusing on it
+      
+      // Remove params after handling (with a slight delay to ensure CalendarApp receives them)
+      setTimeout(() => {
+        setSearchParams(prev => {
+          const newParams = new URLSearchParams(prev);
+          newParams.delete('bookingId');
+          newParams.delete('date');
+          newParams.delete('view');
+          newParams.delete('dayView');
+          return newParams;
+        });
+      }, 100);
+    }
+
     if (calendarConnected || calendarError) {
       // Remove the parameters from URL
       setSearchParams(prev => {
@@ -288,7 +339,7 @@ const BookingsPage = () => {
         return newParams;
       });
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, bookings, isLoadingData]);
 
   // Manual refresh handler
   const handleManualRefresh = () => {
@@ -358,29 +409,23 @@ const BookingsPage = () => {
   // Prepare bookings for list view - ALWAYS show Convex bookings (source of truth)
   const bookingsForList = React.useMemo(() => {
     console.log('bookingsForList - bookings count:', bookings?.length || 0);
-    
+
     // ALWAYS show Convex bookings - they are the source of truth
     return (bookings || []).map(booking => {
-      const bookingDate = new Date(booking.appointmentDate);
-      const hours = bookingDate.getHours();
-      const minutes = bookingDate.getMinutes();
-      const isPM = hours >= 12;
-      const displayHours = hours % 12 || 12;
-
       // Get appointment type name for display
       const appointmentTypeName = booking.appointmentType?.name || 'Appointment';
-      
+
       return {
         ...booking,
         title: `${appointmentTypeName} with ${booking.customerName}`,
         name: booking.customerName,
-        date: bookingDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit' }),
-        time: `${displayHours}:${minutes.toString().padStart(2, '0')}${isPM ? 'pm' : 'am'}`,
+        date: formatDate(booking.appointmentDate, userTimezone),
+        time: formatTime(booking.appointmentDate, userTimezone, false),
         color: booking.appointmentType?.color || '#4285F4', // Always use appointment type color
         source: 'booking',
       };
     });
-  }, [bookings]);
+  }, [bookings, userTimezone]);
 
   return (
     <AppLayout>
@@ -671,7 +716,12 @@ const BookingsPage = () => {
             )}
             {showBookingCalendar && (
               <div className="booking-full-calendar">
-                <CalendarApp events={combinedEvents} />
+                <CalendarApp 
+                  events={combinedEvents}
+                  initialDate={searchParams.get('date') ? new Date(parseInt(searchParams.get('date'))) : null}
+                  initialView={searchParams.get('dayView') === 'true' ? 'day' : null}
+                  focusBookingId={searchParams.get('bookingId') || null}
+                />
               </div>
             )}
 

@@ -6,6 +6,11 @@
   font-family: Inter, sans-serif;
 }
 
+/* Override for addAppointmentModal to remove margin and align properly */
+.addAppointmentModal .input-group-comp {
+  margin-bottom: 0;
+}
+
 .input-group-comp .input-label {
   font-size: 14px;
   font-weight: 500;
@@ -20,16 +25,18 @@
 }
 
 .input-group-comp .input-field {
-  padding: 10px 14px;
+  padding: 12px 14px; /* Equal top and bottom padding for vertical centering */
   border: 1px solid #64748b33;
-  min-height: 44px;
+  height: 44px; /* Fixed height for consistent centering */
   border-radius: 12px;
   outline: none;
   font-size: 14px;
   font-weight: 400;
+  line-height: 20px; /* Match font size for proper vertical centering */
   color: #121212;
   background-color: #f9faff;
   transition: border-color 0.2s ease-in-out;
+  box-sizing: border-box;
 }
 
 .input-group-comp .input-field::placeholder {
@@ -130,14 +137,16 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 14px;
+  padding: 12px 14px; /* Equal top and bottom padding for vertical centering */
   border: 1px solid #64748b33;
   border-radius: 12px;
-  min-height: 44px;
+  height: 44px; /* Fixed height to match input fields */
   font-size: 14px;
+  line-height: 20px; /* Match font size for proper vertical centering */
   cursor: pointer;
   transition: border-color 0.2s ease-in-out;
   background-color: #f9faff;
+  box-sizing: border-box;
 }
 .select-box:focus {
   border-color: #0053f1;

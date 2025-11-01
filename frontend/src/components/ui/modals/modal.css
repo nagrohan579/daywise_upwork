@@ -118,6 +118,9 @@
   max-width: 512px;
   font-family: Inter, sans-serif;
 }
+.addAppointmentModal.view-mode .modal-dialog {
+  max-width: 480px; /* Slightly smaller for view mode */
+}
 .addAppointmentModal .content-wrap {
   max-width: 390px;
 }
@@ -162,23 +165,50 @@
   display: flex;
   gap: 35px;
   align-items: center;
+  margin-bottom: 16px; /* Add vertical spacing between fields */
+}
+.addAppointmentModal .input-wrap:last-of-type {
+  margin-bottom: 0; /* Remove spacing after last field */
 }
 .addAppointmentModal .input-wrap .input-group-comp {
   width: 100%;
+  margin-bottom: 0; /* Remove margin that affects alignment */
+  gap: 0; /* Remove gap inside input-group-comp */
+}
+.addAppointmentModal .input-wrap .input-group-comp .input-label {
+  display: none; /* Hide label if present since we use h5 outside */
+}
+.addAppointmentModal .input-wrap .input-group-comp .input-field {
+  margin: 0; /* Remove any margin that might affect alignment */
 }
 .addAppointmentModal .input-wrap .input-group-comp input::placeholder {
   color: #121212;
+}
+.addAppointmentModal .input-wrap .select-group {
+  width: 100%;
+  margin-bottom: 0; /* Remove margin that affects alignment */
+  gap: 0; /* Remove gap inside select-group */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Center the select box vertically */
+}
+.addAppointmentModal .input-wrap .select-group .select-box {
+  margin: 0; /* Remove any margin that might affect alignment */
 }
 .addAppointmentModal .input-wrap h5 {
   font-family: Inter;
   font-weight: 600;
   font-style: Semi Bold;
   font-size: 14px;
-  line-height: 20px;
+  line-height: 1; /* Reset line-height */
   letter-spacing: 0%;
-  vertical-align: middle;
   color: #121212;
   min-width: 45px;
+  margin: 0; /* Remove any default margins */
+  height: 44px; /* Match input field height exactly */
+  display: flex;
+  align-items: center; /* Center text vertically within the label */
+  padding: 0; /* Remove any padding */
 }
 
 /* previewBookingModal */

@@ -18,6 +18,7 @@ import {
   LogoutIcon,
 } from "../SVGICONS/Svg";
 import NotificationsModal from "../ui/modals/NotificationsModal";
+import { formatDateTime, formatTimestamp } from "../../utils/dateFormatting";
 import "./Sidebar.css";
 
 // Mock Icons (replace with actual SVG or library icons like Lucide, Feather)
@@ -37,67 +38,52 @@ const navItems = [
   { name: "Billing", path: "/billing", icon: <BiilingIcon /> },
 ];
 
-// Helper function to format date and time
-const formatDateTime = (timestamp) => {
-  const date = new Date(timestamp);
-  const dateStr = date.toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric'
-  }); // "November 20, 2025"
-  const timeStr = date.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  }); // "12:30 PM"
-  return `${dateStr} at ${timeStr}`; // "November 20, 2025 at 12:30 PM"
-};
-
-// Helper function to format relative timestamp
-const formatTimestamp = (createdAt) => {
-  const now = new Date();
-  const created = new Date(createdAt);
-  const diffMs = now - created;
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  const timeStr = created.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  }).toLowerCase();
-
-  if (diffMins < 60) {
-    return `Today, ${timeStr}`;
-  } else if (diffHours < 24) {
-    return `Today, ${timeStr}`;
-  } else if (diffDays === 1) {
-    return `Yesterday, ${timeStr}`;
-  } else if (diffDays < 7) {
-    const dayName = created.toLocaleDateString('en-US', { weekday: 'long' });
-    return `${dayName}, ${timeStr}`;
-  } else {
-    const dateStr = created.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
-    return `${dateStr}, ${timeStr}`;
-  }
-};
-
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [userTimezone, setUserTimezone] = useState('Etc/UTC'); // Default to UTC
 
-  // Fetch notifications on component mount
+  // Fetch user timezone on mount
   useEffect(() => {
+    const fetchUserTimezone = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const response = await fetch(`${apiUrl}/api/auth/me`, {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user && data.user.timezone) {
+            setUserTimezone(data.user.timezone);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user timezone:', error);
+      }
+    };
+
+    fetchUserTimezone();
     fetchNotifications();
+  }, []);
+
+  // Listen for timezone changes from Account page
+  useEffect(() => {
+    const handleTimezoneChange = (event) => {
+      console.log('Notifications - Timezone changed to:', event.detail.timezone);
+      // Update local timezone state
+      setUserTimezone(event.detail.timezone);
+      // Refresh notifications when timezone changes (to update displayed times)
+      fetchNotifications();
+    };
+
+    window.addEventListener('timezoneChanged', handleTimezoneChange);
+
+    return () => {
+      window.removeEventListener('timezoneChanged', handleTimezoneChange);
+    };
   }, []);
 
   const fetchNotifications = async () => {
@@ -115,16 +101,18 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         const unread = data.filter(n => !n.isRead).length;
         setUnreadCount(unread);
 
-        // Format notifications for display
+        // Format notifications for display using user's timezone
         const formattedNotifications = data.map(notif => ({
           id: notif._id,
           type: notif.type, // 'scheduled', 'rescheduled', 'cancelled'
           customerName: notif.customerName,
           serviceName: notif.serviceName,
-          dateTime: formatDateTime(notif.appointmentDate),
-          timestamp: formatTimestamp(notif.createdAt),
+          dateTime: formatDateTime(notif.appointmentDate, userTimezone),
+          timestamp: formatTimestamp(notif.createdAt, userTimezone),
           action: notif.type === 'scheduled' || notif.type === 'rescheduled',
-          isRead: notif.isRead
+          isRead: notif.isRead,
+          relatedBookingId: notif.relatedBookingId,
+          appointmentDate: notif.appointmentDate // Keep raw timestamp for navigation
         }));
         setNotifications(formattedNotifications);
       } else {
@@ -206,6 +194,24 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     }
   };
 
+  const handleShowInCalendar = (notification) => {
+    // Close notifications modal
+    setShowNotifications(false);
+    
+    // Navigate to booking page with URL params
+    const bookingId = notification.relatedBookingId;
+    const appointmentDate = notification.appointmentDate;
+    
+    // Build URL with params
+    const params = new URLSearchParams();
+    if (bookingId) params.set('bookingId', bookingId);
+    if (appointmentDate) params.set('date', appointmentDate);
+    params.set('view', 'calendar');
+    params.set('dayView', 'true');
+    
+    navigate(`/booking?${params.toString()}`);
+  };
+
   return (
     <>
       <div className={`sidebar-container ${isOpen ? "is-open" : ""}`}>
@@ -266,6 +272,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         onClose={() => setShowNotifications(false)}
         notifications={notifications}
         onDelete={handleNotificationDelete}
+        onShowInCalendar={handleShowInCalendar}
       />
     </>
   );
@@ -304,7 +311,6 @@ const AppLayout = ({ children }) => {
       {/* Hamburger button visible only on mobile  */}
       <button
         className="hamburger-button"
-        style={{ position: isSidebarOpen ? "fixed" : "" }}
       >
         {isSidebarOpen ? (
           <>

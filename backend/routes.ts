@@ -12,6 +12,7 @@ import moment from "moment-timezone";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
+import { mapToSupportedTimezone } from "./lib/timezoneMapper";
 import { toUTC, toLocal, getDayOfWeek, getDateInTimezone, customerDateToUTC } from "./lib/timezoneUtils";
 import { storage } from "./storage";
 import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
@@ -2740,19 +2741,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const availability = await storage.getAvailabilityByUser(userId as string);
       console.log(`Found ${availability.length} availability records for user ${userId}:`, availability);
       
-      // Get user's timezone
+      // Get user's timezone and normalize to supported timezone
       const user = await storage.getUser(userId as string);
-      const userTimezone = user?.timezone || 'Asia/Calcutta';
-      console.log(`User timezone: ${userTimezone}`);
-      console.log(`Customer timezone: ${customerTimezone || 'not provided'}`);
-      
+      const userTimezone = mapToSupportedTimezone(user?.timezone || 'Etc/UTC');
+      const customerTz = mapToSupportedTimezone((customerTimezone as string) || userTimezone);
+
+      console.log(`User timezone (normalized): ${userTimezone}`);
+      console.log(`Customer timezone (normalized): ${customerTz}`);
+
       // Check if timezones are the same
-      const timezonesMatch = userTimezone === customerTimezone;
+      const timezonesMatch = userTimezone === customerTz;
       console.log(`Timezones match: ${timezonesMatch}`);
-      
-      // Convert the customer's selected date to UTC
-      // Customer sends date as YYYY-MM-DD in their timezone, but we need to find what day it is in the user's timezone
-      const customerTz = (customerTimezone as string) || userTimezone;
       
       // Parse the date in the customer's timezone
       const customerDateInCustomerTz = dayjs.tz(date as string, customerTz);
@@ -2829,29 +2828,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check for exceptions on this specific date
       const exceptions = await storage.getAvailabilityExceptionsByUser(userId as string);
-      const dateStr = requestDate.toISOString().split('T')[0]; // YYYY-MM-DD format
-      
+      // Use the date in user's timezone for exception matching (not UTC)
+      const dateStrInUserTz = dateInUserTz.format('YYYY-MM-DD');
+
       const dateException = exceptions.find(exception => {
-        const exceptionDate = new Date(exception.date).toISOString().split('T')[0];
-        return exceptionDate === dateStr;
+        const exceptionDateInUserTz = dayjs.tz(exception.date, userTimezone).format('YYYY-MM-DD');
+        return exceptionDateInUserTz === dateStrInUserTz;
       });
-      
+
       // If there's an "unavailable" exception for this date, return no slots
       if (dateException && dateException.type === 'unavailable') {
         return res.json({ slots: [] });
       }
-      
+
       // If there's an "available" exception, use that instead of regular availability
       if (dateException && dateException.type === 'available') {
         // For now, use the regular weekly hours when there's an available exception
         // In the future, this could override with custom hours from the exception
       }
-      
+
       // Get existing bookings for this date to check for conflicts
+      // Filter bookings that fall on the selected date in the user's timezone
       const allBookings = await storage.getBookingsByUser(userId as string);
       const dateBookings = allBookings.filter(booking => {
-        const bookingDate = new Date(booking.appointmentDate).toISOString().split('T')[0];
-        return bookingDate === dateStr;
+        // Convert booking UTC time to user's timezone and check if it's on the same date
+        const bookingInUserTz = dayjs.utc(booking.appointmentDate).tz(userTimezone);
+        const bookingDateStr = bookingInUserTz.format('YYYY-MM-DD');
+        return bookingDateStr === dateStrInUserTz;
       });
       
       // Fetch appointment types for all existing bookings to get their buffer times
@@ -2878,7 +2881,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bufferTimeAfter,
         totalSlotTime,
         existingBookings: dateBookings.length,
-        requestDateStr: dateStr
+        requestDateStr: dateStrInUserTz
       });
       
       // Sort availability by start time
@@ -2933,13 +2936,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (!hasConflict) {
             // Create the slot time in the business owner's timezone
-            const dateStr = dayjs.tz(`${date} 00:00:00`, userTimezone).format('YYYY-MM-DD');
-            const slotDateTimeInOwnerTz = dayjs.tz(`${dateStr} ${String(slotHour).padStart(2, '0')}:${String(slotMin).padStart(2, '0')}:00`, userTimezone);
-            
+            // Use the already-computed date in user's timezone (not reinterpret customer's date)
+            const slotDateTimeInOwnerTz = dayjs.tz(`${dateStrInUserTz} ${String(slotHour).padStart(2, '0')}:${String(slotMin).padStart(2, '0')}:00`, userTimezone);
+
             // Convert to UTC and store as ISO string
             const slotUTC = slotDateTimeInOwnerTz.utc();
             const isoString = slotUTC.toISOString();
-            
+
             console.log(`  ✅ Slot available: ${slotHour}:${slotMin.toString().padStart(2, '0')} (${isoString})`);
             slots.push(isoString);
           } else {
@@ -2949,13 +2952,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
           currentTimeMinutes += totalSlotTime;
         }
       }
-      
-      console.log(`Generated ${slots.length} time slots:`, slots);
-      res.json({ slots });
+
+      // Filter out past slots for the current day
+      // Get current time in customer's timezone
+      const nowInCustomerTz = dayjs().tz(customerTz);
+      const currentDateInCustomerTz = nowInCustomerTz.format('YYYY-MM-DD');
+      const selectedDateInCustomerTz = customerDateInCustomerTz.format('YYYY-MM-DD');
+
+      console.log(`Current time in customer TZ: ${nowInCustomerTz.format('YYYY-MM-DD HH:mm:ss')}`);
+      console.log(`Selected date in customer TZ: ${selectedDateInCustomerTz}`);
+
+      // Only filter past slots if customer is selecting today
+      const filteredSlots = currentDateInCustomerTz === selectedDateInCustomerTz
+        ? slots.filter(slotIsoString => {
+            // Convert UTC slot time to customer's timezone
+            const slotInCustomerTz = dayjs.utc(slotIsoString).tz(customerTz);
+            const isPast = slotInCustomerTz.isBefore(nowInCustomerTz);
+
+            if (isPast) {
+              console.log(`  ⏭️  Filtering past slot: ${slotInCustomerTz.format('YYYY-MM-DD HH:mm:ss')} (before ${nowInCustomerTz.format('YYYY-MM-DD HH:mm:ss')})`);
+            }
+
+            return !isPast;
+          })
+        : slots;
+
+      console.log(`Generated ${slots.length} time slots, ${filteredSlots.length} after filtering past slots:`, filteredSlots);
+      res.json({ slots: filteredSlots });
     } catch (error) {
-      res.status(500).json({ 
-        message: "Failed to get available slots", 
-        error: error instanceof Error ? error.message : "Unknown error" 
+      console.error('Slots endpoint error:', error);
+      res.status(500).json({
+        message: "Failed to get available slots",
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });

@@ -1,58 +1,47 @@
 // shared/timezones.ts
+// Standardized list of 20 supported timezones (matches frontend)
 export const TIMEZONES = [
-  "America/Los_Angeles",
-  "America/Denver", 
-  "America/Chicago",
-  "America/New_York",
-  "America/Phoenix",
-  "America/Anchorage",
-  "America/Halifax",
-  "America/Toronto",
-  "America/Vancouver",
-  "America/Winnipeg",
-  "America/Edmonton",
-  "America/Regina",
-  "Europe/London",
-  "Europe/Paris",
-  "Europe/Berlin",
-  "Europe/Rome",
-  "Europe/Madrid",
-  "Europe/Dublin",
-  "Pacific/Honolulu",
-  "Pacific/Auckland",
-  "Asia/Tokyo",
-  "Asia/Shanghai",
-  "Asia/Singapore",
-  "Australia/Sydney",
-  "Australia/Melbourne",
-  "UTC"
+  "America/Los_Angeles",    // Pacific Time (PT)
+  "America/Denver",         // Mountain Time (MT)
+  "America/Chicago",        // Central Time (CT)
+  "America/New_York",       // Eastern Time (ET)
+  "America/Halifax",        // Atlantic Time (AT)
+  "America/Anchorage",      // Alaska Time (AKST)
+  "Pacific/Honolulu",       // Hawaii Time (HST)
+  "Europe/London",          // Greenwich Mean Time (GMT)
+  "Europe/Lisbon",          // Western European Time (WET)
+  "Europe/Berlin",          // Central European Time (CET)
+  "Europe/Athens",          // Eastern European Time (EET)
+  "Asia/Dubai",             // Gulf Standard Time (GST)
+  "Asia/Kolkata",           // India Standard Time (IST)
+  "Asia/Shanghai",          // China Standard Time (CST)
+  "Asia/Singapore",         // Singapore Standard Time (SGT)
+  "Asia/Tokyo",             // Japan Standard Time (JST)
+  "Australia/Sydney",       // Australian Eastern Time (AET)
+  "Pacific/Auckland",       // New Zealand Standard Time (NZST)
+  "America/Sao_Paulo",      // Brasília Time (BRT)
+  "Etc/UTC",                // Coordinated Universal Time (UTC)
 ];
 
 export const TIMEZONE_LABELS: Record<string, string> = {
-  "America/Los_Angeles": "Pacific Time (Los Angeles)",
-  "America/Denver": "Mountain Time (Denver)",
-  "America/Chicago": "Central Time (Chicago)", 
-  "America/New_York": "Eastern Time (New York)",
-  "America/Phoenix": "Mountain Time (Phoenix)",
-  "America/Anchorage": "Alaska Time (Anchorage)",
-  "America/Halifax": "Atlantic Time (Halifax)",
-  "America/Toronto": "Eastern Time (Toronto)",
-  "America/Vancouver": "Pacific Time (Vancouver)",
-  "America/Winnipeg": "Central Time (Winnipeg)",
-  "America/Edmonton": "Mountain Time (Edmonton)",
-  "America/Regina": "Central Time (Regina)",
-  "Europe/London": "GMT (London)",
-  "Europe/Paris": "Central European Time",
-  "Europe/Berlin": "Central European Time (Berlin)",
-  "Europe/Rome": "Central European Time (Rome)",
-  "Europe/Madrid": "Central European Time (Madrid)",
-  "Europe/Dublin": "GMT (Dublin)",
-  "Pacific/Honolulu": "Hawaii Time (Honolulu)",
-  "Pacific/Auckland": "New Zealand Time (Auckland)",
-  "Asia/Tokyo": "Japan Time (Tokyo)",
-  "Asia/Shanghai": "China Time (Shanghai)",
-  "Asia/Singapore": "Singapore Time",
-  "Australia/Sydney": "Australian Eastern Time (Sydney)",
-  "Australia/Melbourne": "Australian Eastern Time (Melbourne)",
-  "UTC": "UTC"
+  "America/Los_Angeles": "Pacific Time (PT)",
+  "America/Denver": "Mountain Time (MT)",
+  "America/Chicago": "Central Time (CT)",
+  "America/New_York": "Eastern Time (ET)",
+  "America/Halifax": "Atlantic Time (AT)",
+  "America/Anchorage": "Alaska Time (AKST)",
+  "Pacific/Honolulu": "Hawaii Time (HST)",
+  "Europe/London": "Greenwich Mean Time (GMT)",
+  "Europe/Lisbon": "Western European Time (WET)",
+  "Europe/Berlin": "Central European Time (CET)",
+  "Europe/Athens": "Eastern European Time (EET)",
+  "Asia/Dubai": "Gulf Standard Time (GST)",
+  "Asia/Kolkata": "India Standard Time (IST)",
+  "Asia/Shanghai": "China Standard Time (CST)",
+  "Asia/Singapore": "Singapore Standard Time (SGT)",
+  "Asia/Tokyo": "Japan Standard Time (JST)",
+  "Australia/Sydney": "Australian Eastern Time (AET)",
+  "Pacific/Auckland": "New Zealand Standard Time (NZST)",
+  "America/Sao_Paulo": "Brasília Time (BRT)",
+  "Etc/UTC": "Coordinated Universal Time (UTC)",
 };

@@ -2904,10 +2904,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const slotHour = Math.floor(currentTimeMinutes / 60);
           const slotMin = currentTimeMinutes % 60;
           
-          // Create the appointment time for conflict checking
-          const appointmentDateTime = new Date(requestDate);
-          appointmentDateTime.setHours(slotHour, slotMin, 0, 0);
-          
+          // Create the appointment time for conflict checking IN THE USER'S TIMEZONE
+          const slotTimeStr = `${dateStrInUserTz} ${String(slotHour).padStart(2, '0')}:${String(slotMin).padStart(2, '0')}:00`;
+          const appointmentDateTime = dayjs.tz(slotTimeStr, userTimezone).toDate();
+
           console.log(`Checking slot ${slotIndex++}: ${slotHour}:${slotMin.toString().padStart(2, '0')} (${appointmentDateTime.toISOString()})`);
           
           // Check for conflicts with existing bookings (including buffer times)

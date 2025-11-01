@@ -92,7 +92,7 @@ const CancelledEvent = () => {
     return getTimezoneLabel(tz);
   };
 
-  const handleBackToHomepage = () => {
+  const handleBookNewAppointment = () => {
     if (slug) {
       navigate(`/${slug}`);
     } else {
@@ -118,10 +118,10 @@ const CancelledEvent = () => {
           <h2>Booking Not Found</h2>
           <p>{error || 'We couldn\'t find the booking you\'re looking for.'}</p>
           <button
-            onClick={handleBackToHomepage}
+            onClick={handleBookNewAppointment}
             className="cancelled-event-btn cancelled-event-btn-primary"
           >
-            Back to Homepage
+            Book New Appointment
           </button>
         </div>
       </div>
@@ -146,11 +146,11 @@ const CancelledEvent = () => {
         <div className="cancelled-event-inner-card">
           <div className="cancelled-event-content">
             <div className="cancelled-event-header-wrapper">
-              <div className="cancelled-event-header">
+        <div className="cancelled-event-header">
                 <div className="cancelled-event-title-wrapper">
                   <CancelledEventCrossIcon width={24} height={24} />
                   <h1>Booking Cancelled</h1>
-                </div>
+        </div>
                 <p>Your appointment has been successfully canceled.</p>
               </div>
 
@@ -158,38 +158,38 @@ const CancelledEvent = () => {
                 <div className="cancelled-booking-details">
                   <h2>{apptType?.name || appointmentType?.name || 'Appointment'}</h2>
 
-                  <div className="details-list">
-                    <div className="detail-row">
-                      <ClockIcon />
+              <div className="details-list">
+                <div className="detail-row">
+                  <ClockIcon />
                       <span>{(apptType?.duration || booking.duration)} min</span>
-                    </div>
+                </div>
 
-                    <div className="detail-row">
-                      <CalendarIcon2 />
+                <div className="detail-row">
+                  <CalendarIcon2 />
                       <span>{formatTimeRange(booking.appointmentDate, (apptType?.duration || booking.duration), customerTz)}, {formatDate(booking.appointmentDate, customerTz)}</span>
-                    </div>
+                </div>
 
-                    <div className="detail-row">
-                      <GlobeIcon />
-                      <span>{formatTimezone(customerTz)}</span>
-                    </div>
+                <div className="detail-row">
+                  <GlobeIcon />
+                  <span>{formatTimezone(customerTz)}</span>
+                </div>
 
                     {(apptType?.price > 0 || booking?.price > 0) && (
-                      <div className="detail-row">
-                        <DollarIcon />
+                  <div className="detail-row">
+                    <DollarIcon />
                         <span>${apptType?.price ?? booking?.price}</span>
-                      </div>
-                    )}
                   </div>
+                )}
+              </div>
                 </div>
               </div>
 
               <div className="cancelled-event-actions">
                 <button
-                  onClick={handleBackToHomepage}
+                  onClick={handleBookNewAppointment}
                   className="cancelled-event-btn"
                 >
-                  <span>Back to Homepage</span>
+                  <span>Book New Appointment</span>
                 </button>
               </div>
             </div>

@@ -317,6 +317,10 @@ const Availability = () => {
                 }}
                 options={timezoneOptions}
                 showCurrentTime={true}
+                disabled={true}
+                onDisabledClick={() => {
+                  toast.info("Your timezone is managed in your Account settings.");
+                }}
               />
             </div>
             <div className="datespecific-con">

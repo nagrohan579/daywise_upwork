@@ -198,7 +198,7 @@ const PublicBooking = () => {
       const slots = data.slots || [];
       console.log('Setting available slots:', slots);
       setAvailableTimeSlots(slots);
-      return slots;
+    return slots;
     } catch (error) {
       console.error('Error fetching time slots:', error);
       toast.error('Failed to load available time slots');
@@ -458,9 +458,9 @@ const PublicBooking = () => {
           <div className="steps-one">
             <div className="left">
               {branding?.usePlatformBranding !== false && (
-                <div className="daywise-branding">
-                  <button className="powered-by-button">Powered by Daywise</button>
-                </div>
+              <div className="daywise-branding">
+                <button className="powered-by-button">Powered by Daywise</button>
+              </div>
               )}
 
               <div className="profile-con">
@@ -477,32 +477,36 @@ const PublicBooking = () => {
                       }}
                     />
                   </div>
-                )}
-                {userData.picture && (
+                  )}
+                {branding?.showProfilePicture && (branding?.profilePictureUrl || userData.picture) && (
                   <div className="profile-picture-wrapper">
                     <img
-                      src={
-                        (branding?.showProfilePicture && branding?.profilePictureUrl)
-                          ? branding.profilePictureUrl
-                          : userData.picture
-                      }
+                      src={branding?.profilePictureUrl || userData.picture}
                       alt={`${userData.name || "User"} profile picture`}
                       className="profile-picture"
                       referrerPolicy="no-referrer"
                       onError={(e) => {
-                        const fallbackUrl = userData.picture;
-                        console.error('Failed to load profile picture, trying fallback:', fallbackUrl);
-                        e.currentTarget.src = fallbackUrl;
-                        e.currentTarget.onerror = () => {
+                        // If branding picture fails, try users table picture as fallback
+                        if (branding?.profilePictureUrl && userData.picture && e.currentTarget.src !== userData.picture) {
+                          console.error('Failed to load branding profile picture, trying fallback:', userData.picture);
+                          e.currentTarget.src = userData.picture;
+                          e.currentTarget.onerror = () => {
+                            e.currentTarget.style.display = 'none';
+                          };
+                        } else {
+                          // If users table picture also fails or no fallback available, hide it
+                          console.error('Failed to load profile picture');
                           e.currentTarget.style.display = 'none';
-                        };
+                        }
                       }}
                     />
                   </div>
                 )}
-                <div className="profile-wrapper">
-                  <h5>{userData.name || "User"}</h5>
-                </div>
+                {branding?.showDisplayName && (
+                  <div className="profile-wrapper">
+                    <h5>{branding?.displayName || userData.name}</h5>
+                  </div>
+                )}
 
                 <div className="business-wrapper">
                   <h2>{userData.businessName || "Business Name Here"}</h2>
@@ -558,13 +562,13 @@ const PublicBooking = () => {
                   <BackArrowIcon
                     onClick={goToPrev}
                     style={{ cursor: 'pointer' }}
-                  />
+                    />
                 </div>
                 <div className="heading-con">
                   {branding?.usePlatformBranding !== false && (
-                    <div className="daywise-branding">
-                      <button className="powered-by-button">Powered by Daywise</button>
-                    </div>
+                  <div className="daywise-branding">
+                    <button className="powered-by-button">Powered by Daywise</button>
+                  </div>
                   )}
                   <h1 className="appoint-name">{selectedAppointmentType?.name || "30 Minute Appointment"}</h1>
                   <p>{formatDate(selectedDate)}</p>
@@ -580,7 +584,7 @@ const PublicBooking = () => {
                       }}
                       options={timezoneOptions}
                       placeholder="Select timezone"
-                      style={{ backgroundColor: '#F9FAFF', borderRadius: '50px' }}
+                    style={{ backgroundColor: '#F9FAFF', borderRadius: '50px' }}
                     />
                   </div>
                 </div>
@@ -602,20 +606,20 @@ const PublicBooking = () => {
                         return (
                           <div key={originalTime} className="time-slot-row">
                             {selectedTime === originalTime ? (
-                              <div className="time-slot-selected">
+                          <div className="time-slot-selected">
                                 <div className="selected-time-text">{displayTime}</div>
-                                <button className="next-btn" onClick={goToNext}>
-                                  Next
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                className="time-slot-btn"
+                            <button className="next-btn" onClick={goToNext}>
+                              Next
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            className="time-slot-btn"
                                 onClick={() => handleTimeSelect(originalTime)}
-                              >
+                          >
                                 {displayTime}
-                              </button>
-                            )}
+                          </button>
+                        )}
                           </div>
                         );
                       })
@@ -638,12 +642,12 @@ const PublicBooking = () => {
                 <BackArrowIcon
                   onClick={goToPrev}
                   style={{ cursor: 'pointer' }}
-                />
+                  />
               </div>
               {branding?.usePlatformBranding !== false && (
-                <div className="daywise-branding">
-                  <button className="powered-by-button">Powered by Daywise</button>
-                </div>
+              <div className="daywise-branding">
+                <button className="powered-by-button">Powered by Daywise</button>
+              </div>
               )}
               <div className="appointment-wrapper">
                 <h2>{selectedAppointmentType?.name || "Appointment Name Here"}</h2>
@@ -724,9 +728,9 @@ const PublicBooking = () => {
               </div>
               <div className="appointment-container">
                 {branding?.usePlatformBranding !== false && (
-                  <div className="daywise-branding">
-                    <button className="powered-by-button">Powered by Daywise</button>
-                  </div>
+                <div className="daywise-branding">
+                  <button className="powered-by-button">Powered by Daywise</button>
+                </div>
                 )}
                 <div className="booking-details">
                   <h1>{selectedAppointmentType?.name || "Appointment Name Here"}</h1>

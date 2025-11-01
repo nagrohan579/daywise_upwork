@@ -15,6 +15,7 @@ const Select = ({
   error,
   children,
   disabled = false,
+  onDisabledClick,
 }) => {
   const [open, setOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
@@ -220,7 +221,15 @@ const Select = ({
               tabIndex={0}
               aria-expanded={open}
               className={`select-box ${error ? "select-error" : ""} ${disabled ? 'select-disabled' : ''}`}
-              onClick={() => !disabled && setOpen(!open)}
+              onClick={() => {
+                if (disabled) {
+                  if (onDisabledClick) {
+                    onDisabledClick();
+                  }
+                  return;
+                }
+                setOpen(!open);
+              }}
               style={style}
             >
               <span className={`select-text ${!value ? "select-placeholder" : ""}`}>

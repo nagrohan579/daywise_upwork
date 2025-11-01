@@ -1,7 +1,12 @@
-const ToggleSwitch = ({ checked, onchange }) => {
+const ToggleSwitch = ({ checked, onchange, disabled = false }) => {
   return (
-    <label className="switch">
-      <input type="checkbox" checked={checked} onChange={onchange} />
+    <label className={`switch ${disabled ? 'switch-disabled' : ''}`}>
+      <input 
+        type="checkbox" 
+        checked={checked} 
+        onChange={onchange} 
+        disabled={disabled}
+      />
       <span className="slider round"></span>
     </label>
   );

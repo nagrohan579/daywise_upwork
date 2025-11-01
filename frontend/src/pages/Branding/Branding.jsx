@@ -16,12 +16,19 @@ const Branding = () => {
   const [showPreviewBooking, setShowPreviewBooking] = useState(false);
   const [logoUrl, setLogoUrl] = useState(null);
   const [profileUrl, setProfileUrl] = useState(null);
+  const [displayName, setDisplayName] = useState("");
   const [isShownName, setIsShownName] = useState(true);
   const [isShownProfilePic, setIsShownProfilePic] = useState(true);
   const [toggleDaywiseBranding, setToggleDayWiseBranding] = useState(true);
   const [logoUploading, setLogoUploading] = useState(false);
   const [profileUploading, setProfileUploading] = useState(false);
+  const [deletingLogo, setDeletingLogo] = useState(false);
+  const [deletingProfilePic, setDeletingProfilePic] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [savingName, setSavingName] = useState(false);
+  const [savingProfilePic, setSavingProfilePic] = useState(false);
+  const [savingDaywiseBranding, setSavingDaywiseBranding] = useState(false);
+  const [savingDisplayName, setSavingDisplayName] = useState(false);
 
   // Fetch existing branding data on mount
   useEffect(() => {
@@ -43,6 +50,9 @@ const Branding = () => {
             console.log('Setting profile URL:', data.profilePictureUrl);
             setProfileUrl(data.profilePictureUrl);
           }
+          if (data.displayName !== undefined) {
+            setDisplayName(data.displayName || "");
+          }
           if (data.showDisplayName !== undefined) setIsShownName(data.showDisplayName);
           if (data.showProfilePicture !== undefined) setIsShownProfilePic(data.showProfilePicture);
           if (data.usePlatformBranding !== undefined) setToggleDayWiseBranding(data.usePlatformBranding);
@@ -59,15 +69,151 @@ const Branding = () => {
     fetchBranding();
   }, []);
 
-  const toggleHandlerShowName = () => {
-    setIsShownName((prev) => !prev);
+  // Auto-save function for branding settings
+  const saveBrandingSettings = async (updates) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      
+      // Get current branding to preserve colors and other settings
+      const currentBrandingResponse = await fetch(`${apiUrl}/api/branding`, {
+        credentials: 'include',
+      });
+      
+      let primary = '#ef4444';
+      let secondary = '#f97316';
+      let accent = '#3b82f6';
+      
+      if (currentBrandingResponse.ok) {
+        const currentBranding = await currentBrandingResponse.json();
+        primary = currentBranding.primary || primary;
+        secondary = currentBranding.secondary || secondary;
+        accent = currentBranding.accent || accent;
+      }
+
+      const response = await fetch(`${apiUrl}/api/branding`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          primary,
+          secondary,
+          accent,
+          ...updates,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to save branding settings');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error saving branding settings:', error);
+      throw error;
+    }
   };
-  const toggleHandlerShowProfile = () => {
-    setIsShownProfilePic((prev) => !prev);
+
+  const toggleHandlerShowName = async () => {
+    if (savingName) return; // Prevent clicks while saving
+    const newValue = !isShownName;
+    setSavingName(true);
+    
+    try {
+      // Don't update UI yet - keep toggle in current position while saving
+      await saveBrandingSettings({
+        displayName: displayName,
+        showDisplayName: newValue,
+        showProfilePicture: isShownProfilePic,
+        usePlatformBranding: toggleDaywiseBranding,
+      });
+      
+      // Only update UI after successful save
+      setIsShownName(newValue);
+      toast.success(newValue ? "Display name is now shown" : "Display name is now hidden");
+    } catch (error) {
+      toast.error(error.message || 'Failed to update display name setting');
+    } finally {
+      setSavingName(false);
+    }
   };
-  const toggleHandlerDayWiseBranding = () => {
-    setToggleDayWiseBranding((pre) => !pre);
+
+  const toggleHandlerShowProfile = async () => {
+    if (savingProfilePic) return; // Prevent clicks while saving
+    const newValue = !isShownProfilePic;
+    setSavingProfilePic(true);
+    
+    try {
+      // Don't update UI yet - keep toggle in current position while saving
+      await saveBrandingSettings({
+        displayName: displayName,
+        showDisplayName: isShownName,
+        showProfilePicture: newValue,
+        usePlatformBranding: toggleDaywiseBranding,
+      });
+      
+      // Only update UI after successful save
+      setIsShownProfilePic(newValue);
+      toast.success(newValue ? "Profile picture is now shown" : "Profile picture is now hidden");
+    } catch (error) {
+      toast.error(error.message || 'Failed to update profile picture setting');
+    } finally {
+      setSavingProfilePic(false);
+    }
   };
+
+  const toggleHandlerDayWiseBranding = async () => {
+    if (savingDaywiseBranding) return; // Prevent clicks while saving
+    const newValue = !toggleDaywiseBranding;
+    setSavingDaywiseBranding(true);
+    
+    try {
+      // Don't update UI yet - keep toggle in current position while saving
+      await saveBrandingSettings({
+        displayName: displayName,
+        showDisplayName: isShownName,
+        showProfilePicture: isShownProfilePic,
+        usePlatformBranding: newValue,
+      });
+      
+      // Only update UI after successful save
+      setToggleDayWiseBranding(newValue);
+      toast.success(newValue ? "Daywise branding is now shown" : "Daywise branding is now hidden");
+    } catch (error) {
+      toast.error(error.message || 'Failed to update Daywise branding setting');
+    } finally {
+      setSavingDaywiseBranding(false);
+    }
+  };
+
+  // Debounced auto-save for display name
+  useEffect(() => {
+    if (loading) return; // Don't save on initial load
+    
+    const timeoutId = setTimeout(async () => {
+      if (displayName === undefined || displayName === null) return; // Don't save if not initialized
+      
+      setSavingDisplayName(true);
+      try {
+        await saveBrandingSettings({
+          displayName: displayName,
+          showDisplayName: isShownName,
+          showProfilePicture: isShownProfilePic,
+          usePlatformBranding: toggleDaywiseBranding,
+        });
+        toast.success("Display name saved");
+      } catch (error) {
+        toast.error(error.message || 'Failed to save display name');
+      } finally {
+        setSavingDisplayName(false);
+      }
+    }, 1000); // 1 second debounce
+
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayName]);
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -115,11 +261,10 @@ const Branding = () => {
   };
 
   const handleDelete = async () => {
-    if (!logoUrl) return;
+    if (!logoUrl || deletingLogo) return;
 
     const previous = logoUrl;
-    // Optimistic UI update
-    setLogoUrl(null);
+    setDeletingLogo(true);
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -134,11 +279,14 @@ const Branding = () => {
       }
 
       toast.success('Logo removed');
+      // Only clear logoUrl after successful deletion and toast
+      setLogoUrl(null);
     } catch (error) {
       console.error('Error deleting logo:', error);
-      // Revert on failure
-      setLogoUrl(previous);
       toast.error(error.message || 'Failed to delete logo');
+      // logoUrl stays as previous since we didn't clear it
+    } finally {
+      setDeletingLogo(false);
     }
   };
 
@@ -194,11 +342,10 @@ const Branding = () => {
   };
 
   const handleDeleteAvatar = async () => {
-    if (!profileUrl) return;
+    if (!profileUrl || deletingProfilePic) return;
 
     const previous = profileUrl;
-    // Optimistic UI update
-    setProfileUrl(null);
+    setDeletingProfilePic(true);
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -213,11 +360,14 @@ const Branding = () => {
       }
 
       toast.success('Profile picture removed');
+      // Only clear profileUrl after successful deletion and toast
+      setProfileUrl(null);
     } catch (error) {
       console.error('Error deleting profile picture:', error);
-      // Revert on failure
-      setProfileUrl(previous);
       toast.error(error.message || 'Failed to delete profile picture');
+      // profileUrl stays as previous since we didn't clear it
+    } finally {
+      setDeletingProfilePic(false);
     }
   };
 
@@ -226,59 +376,6 @@ const Branding = () => {
     document.getElementById("profile-upload-input").click();
   };
 
-  const handleSaveChanges = async () => {
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      
-      // Get current branding to preserve colors and other settings
-      const currentBrandingResponse = await fetch(`${apiUrl}/api/branding`, {
-        credentials: 'include',
-      });
-      
-      let primary = '#ef4444';
-      let secondary = '#f97316';
-      let accent = '#3b82f6';
-      
-      if (currentBrandingResponse.ok) {
-        const currentBranding = await currentBrandingResponse.json();
-        primary = currentBranding.primary || primary;
-        secondary = currentBranding.secondary || secondary;
-        accent = currentBranding.accent || accent;
-      }
-
-      // Save toggle values along with existing branding colors
-      const response = await fetch(`${apiUrl}/api/branding`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          primary,
-          secondary,
-          accent,
-          usePlatformBranding: toggleDaywiseBranding,
-          showDisplayName: isShownName,
-          showProfilePicture: isShownProfilePic,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to save branding settings');
-      }
-
-      // Confirm successful save
-      const savedData = await response.json();
-      console.log('Branding settings saved successfully:', savedData);
-      toast.success('All branding settings have been saved successfully!', {
-        duration: 3000,
-      });
-    } catch (error) {
-      console.error('Error saving branding settings:', error);
-      toast.error(error.message || 'Failed to save branding settings');
-    }
-  };
 
   return (
     <AppLayout>
@@ -377,9 +474,16 @@ const Branding = () => {
                     type="button"
                     className="delete-btn"
                     onClick={handleDelete}
+                    disabled={deletingLogo}
                   >
-                    <RiDeleteBin5Line size={18} />
-                    Delete
+                    {deletingLogo ? (
+                      "Deleting..."
+                    ) : (
+                      <>
+                        <RiDeleteBin5Line size={18} />
+                        Delete
+                      </>
+                    )}
                   </button>
                 )}
 
@@ -405,6 +509,7 @@ const Branding = () => {
                 <ToggleSwitch
                   checked={isShownName}
                   onchange={toggleHandlerShowName}
+                  disabled={savingName}
                 />
                 <span
                   className="toggle-label "
@@ -415,8 +520,11 @@ const Branding = () => {
               </div>
             </div>
             <Input
-              placeholder={"Type your name here"}
-              style={{ boxShadow: "0px 1px 2px 0px #0000000D" }}
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder={savingDisplayName ? "Saving..." : "Type your name here"}
+              style={{ boxShadow: "0px 1px 2px 0px #0000000D", opacity: savingDisplayName ? 0.6 : 1 }}
+              readOnly={savingDisplayName}
             />
           </div>
 
@@ -434,6 +542,7 @@ const Branding = () => {
                 <ToggleSwitch
                   checked={isShownProfilePic}
                   onchange={toggleHandlerShowProfile}
+                  disabled={savingProfilePic}
                 />
                 <span
                   className="toggle-label "
@@ -477,9 +586,16 @@ const Branding = () => {
                       type="button"
                       className="delete-btn"
                       onClick={handleDeleteAvatar}
+                      disabled={deletingProfilePic}
                     >
-                      <RiDeleteBin5Line size={18} />
-                      Delete
+                      {deletingProfilePic ? (
+                        "Deleting..."
+                      ) : (
+                        <>
+                          <RiDeleteBin5Line size={18} />
+                          Delete
+                        </>
+                      )}
                     </button>
                   )}
                 </div>
@@ -510,6 +626,7 @@ const Branding = () => {
                 <ToggleSwitch
                   checked={toggleDaywiseBranding}
                   onchange={toggleHandlerDayWiseBranding}
+                  disabled={savingDaywiseBranding}
                 />
                 <span
                   className="toggle-label "
@@ -588,9 +705,6 @@ const Branding = () => {
               }}
               onClick={() => setShowPreviewBooking(true)}
             />
-          </div>
-          <div className="btn-submit-con">
-            <Button text={"Save Changes"} onClick={handleSaveChanges} />
           </div>
         </div>
         )}

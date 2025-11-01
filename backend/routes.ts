@@ -32,7 +32,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize dayjs plugins
   dayjs.extend(utc);
   dayjs.extend(timezone);
-
+  
   // Initialize Google OAuth client
   const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -891,7 +891,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if user exists in storage (uses Convex)
       const user = await storage.getUserByEmail(email);
-      
+
       if (!user) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
@@ -908,7 +908,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Verify password using bcrypt (same as regular login)
       const isPasswordValid = await bcrypt.compare(password, user.password);
-      
+
       if (!isPasswordValid) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
@@ -922,17 +922,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name: user.name,
         isAdmin: user.isAdmin
       };
-      
-      res.json({ 
-        message: "Admin login successful", 
-        user: { 
-          id: user._id, 
-          email: user.email, 
-          name: user.name, 
+
+      res.json({
+        message: "Admin login successful",
+        user: {
+          id: user._id,
+          email: user.email,
+          name: user.name,
           isAdmin: true
-        } 
+        }
       });
-      
+
     } catch (error) {
       console.error('Admin login error:', error);
       res.status(500).json({ message: "Admin login failed", error: error instanceof Error ? error.message : "Unknown error" });
@@ -956,7 +956,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if user already exists
       let existingUser = await storage.getUserByEmail(email);
-
+      
       if (existingUser) {
         // Check if it's an admin account
         if (existingUser.isAdmin) {
@@ -1883,16 +1883,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           customerEmail: bookingData.customerEmail,
           businessName: businessUser.businessName || 'My Business',
           businessEmail: businessUser.email,
-          appointmentDate: appointmentDate.toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
+          appointmentDate: appointmentDate.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
           }),
-          appointmentTime: appointmentDate.toLocaleTimeString('en-US', {
-            hour: 'numeric',
+          appointmentTime: appointmentDate.toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
             minute: '2-digit',
-            hour12: true
+            hour12: true 
           }),
           appointmentType: emailAppointmentType.name,
           appointmentDuration: emailAppointmentType.duration,
@@ -2767,7 +2767,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dayName = dayNames[dayOfWeek];
 
       console.log(`Customer date ${date} in ${customerTz} → UTC: ${customerDateUTC.format('YYYY-MM-DD HH:mm:ss')} → User's timezone (${userTimezone}): ${dateInUserTz.format('YYYY-MM-DD dddd')}, day ${dayOfWeek} (${dayName})`);
-
+      
       // Check if customer's full day (00:00-23:59 in their TZ) spans multiple calendar days in business TZ
       const customerDayStart = customerDateInCustomerTz.startOf('day'); // 00:00 in customer TZ
       const customerDayEnd = customerDateInCustomerTz.endOf('day'); // 23:59:59 in customer TZ
@@ -3075,7 +3075,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: user._id,
         name: user.name,
         businessName: user.businessName, 
-        logoUrl: user.logoUrl,
+        logoUrl: user.logoUrl, 
         picture: user.picture,
         welcomeMessage: user.welcomeMessage, 
         primaryColor: user.primaryColor, 
@@ -3830,7 +3830,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // plan gate using hardened getUserFeatures
       // const { getUserFeatures } = await import("./lib/plan-features");
       // const features = await getUserFeatures(userId);
-
+      
       // if (!features.customBranding) {
       //   return res.status(403).json({ message: "Logo upload not available in your plan" });
       // }
@@ -3913,7 +3913,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // plan gate using hardened getUserFeatures
       // const { getUserFeatures } = await import("./lib/plan-features");
       // const features = await getUserFeatures(userId);
-
+      
       // if (!features.customBranding) {
       //   return res.status(403).json({ message: "Profile picture upload not available in your plan" });
       // }

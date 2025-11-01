@@ -325,6 +325,22 @@ input:checked + .slider:before {
   border-radius: 50%;
 }
 
+/* Disabled state for toggle switch */
+.switch-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.switch-disabled .slider {
+  cursor: not-allowed;
+  background-color: #ccc !important; /* Gray when disabled */
+}
+
+.switch-disabled input:checked + .slider {
+  background-color: #ccc !important; /* Gray even when checked and disabled */
+}
+
 @media (max-width: 991px) {
   .input-group-comp .input-field {
     width: 100%;

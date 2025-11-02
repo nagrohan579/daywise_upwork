@@ -56,12 +56,33 @@
   margin-top: 34px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
 }
 .booking-page .center-con .wrap {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.booking-page .booking-limit-text-wrap {
+  margin-top: 30px;
+  margin-left: 10px;
+}
+
+.booking-page .booking-limit-text-wrap .booking-limit-text {
+  color: #64748b;
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  margin: 0;
+}
+
+.booking-page .booking-limit-text-wrap .booking-limit-text strong {
+  font-weight: 600;
+  color: #121212;
 }
 .booking-page .center-con .wrap button {
   outline: none;
@@ -85,6 +106,11 @@
   background-color: #0053f1;
   color: #fff;
   border: none;
+}
+
+.booking-page .add-appointment-btn-wrap {
+  display: flex;
+  align-items: center;
 }
 
 .booking-page .no-appointment-con {

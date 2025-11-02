@@ -42,44 +42,39 @@ const Service = () => {
     fetchUser();
   }, []);
 
-  // Fetch user features to check appointment type limit
-  useEffect(() => {
-    const fetchFeatures = async () => {
-      try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        const response = await fetch(`${apiUrl}/api/user-subscriptions/me`, {
-          credentials: 'include',
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setAppointmentTypeLimit(data.features?.appointmentTypeLimit ?? null);
-        }
-      } catch (error) {
-        console.error('Error fetching features:', error);
-      }
-    };
-    fetchFeatures();
-  }, []);
-
-  // Fetch appointment types from API
+  // Fetch appointment types and user features together
   const fetchAppointmentTypes = async () => {
     if (!userId) return;
     
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      const response = await fetch(`${apiUrl}/api/appointment-types`, {
-        credentials: 'include',
-      });
       
-      if (response.ok) {
-        const data = await response.json();
+      // Fetch both in parallel
+      const [appointmentTypesResponse, featuresResponse] = await Promise.all([
+        fetch(`${apiUrl}/api/appointment-types`, {
+          credentials: 'include',
+        }),
+        fetch(`${apiUrl}/api/user-subscriptions/me`, {
+          credentials: 'include',
+        })
+      ]);
+      
+      if (appointmentTypesResponse.ok) {
+        const data = await appointmentTypesResponse.json();
         setAppointmentTypes(data || []);
       } else {
         console.error('Failed to fetch appointment types');
         setAppointmentTypes([]);
       }
+      
+      if (featuresResponse.ok) {
+        const featuresData = await featuresResponse.json();
+        setAppointmentTypeLimit(featuresData.features?.appointmentTypeLimit ?? null);
+      } else {
+        console.error('Failed to fetch features');
+      }
     } catch (error) {
-      console.error('Error fetching appointment types:', error);
+      console.error('Error fetching data:', error);
       setAppointmentTypes([]);
     } finally {
       setLoading(false);
@@ -166,17 +161,30 @@ const Service = () => {
           </h1>
           <p>Manage your service offerings and appointment types</p>
         </div>
-        <div className="add-new-btn-wrap">
-          <Button
-            text={isMobile ? "New" : "Add New"}
-            style={{
-              width: isMobile ? "75px" : "",
-            }}
-            icon={<FaPlus color="#fff" />}
-            variant="primary"
-            onClick={handleAddNew}
-          />
-        </div>
+        {!loading && (
+          <div className="add-new-btn-wrap">
+            <Button
+              text={isMobile ? "New" : "Add New"}
+              style={{
+                width: isMobile ? "75px" : "",
+                ...(appointmentTypeLimit === 1 && appointmentTypes.length >= appointmentTypeLimit ? {
+                  backgroundColor: '#64748B33',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#64748B80',
+                } : {})
+              }}
+              icon={<FaPlus color={appointmentTypeLimit === 1 && appointmentTypes.length >= appointmentTypeLimit ? "#64748B80" : "#fff"} />}
+              variant="primary"
+              onClick={handleAddNew}
+            />
+            {appointmentTypeLimit !== null && (
+              <p className="service-limit-text">
+                <strong>{appointmentTypes.length} of {appointmentTypeLimit}</strong> Services/appointments added. Upgrade to add more.
+              </p>
+            )}
+          </div>
+        )}
         
         {loading ? (
           <div className="service-loading">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SignUpSchema } from "../../lib";
@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Input from "../../components/ui/Input/Input";
 import { toast } from "sonner";
 import { detectUserLocation } from "../../utils/locationDetection";
+import "./Signup.css";
 
 // Google Icon component
 const GoogleIcon = () => (
@@ -38,14 +39,86 @@ const SignupPage = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
+  const [passwordValue, setPasswordValue] = useState("");
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
+
+  // Calculate password strength
+  const calculatePasswordStrength = (password) => {
+    if (!password) return { strength: "none", percentage: 0, label: "" };
+
+    let score = 0;
+    const checks = {
+      length: password.length >= 12,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /[0-9]/.test(password),
+      special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+    };
+
+    if (checks.length) score += 20;
+    if (checks.uppercase) score += 20;
+    if (checks.lowercase) score += 20;
+    if (checks.number) score += 20;
+    if (checks.special) score += 20;
+
+    if (score <= 20) return { strength: "weak", percentage: 25, label: "Weak" };
+    if (score <= 40) return { strength: "poor", percentage: 50, label: "Poor" };
+    if (score <= 60) return { strength: "fair", percentage: 75, label: "Fair" };
+    if (score <= 80) return { strength: "good", percentage: 87.5, label: "Good" };
+    return { strength: "strong", percentage: 100, label: "Excellent" };
+  };
+
+  // Get missing password requirements
+  const getMissingRequirements = (password) => {
+    const requirements = [];
+    
+    if (!password || password.length < 12) {
+      requirements.push("Password must be at least 12 characters long");
+    }
+    if (!password || !/[A-Z]/.test(password)) {
+      requirements.push("You need at least one capital letter");
+    }
+    if (!password || !/[a-z]/.test(password)) {
+      requirements.push("You need at least one lowercase letter");
+    }
+    if (!password || !/[0-9]/.test(password)) {
+      requirements.push("You need at least one number");
+    }
+    if (!password || !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      requirements.push("You need at least one special character");
+    }
+
+    return requirements;
+  };
+
+  const passwordStrength = calculatePasswordStrength(passwordValue);
+  const missingRequirements = getMissingRequirements(passwordValue);
 
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(SignUpSchema),
   });
+
+  // Watch password field changes
+  const watchedPassword = watch("password");
+  
+  // Update passwordValue when watched password changes
+  useEffect(() => {
+    if (watchedPassword !== undefined) {
+      setPasswordValue(watchedPassword || "");
+    }
+  }, [watchedPassword]);
+
+  // Reset password focus when password field is empty
+  useEffect(() => {
+    if (!passwordValue) {
+      setIsPasswordFocused(false);
+    }
+  }, [passwordValue]);
 
   const onSubmit = async (data) => {
     try {
@@ -166,6 +239,13 @@ const SignupPage = () => {
               disabled={isSubmitting}
               style={{height:"50px"}}
               {...register("password")}
+              onFocus={() => setIsPasswordFocused(true)}
+              onBlur={() => {
+                // Keep it visible if there's content, hide if empty
+                if (!passwordValue) {
+                  setIsPasswordFocused(false);
+                }
+              }}
             />
             <button
               type="button"
@@ -184,6 +264,33 @@ const SignupPage = () => {
               {showPassword ? 'Hide' : 'Show'}
             </button>
           </div>
+
+          {isPasswordFocused && passwordValue && (
+            <div className="password-strength-container">
+              <div className="password-strength-row">
+                <div className="password-strength-bar">
+                  <div 
+                    className={`password-strength-fill password-strength-${passwordStrength.strength}`}
+                    style={{ width: `${passwordStrength.percentage}%` }}
+                  />
+                </div>
+                {passwordStrength.label && (
+                  <div className={`password-strength-label password-strength-${passwordStrength.strength}`}>
+                    {passwordStrength.label}
+                  </div>
+                )}
+              </div>
+              {missingRequirements.length > 0 && (
+                <div className="password-requirements">
+                  {missingRequirements.map((req, index) => (
+                    <div key={index} className="password-requirement-item">
+                      {req}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <button
             type="submit"

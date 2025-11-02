@@ -34,8 +34,9 @@
 }
 .service-page .add-new-btn-wrap {
   display: flex;
-  align-items: center;
-  gap: 20px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
 }
 .service-page .add-new-btn-wrap p {
   color: #64748b;
@@ -46,6 +47,21 @@
   line-height: 20px;
   letter-spacing: 0%;
   vertical-align: middle;
+  margin: 0;
+}
+.service-page .add-new-btn-wrap .service-limit-text {
+  color: #64748b;
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  margin: 0;
+}
+.service-page .add-new-btn-wrap .service-limit-text strong {
+  font-weight: 600;
+  color: #121212;
 }
 .service-page .servies-card-list {
   margin-top: 60px;

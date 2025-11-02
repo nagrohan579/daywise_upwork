@@ -195,6 +195,42 @@
 .addAppointmentModal .input-wrap .select-group .select-box {
   margin: 0; /* Remove any margin that might affect alignment */
 }
+.addAppointmentModal .input-wrap .textarea-group {
+  width: 100%;
+  margin: 0;
+  gap: 0;
+}
+.addAppointmentModal .input-wrap .textarea-group .textarea-field {
+  width: 100%;
+  border: none !important;
+  background-color: transparent !important;
+  padding: 12px 14px 12px 0;
+  height: auto;
+  min-height: auto;
+  resize: none;
+  cursor: default;
+  color: #121212;
+  font-size: 14px;
+  line-height: 20px;
+  font-family: Inter, sans-serif;
+  box-sizing: border-box;
+}
+.addAppointmentModal .input-wrap .textarea-group .textarea-field:focus {
+  outline: none;
+  border: none !important;
+}
+.addAppointmentModal .input-wrap .textarea-group .textarea-field:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.addAppointmentModal .input-wrap.comments-wrap {
+  align-items: flex-start;
+}
+.addAppointmentModal .input-wrap.comments-wrap h5 {
+  align-items: flex-start;
+  height: auto;
+  padding-top: 14px;
+}
 .addAppointmentModal .input-wrap h5 {
   font-family: Inter;
   font-weight: 600;

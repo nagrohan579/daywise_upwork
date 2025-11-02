@@ -1,0 +1,143 @@
+.image-crop-modal .modal-dialog {
+  max-width: 500px;
+  width: 90%;
+  margin: 20px auto;
+}
+
+@media (max-width: 768px) {
+  .image-crop-modal .modal-dialog {
+    max-width: 95%;
+    margin: 10px auto;
+  }
+}
+
+.image-crop-modal .modal-header {
+  border-bottom: 1px solid #E0E9FE;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.image-crop-modal .modal-header .modal-title {
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  color: #121212;
+  margin: 0;
+}
+
+.image-crop-modal .close-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+}
+
+.image-crop-modal .modal-body {
+  padding: 20px;
+}
+
+.crop-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.crop-wrapper {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  background: #f9faff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .crop-wrapper {
+    height: 250px;
+  }
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  background: #f9faff;
+  border-radius: 12px;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.control-row label {
+  font-family: Inter, sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #121212;
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.control-row .slider {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: #E0E9FE;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.control-row .slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #0053F1;
+  cursor: pointer;
+}
+
+.control-row .slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #0053F1;
+  cursor: pointer;
+  border: none;
+}
+
+.control-row .value {
+  font-family: Inter, sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #64748B;
+  min-width: 45px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.image-crop-modal .modal-footer {
+  border-top: 1px solid #E0E9FE;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+

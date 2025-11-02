@@ -1,7 +1,7 @@
 import { Modal } from "react-bootstrap";
 import { IoClose } from "react-icons/io5";
 import "./modal.css";
-import { Input, Select, Button } from "../../index";
+import { Input, Select, Button, Textarea } from "../../index";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -25,6 +25,7 @@ const AddAppointmentModal = ({
     appointmentDate: "",
     appointmentTime: "",
     serviceType: "",
+    notes: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userId, setUserId] = useState(null);
@@ -106,6 +107,7 @@ const AddAppointmentModal = ({
         appointmentDate: appointmentDate,
         appointmentTime: appointmentTime,
         serviceType: eventData.appointmentTypeId || '',
+        notes: eventData.notes || '',
       });
     } else if (isAdd) {
       // Initialize with current date/time for new appointments
@@ -378,6 +380,25 @@ const AddAppointmentModal = ({
               }}
             />
           </div>
+          {(isEdit || isView) && formData.notes && (
+            <div className={`input-wrap comments-wrap ${isView ? "view-wrap" : ""}`}>
+              <h5>Comments</h5>
+              <Textarea
+                placeholder="No notes provided"
+                value={formData.notes}
+                readOnly={true}
+                disabled={true}
+                style={{
+                  border: "none",
+                  backgroundColor: "transparent",
+                  cursor: "default",
+                  width: "100%",
+                  padding: "12px 14px 12px 0",
+                  minHeight: "auto",
+                }}
+              />
+            </div>
+          )}
           {!isView && (
             <div className="btn-wrap">
               <Button

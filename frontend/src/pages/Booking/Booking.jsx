@@ -68,46 +68,54 @@ const BookingsPage = () => {
     fetchUser();
   }, []);
 
-  // Fetch user features to check booking limit
-  useEffect(() => {
-    const fetchFeatures = async () => {
-      try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        const response = await fetch(`${apiUrl}/api/user-subscriptions/me`, {
-          credentials: 'include',
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setBookingLimit(data.features?.bookingLimit ?? null);
-        }
-      } catch (error) {
-        console.error('Error fetching features:', error);
-      }
-    };
-    fetchFeatures();
-  }, []);
+  // Helper function to get current month bookings count
+  const getCurrentMonthBookingsCount = () => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    return bookings.filter((booking) => {
+      const bookingDate = new Date(booking.appointmentDate);
+      return bookingDate.getMonth() === currentMonth && 
+             bookingDate.getFullYear() === currentYear;
+    }).length;
+  };
 
-  // Fetch bookings from API
+  // Fetch bookings and user features together
   const fetchBookings = async () => {
     if (!userId) return;
     
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      const response = await fetch(`${apiUrl}/api/bookings`, {
-        credentials: 'include',
-      });
       
-      if (response.ok) {
-        const data = await response.json();
+      // Fetch both in parallel
+      const [bookingsResponse, featuresResponse] = await Promise.all([
+        fetch(`${apiUrl}/api/bookings`, {
+          credentials: 'include',
+        }),
+        fetch(`${apiUrl}/api/user-subscriptions/me`, {
+          credentials: 'include',
+        })
+      ]);
+      
+      if (bookingsResponse.ok) {
+        const data = await bookingsResponse.json();
         console.log('Booking - Fetched bookings:', data?.length || 0, 'bookings');
         console.log('Booking - Sample booking:', data?.[0]);
         setBookings(data || []);
       } else {
-        console.error('Booking - Failed to fetch bookings, status:', response.status);
+        console.error('Booking - Failed to fetch bookings, status:', bookingsResponse.status);
         setBookings([]);
       }
+      
+      if (featuresResponse.ok) {
+        const featuresData = await featuresResponse.json();
+        setBookingLimit(featuresData.features?.bookingLimit ?? null);
+      } else {
+        console.error('Failed to fetch features');
+      }
     } catch (error) {
-      console.error('Booking - Error fetching bookings:', error);
+      console.error('Booking - Error fetching data:', error);
       setBookings([]);
     } finally {
       setIsLoadingData(false);
@@ -582,36 +590,48 @@ const BookingsPage = () => {
                   Calendar
                 </button>
               </div>
-              <Button
-                text={isMobile ? "New" : "Add Appointment"}
-                style={{ width: isMobile ? "75px" : "" }}
-                icon={<FaPlus color="#fff" />}
-                variant="primary"
-                onClick={() => {
-                  // Check if user has reached monthly booking limit
-                  if (bookingLimit !== null) {
-                    // Filter bookings for current month
-                    const now = new Date();
-                    const currentMonth = now.getMonth();
-                    const currentYear = now.getFullYear();
-                    
-                    const currentMonthBookings = bookings.filter((booking) => {
-                      const bookingDate = new Date(booking.appointmentDate);
-                      return bookingDate.getMonth() === currentMonth && 
-                             bookingDate.getFullYear() === currentYear;
-                    });
-                    
-                    if (currentMonthBookings.length >= bookingLimit) {
-                      toast.error("Upgrade to Pro plan to add more bookings. You have reached your monthly limit.");
-                      return;
-                    }
-                  }
-                  setSelectedBooking(null); // Clear any selection
-                  setModalMode("add");
-                  setShowAddAppointmentModal(true);
-                }}
-              />{" "}
+              {!isLoadingData && (
+                <div className="add-appointment-btn-wrap">
+                  <Button
+                    text={isMobile ? "New" : "Add Appointment"}
+                    style={{
+                      width: isMobile ? "75px" : "",
+                      ...(bookingLimit !== null && getCurrentMonthBookingsCount() >= bookingLimit ? {
+                        backgroundColor: '#64748B33',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: '#64748B80',
+                      } : {})
+                    }}
+                    icon={<FaPlus color={
+                      bookingLimit !== null && getCurrentMonthBookingsCount() >= bookingLimit ? "#64748B80" : "#fff"
+                    } />}
+                    variant="primary"
+                    onClick={() => {
+                      // Check if user has reached monthly booking limit
+                      if (bookingLimit !== null) {
+                        const currentMonthBookingsCount = getCurrentMonthBookingsCount();
+                        
+                        if (currentMonthBookingsCount >= bookingLimit) {
+                          toast.error("Upgrade to Pro plan to add more bookings. You have reached your monthly limit.");
+                          return;
+                        }
+                      }
+                      setSelectedBooking(null); // Clear any selection
+                      setModalMode("add");
+                      setShowAddAppointmentModal(true);
+                    }}
+                  />
+                </div>
+              )}
             </div>
+            {!isLoadingData && bookingLimit !== null && (
+              <div className="booking-limit-text-wrap">
+                <p className="booking-limit-text">
+                  <strong>{getCurrentMonthBookingsCount()} of {bookingLimit}</strong> bookings used this month. Upgrade to add more.
+                </p>
+              </div>
+            )}
 
             {showBookingList && (
               <div className="booking-detail-con">

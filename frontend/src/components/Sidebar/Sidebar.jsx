@@ -216,7 +216,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     <>
       <div className={`sidebar-container ${isOpen ? "is-open" : ""}`}>
         <div className="sidebar-header">
-          <Link to={"/"}>
+          <Link to={"/booking"}>
             <img src="/assets/images/logo.svg" alt="Daywise Logo" />
           </Link>
         </div>
@@ -315,7 +315,7 @@ const AppLayout = ({ children }) => {
         {isSidebarOpen ? (
           <>
             <IoMdClose color="#121212" size={30} onClick={toggleSidebar} />
-            <Link to={"/"}>
+            <Link to={"/booking"}>
               <img
                 src="/assets/images/logo.svg"
                 alt="Daywise Logo"

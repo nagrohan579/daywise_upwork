@@ -178,6 +178,10 @@ export default defineSchema({
     showDisplayName: v.boolean(),
     showProfilePicture: v.boolean(),
     usePlatformBranding: v.boolean(),
+    // Crop data for logo
+    logoCropData: v.optional(v.any()), // { x, y, width, height, zoom, rotation }
+    // Crop data for profile picture
+    profileCropData: v.optional(v.any()), // { x, y, width, height, zoom, rotation }
     updatedAt: v.number(),
   }).index("by_userId", ["userId"]),
 

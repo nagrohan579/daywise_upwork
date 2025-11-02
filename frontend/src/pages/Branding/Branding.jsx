@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   AppLayout,
   Button,
@@ -6,9 +6,12 @@ import {
   PremiumIcon,
   PreviewBookingModal,
   ToggleSwitch,
+  ImageCropEditor,
 } from "../../components";
 import { RiDeleteBin5Line } from "react-icons/ri";
 import { toast } from "sonner";
+import { EditIconBranding } from "../../components/SVGICONS/Svg";
+import { getCroppedImageUrl } from "../../utils/imageCropUtils";
 
 import "./Branding.css";
 
@@ -30,6 +33,17 @@ const Branding = () => {
   const [savingDaywiseBranding, setSavingDaywiseBranding] = useState(false);
   const [savingDisplayName, setSavingDisplayName] = useState(false);
   const [hasCustomBranding, setHasCustomBranding] = useState(false); // Pro plan feature
+
+  // Crop editor state
+  const [showCropEditor, setShowCropEditor] = useState(false);
+  const [cropEditorImage, setCropEditorImage] = useState(null);
+  const [cropEditorType, setCropEditorType] = useState(null); // 'logo' or 'profile'
+  const [logoCropData, setLogoCropData] = useState(null);
+  const [profileCropData, setProfileCropData] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  // Track if displayName has been initialized from API
+  const displayNameInitialized = useRef(false);
 
   // Fetch existing branding data and user features on mount
   useEffect(() => {
@@ -77,8 +91,18 @@ const Branding = () => {
             console.log('Setting profile URL:', data.profilePictureUrl);
             setProfileUrl(data.profilePictureUrl);
           }
+          if (data.logoCropData) {
+            setLogoCropData(data.logoCropData);
+          }
+          if (data.profileCropData) {
+            setProfileCropData(data.profileCropData);
+          }
           if (data.displayName !== undefined) {
             setDisplayName(data.displayName || "");
+            // Mark as initialized so subsequent changes will show toast
+            setTimeout(() => {
+              displayNameInitialized.current = true;
+            }, 100);
           }
           if (data.showDisplayName !== undefined) setIsShownName(data.showDisplayName);
           if (data.showProfilePicture !== undefined) setIsShownProfilePic(data.showProfilePicture);
@@ -232,10 +256,11 @@ const Branding = () => {
   // Debounced auto-save for display name
   useEffect(() => {
     if (loading) return; // Don't save on initial load
-    
+    if (!displayNameInitialized.current) return; // Don't save if not initialized yet
+
     const timeoutId = setTimeout(async () => {
       if (displayName === undefined || displayName === null) return; // Don't save if not initialized
-      
+
       setSavingDisplayName(true);
       try {
         await saveBrandingSettings({
@@ -272,33 +297,18 @@ const Branding = () => {
       return;
     }
 
-    try {
-      setLogoUploading(true);
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch(`${apiUrl}/api/branding/logo`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Upload failed');
-      }
-
-      const data = await response.json();
-      console.log('Logo upload response:', data);
-      setLogoUrl(data.logoUrl);
-      toast.success('Logo uploaded successfully!');
-    } catch (error) {
-      console.error('Error uploading logo:', error);
-      toast.error(error.message || 'Failed to upload logo');
-    } finally {
-      setLogoUploading(false);
-    }
+    // Read file as data URL and show crop editor
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setSelectedFile(file);
+      setCropEditorImage(e.target.result);
+      setCropEditorType('logo');
+      setShowCropEditor(true);
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset input
+    event.target.value = '';
   };
 
   const handleDelete = async () => {
@@ -341,6 +351,70 @@ const Branding = () => {
     document.getElementById("logo-upload-input").click();
   };
 
+  // Handle edit button click for logo
+  const handleEditLogo = () => {
+    if (!logoUrl) return;
+    // Load existing image and show crop editor with previous crop data
+    setCropEditorImage(logoUrl);
+    setCropEditorType('logo');
+    setShowCropEditor(true);
+  };
+
+  // Handle crop editor save for logo
+  const handleLogoCropSave = async (cropData, croppedBlob) => {
+    try {
+      setLogoUploading(true);
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const formData = new FormData();
+      
+      // Use cropped blob if available, otherwise use original file
+      const fileToUpload = croppedBlob ? croppedBlob : selectedFile;
+      if (!fileToUpload) {
+        // If editing existing, we need to upload the cropped version
+        // For now, just save crop data
+        const response = await fetch(`${apiUrl}/api/branding`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ logoCropData: cropData }),
+        });
+        
+        if (response.ok) {
+          setLogoCropData(cropData);
+          toast.success('Logo crop settings saved!');
+        }
+        return;
+      }
+
+      formData.append('file', fileToUpload, selectedFile?.name || 'logo.png');
+      if (cropData) {
+        formData.append('cropData', JSON.stringify(cropData));
+      }
+
+      const response = await fetch(`${apiUrl}/api/branding/logo`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Upload failed');
+      }
+
+      const data = await response.json();
+      setLogoUrl(data.logoUrl);
+      setLogoCropData(data.logoCropData || cropData);
+      toast.success('Logo uploaded successfully!');
+      setSelectedFile(null);
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      toast.error(error.message || 'Failed to upload logo');
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
   // Set Profile Picture
   const handleFileUploadAvatar = async (event) => {
     const file = event.target.files[0];
@@ -358,11 +432,58 @@ const Branding = () => {
       return;
     }
 
+    // Read file as data URL and show crop editor
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setSelectedFile(file);
+      setCropEditorImage(e.target.result);
+      setCropEditorType('profile');
+      setShowCropEditor(true);
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset input
+    event.target.value = '';
+  };
+
+  // Handle edit button click for profile
+  const handleEditProfile = () => {
+    if (!profileUrl) return;
+    // Load existing image and show crop editor with previous crop data
+    setCropEditorImage(profileUrl);
+    setCropEditorType('profile');
+    setShowCropEditor(true);
+  };
+
+  // Handle crop editor save for profile
+  const handleProfileCropSave = async (cropData, croppedBlob) => {
     try {
       setProfileUploading(true);
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       const formData = new FormData();
-      formData.append('file', file);
+      
+      // Use cropped blob if available, otherwise use original file
+      const fileToUpload = croppedBlob ? croppedBlob : selectedFile;
+      if (!fileToUpload) {
+        // If editing existing, just save crop data
+        const response = await fetch(`${apiUrl}/api/branding`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ profileCropData: cropData }),
+        });
+        
+        if (response.ok) {
+          setProfileCropData(cropData);
+          toast.success('Profile picture crop settings saved!');
+        }
+        return;
+      }
+
+      formData.append('file', fileToUpload, selectedFile?.name || 'profile.png');
+      if (cropData) {
+        formData.append('cropData', JSON.stringify(cropData));
+      }
 
       const response = await fetch(`${apiUrl}/api/branding/profile`, {
         method: 'POST',
@@ -376,9 +497,10 @@ const Branding = () => {
       }
 
       const data = await response.json();
-      console.log('Profile picture upload response:', data);
       setProfileUrl(data.profilePictureUrl);
+      setProfileCropData(data.profileCropData || cropData);
       toast.success('Profile picture uploaded successfully!');
+      setSelectedFile(null);
     } catch (error) {
       console.error('Error uploading profile picture:', error);
       toast.error(error.message || 'Failed to upload profile picture');
@@ -475,12 +597,12 @@ const Branding = () => {
         ) : (
           <div className="main-wrapper">
           <div className="logo-con">
-            <h3>
+            <h3 className={!hasCustomBranding ? "grayed-out" : ""}>
               <PremiumIcon />
               Logo
             </h3>
             <div className="upload-con">
-              <div className="logo-display-box">
+              <div className={`logo-display-box ${!hasCustomBranding ? "grayed-out" : ""}`}>
                 {logoUrl ? (
                   // State: Logo uploaded
                   <img
@@ -490,7 +612,7 @@ const Branding = () => {
                   />
                 ) : (
                   // State: No logo
-                  <div className="no-logo-placeholder">No Logo</div>
+                  <div className={`no-logo-placeholder ${!hasCustomBranding ? "grayed-out" : ""}`}>No Logo</div>
                 )}
               </div>
 
@@ -519,6 +641,19 @@ const Branding = () => {
                   {logoUploading ? "Uploading..." : (logoUrl ? "Update Logo" : "Upload logo")}
                 </button>
 
+                {/* Edit button shown only when a logo is uploaded */}
+                {logoUrl && (
+                  <button
+                    type="button"
+                    className="edit-btn"
+                    onClick={handleEditLogo}
+                    disabled={logoUploading || !hasCustomBranding}
+                  >
+                    <span>Edit</span>
+                    <EditIconBranding />
+                  </button>
+                )}
+
                 {/* Delete button shown only when a logo is uploaded */}
                 {logoUrl && (
                   <button
@@ -531,7 +666,7 @@ const Branding = () => {
                       "Deleting..."
                     ) : (
                       <>
-                        <RiDeleteBin5Line size={18} />
+                        <RiDeleteBin5Line size={14} />
                         Delete
                       </>
                     )}
@@ -539,7 +674,7 @@ const Branding = () => {
                 )}
 
                 {!logoUrl && (
-                  <span className="file-info">
+                  <span className={`file-info ${!hasCustomBranding ? "grayed-out" : ""}`}>
                     JPG, GIF, or PNG. Max size of 5MB
                   </span>
                 )}
@@ -631,6 +766,18 @@ const Branding = () => {
                   >
                     {profileUploading ? "Uploading..." : (profileUrl ? "Update Picture" : "Upload Picture")}
                   </button>
+                  {/* Edit button shown only when a profile picture is uploaded */}
+                  {profileUrl && (
+                    <button
+                      type="button"
+                      className="edit-btn"
+                      onClick={handleEditProfile}
+                      disabled={profileUploading}
+                    >
+                      <span>Edit</span>
+                      <EditIconBranding />
+                    </button>
+                  )}
                   {/* Delete button shown only when a logo is uploaded */}
                   {profileUrl && (
                     <button
@@ -663,7 +810,7 @@ const Branding = () => {
 
           <div className="user-display-name-con daywise-branding">
             <div className="top">
-              <h3>
+              <h3 className={!hasCustomBranding ? "grayed-out" : ""}>
                 <PremiumIcon /> Use Daywise branding
               </h3>
               <div className="toggle-con">
@@ -688,9 +835,9 @@ const Branding = () => {
               </div>
             </div>
 
-            <div className="info-text">
+            <div className={`info-text ${!hasCustomBranding ? "grayed-out" : ""}`}>
               <p>
-                Daywise’s branding will be displayed on your scheduling page,
+                Daywise's branding will be displayed on your scheduling page,
                 notifications, and confirmations.
               </p>
             </div>
@@ -698,7 +845,7 @@ const Branding = () => {
 
           <div className="user-display-name-con brand-color-con">
             <div className="top">
-              <h3>
+              <h3 className={!hasCustomBranding ? "grayed-out" : ""}>
                 <PremiumIcon /> Your Brand Colors
               </h3>
             </div>
@@ -775,6 +922,21 @@ const Branding = () => {
       <PreviewBookingModal
         showPreviewBooking={showPreviewBooking}
         setShowPreviewBooking={setShowPreviewBooking}
+      />
+      
+      {/* Image Crop Editor */}
+      <ImageCropEditor
+        show={showCropEditor}
+        onClose={() => {
+          setShowCropEditor(false);
+          setCropEditorImage(null);
+          setCropEditorType(null);
+        }}
+        imageSrc={cropEditorImage}
+        onSave={cropEditorType === 'logo' ? handleLogoCropSave : handleProfileCropSave}
+        initialCropData={cropEditorType === 'logo' ? logoCropData : profileCropData}
+        aspectRatio={cropEditorType === 'profile' ? 1 : undefined}
+        shape={cropEditorType === 'profile' ? 'round' : 'rect'}
       />
     </AppLayout>
   );

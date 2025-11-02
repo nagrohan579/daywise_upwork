@@ -1,0 +1,98 @@
+/* Password Strength Indicator */
+.password-strength-container {
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+.password-strength-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.password-strength-bar {
+  flex: 1;
+  max-width: calc(100% - 70px);
+  height: 3px;
+  background-color: #e5e7eb;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.password-strength-fill {
+  height: 100%;
+  transition: width 0.3s ease, background-color 0.3s ease;
+  border-radius: 2px;
+}
+
+.password-strength-weak {
+  background-color: #ef4444; /* Red */
+}
+
+.password-strength-poor {
+  background-color: #f59e0b; /* Orange */
+}
+
+.password-strength-fair {
+  background-color: #eab308; /* Yellow */
+}
+
+.password-strength-good {
+  background-color: #10b981; /* Green */
+}
+
+.password-strength-strong {
+  background-color: #059669; /* Dark Green */
+}
+
+.password-strength-label {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 0.3s ease;
+  min-width: 70px;
+  text-align: center;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  height: auto;
+  width: auto;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.password-strength-label.password-strength-weak {
+  color: #ef4444;
+}
+
+.password-strength-label.password-strength-poor {
+  color: #f59e0b;
+}
+
+.password-strength-label.password-strength-fair {
+  color: #eab308;
+}
+
+.password-strength-label.password-strength-good {
+  color: #10b981;
+}
+
+.password-strength-label.password-strength-strong {
+  color: #059669;
+}
+
+.password-requirements {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.password-requirement-item {
+  font-size: 12px;
+  color: #ef4444;
+  line-height: 16px;
+}
+

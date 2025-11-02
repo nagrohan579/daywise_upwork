@@ -13,7 +13,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import { mapToSupportedTimezone } from "./lib/timezoneMapper";
-import { toUTC, toLocal, getDayOfWeek, getDateInTimezone, customerDateToUTC } from "./lib/timezoneUtils";
+import { toUTC, toLocal, getDayOfWeek, getDateInTimezone, customerDateToUTC, formatDateForEmail, formatTimeForEmail, formatDateTimeForEmail } from "./lib/timezoneUtils";
 import { storage } from "./storage";
 import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
 import { insertUserSchema, insertBookingSchema, insertAvailabilitySchema, insertBlockedDateSchema, insertAppointmentTypeSchema, insertAvailabilityPatternSchema, insertAppointmentTypeAvailabilitySchema, insertAvailabilityExceptionSchema, insertSubscriptionPlanSchema, insertUserSubscriptionSchema, insertBrandingSchema, insertFeedbackSchema, availabilitySettingsSchema, loginSchema, signupSchema, resendVerificationSchema, changePasswordSchema, changeEmailSchema, disconnectGoogleSchema, forgotPasswordSchema, resetPasswordSchema, checkoutStartSchema, validateCouponSchema } from "./schemas";
@@ -1905,22 +1905,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Generated eventUrl:', eventUrl);
         console.log('Frontend URL:', frontendUrl);
 
-        const emailData = {
+        // Determine timezones for email formatting
+        const customerTimezone = bookingData.customerTimezone || businessUser.timezone || 'Etc/UTC';
+        const businessTimezone = businessUser.timezone || 'Etc/UTC';
+
+        // Format dates for customer email (in customer's timezone)
+        const customerEmailData = {
           customerName: bookingData.customerName,
           customerEmail: bookingData.customerEmail,
           businessName: businessUser.businessName || 'My Business',
           businessEmail: businessUser.email,
-          appointmentDate: appointmentDate.toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          }),
-          appointmentTime: appointmentDate.toLocaleTimeString('en-US', { 
-            hour: 'numeric', 
-            minute: '2-digit',
-            hour12: true 
-          }),
+          appointmentDate: formatDateForEmail(appointmentDate, customerTimezone),
+          appointmentTime: formatTimeForEmail(appointmentDate, customerTimezone),
           appointmentType: emailAppointmentType.name,
           appointmentDuration: emailAppointmentType.duration,
           businessColors: branding ? {
@@ -1933,11 +1929,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           bookingUrl: eventUrl
         };
 
+        // Format dates for business email (in business user's timezone)
+        const businessEmailData = {
+          ...customerEmailData,
+          appointmentDate: formatDateForEmail(appointmentDate, businessTimezone),
+          appointmentTime: formatTimeForEmail(appointmentDate, businessTimezone),
+        };
+
         // Send emails asynchronously - don't block the response
-        console.log('Sending email with bookingUrl:', emailData.bookingUrl);
+        console.log('Sending email with bookingUrl:', customerEmailData.bookingUrl);
         Promise.all([
-          sendCustomerConfirmation(emailData),
-          sendBusinessNotification(emailData)
+          sendCustomerConfirmation(customerEmailData),
+          sendBusinessNotification(businessEmailData)
         ]).then(() => {
           console.log('Booking confirmation emails sent successfully');
         }).catch(error => {
@@ -2248,21 +2251,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           accent: branding.accent,
         } : undefined;
 
+        // Use customer's timezone for customer email, fallback to business timezone
+        const customerTimezone = updatedBooking.customerTimezone || user.timezone || 'Etc/UTC';
+
         await sendRescheduleConfirmation({
           customerName: updatedBooking.customerName,
           customerEmail: updatedBooking.customerEmail,
           businessName: user.businessName || user.name || 'DayWise',
           businessEmail: user.email,
-          appointmentDate: new Date(updatedBooking.appointmentDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-          appointmentTime: new Date(updatedBooking.appointmentDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+          appointmentDate: formatDateForEmail(updatedBooking.appointmentDate, customerTimezone),
+          appointmentTime: formatTimeForEmail(updatedBooking.appointmentDate, customerTimezone),
           appointmentType: appointmentType.name,
           appointmentDuration: appointmentType.duration,
           businessColors,
           businessLogo: branding?.logoUrl,
           usePlatformBranding: branding?.usePlatformBranding,
           bookingUrl,
-          oldAppointmentDate: new Date(existingBooking.appointmentDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-          oldAppointmentTime: new Date(existingBooking.appointmentDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+          oldAppointmentDate: formatDateForEmail(existingBooking.appointmentDate, customerTimezone),
+          oldAppointmentTime: formatTimeForEmail(existingBooking.appointmentDate, customerTimezone),
         });
         console.log(`✅ Reschedule confirmation email sent to ${existingBooking.customerEmail}`);
       } catch (emailError) {
@@ -2595,38 +2601,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const userFeatures = await getUserFeatures(booking.userId);
           
           if (user && appointmentType) {
-            const emailData = {
+            // Determine timezones for email formatting
+            const customerTimezone = booking.customerTimezone || user.timezone || 'Etc/UTC';
+            const businessTimezone = user.timezone || 'Etc/UTC';
+
+            // Base email data (timezone-independent fields)
+            const baseEmailData = {
               customerName: booking.customerName,
               customerEmail: booking.customerEmail,
               businessName: user.businessName || user.name,
               businessEmail: user.email,
               appointmentType: appointmentType.name,
               appointmentDuration: appointmentType.duration,
-              appointmentDate: new Date(booking.appointmentDate).toLocaleDateString(),
-              appointmentTime: new Date(booking.appointmentDate).toLocaleTimeString(),
               businessColors: branding ? {
                 primary: branding.primary,
                 secondary: branding.secondary,
                 accent: branding.accent
               } : undefined,
-            businessLogo: branding?.logoUrl,
-            usePlatformBranding: userFeatures?.poweredBy || false,
-          };
-          
+              businessLogo: branding?.logoUrl,
+              usePlatformBranding: userFeatures?.poweredBy || false,
+            };
+
+            // Customer email data (formatted in customer's timezone)
+            const customerEmailData = {
+              ...baseEmailData,
+              appointmentDate: formatDateForEmail(booking.appointmentDate, customerTimezone),
+              appointmentTime: formatTimeForEmail(booking.appointmentDate, customerTimezone),
+            };
+
+            // Business email data (formatted in business user's timezone)
+            const businessEmailData = {
+              ...baseEmailData,
+              appointmentDate: formatDateForEmail(booking.appointmentDate, businessTimezone),
+              appointmentTime: formatTimeForEmail(booking.appointmentDate, businessTimezone),
+            };
+
           // Check if booking was cancelled
           if (existingBooking.status !== 'cancelled' && booking.status === 'cancelled') {
-            await sendCancellationConfirmation(emailData);
-            await sendCancellationBusinessNotification(emailData);
+            await sendCancellationConfirmation(customerEmailData);
+            await sendCancellationBusinessNotification(businessEmailData);
           }
           // Check if booking was rescheduled (date/time changed)
           else if (existingBooking.appointmentDate !== booking.appointmentDate) {
-            const oldEmailData = {
-              ...emailData,
-              oldAppointmentDate: new Date(existingBooking.appointmentDate).toLocaleDateString(),
-              oldAppointmentTime: new Date(existingBooking.appointmentDate).toLocaleTimeString(),
+            const oldCustomerEmailData = {
+              ...customerEmailData,
+              oldAppointmentDate: formatDateForEmail(existingBooking.appointmentDate, customerTimezone),
+              oldAppointmentTime: formatTimeForEmail(existingBooking.appointmentDate, customerTimezone),
             };
-            await sendRescheduleConfirmation(oldEmailData);
-            await sendRescheduleBusinessNotification(oldEmailData);
+            const oldBusinessEmailData = {
+              ...businessEmailData,
+              oldAppointmentDate: formatDateForEmail(existingBooking.appointmentDate, businessTimezone),
+              oldAppointmentTime: formatTimeForEmail(existingBooking.appointmentDate, businessTimezone),
+            };
+            await sendRescheduleConfirmation(oldCustomerEmailData);
+            await sendRescheduleBusinessNotification(oldBusinessEmailData);
           }
         }
         } else {
@@ -3869,7 +3897,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const session = req.session as any;
       const userId = session.userId;
-      const { primary, secondary, accent, usePlatformBranding, displayName, showDisplayName, showProfilePicture } = req.body || {};
+      const { primary, secondary, accent, usePlatformBranding, displayName, showDisplayName, showProfilePicture, logoCropData, profileCropData } = req.body || {};
       
       // Plan gate using feature system (disallow custom colors on Free)
       // TODO: Re-enable plan gate later
@@ -3907,7 +3935,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           usePlatformBranding: nextUsePlatformBranding,
           displayName,
           showDisplayName, 
-          showProfilePicture
+          showProfilePicture,
+          logoCropData: logoCropData !== undefined ? logoCropData : undefined,
+          profileCropData: profileCropData !== undefined ? profileCropData : undefined
         });
       }
 
@@ -3972,8 +4002,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         contentType: file.mimetype,
       });
 
-      await storage.updateBranding(userId, { logoUrl, updatedAt: Date.now() });
-      return res.json({ logoUrl });
+      // Parse crop data if provided
+      let logoCropData = null;
+      if (req.body.cropData) {
+        try {
+          logoCropData = JSON.parse(req.body.cropData);
+        } catch (e) {
+          console.error('Error parsing logo crop data:', e);
+        }
+      }
+
+      await storage.updateBranding(userId, { 
+        logoUrl, 
+        logoCropData: logoCropData || undefined,
+        updatedAt: Date.now() 
+      });
+      return res.json({ logoUrl, logoCropData });
     } catch (e: any) {
       return res.status(500).json({ message: e?.message ?? "Upload failed" });
     }
@@ -4054,8 +4098,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         contentType: file.mimetype,
       });
 
-      await storage.updateBranding(userId, { profilePictureUrl, updatedAt: Date.now() });
-      return res.json({ profilePictureUrl });
+      // Parse crop data if provided
+      let profileCropData = null;
+      if (req.body.cropData) {
+        try {
+          profileCropData = JSON.parse(req.body.cropData);
+        } catch (e) {
+          console.error('Error parsing profile crop data:', e);
+        }
+      }
+
+      await storage.updateBranding(userId, { 
+        profilePictureUrl, 
+        profileCropData: profileCropData || undefined,
+        updatedAt: Date.now() 
+      });
+      return res.json({ profilePictureUrl, profileCropData });
     } catch (e: any) {
       return res.status(500).json({ message: e?.message ?? "Upload failed" });
     }

@@ -92,6 +92,11 @@
   color: #121212;
   gap: 6px;
 }
+.branding-page .logo-con h3.grayed-out,
+.branding-page .user-display-name-con h3.grayed-out {
+  color: #64748B;
+  opacity: 0.6;
+}
 
 /* Main upload content area */
 .branding-page .upload-con {
@@ -126,6 +131,20 @@
 
   color: #64748b;
 }
+.branding-page .no-logo-placeholder.grayed-out,
+.branding-page .logo-display-box.grayed-out {
+  opacity: 0.6;
+}
+.branding-page .info-text.grayed-out {
+  opacity: 0.6;
+}
+.branding-page .info-text.grayed-out p {
+  color: #64748B;
+}
+.branding-page .file-info.grayed-out {
+  opacity: 0.6;
+  color: #64748B;
+}
 
 /* Uploaded image style */
 .branding-page .uploaded-logo {
@@ -138,46 +157,108 @@
 .branding-page .upload-controls {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 6px;
   width: 100%;
+  flex-wrap: nowrap;
 }
 
 /* Button styles (Upload/Update) */
 .branding-page .upload-btn {
-  padding: 10px 13px;
+  padding: 8px 12px;
   border: 1px solid #e0e9fe;
   border-radius: 50px;
   background-color: #ffffff;
   color: #64748b;
   cursor: pointer;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 12px;
+  line-height: 14px;
   transition: background-color 0.2s;
   white-space: nowrap;
-  height: 40px;
+  height: 30px;
+  min-height: 30px;
+  max-height: 30px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 /* Button styles (Delete) */
 .branding-page .delete-btn {
-  padding: 10px 13px;
+  padding: 6px 10px;
   border: 1px solid #df0404;
   border-radius: 50px;
   background-color: #ffffff;
   color: #df0404;
   cursor: pointer;
-  font-size: 14px;
-  line-height: 20px;
-  height: 40px;
+  font-size: 12px;
+  line-height: 14px;
+  height: 30px;
+  min-height: 30px;
+  max-height: 30px;
   transition: background-color 0.2s;
   white-space: nowrap;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .branding-page .delete-btn:hover {
   /* background-color: #fdeeee;  */
+}
+
+/* Edit button styles */
+.branding-page .edit-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;
+  gap: 2px;
+  width: 59px;
+  height: 30px;
+  background: #F9FAFF;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.branding-page .edit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.branding-page .edit-btn span {
+  width: 23px;
+  height: 14px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 14px;
+  display: flex;
+  align-items: center;
+  color: #64748B;
+  flex: none;
+  order: 0;
+  flex-grow: 0;
+}
+
+.branding-page .edit-btn svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  flex: none;
+  order: 1;
+  flex-grow: 0;
+  display: block;
 }
 
 .branding-page .file-info {
@@ -242,32 +323,45 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
 }
+.branding-page .upload-picture-con .left {
+  flex-shrink: 0;
+}
+
 .branding-page .upload-picture-con .left img {
   width: 90px;
   height: 90px;
+  min-width: 90px;
+  min-height: 90px;
+  max-width: 90px;
+  max-height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
 }
 .branding-page .upload-picture-con .right {
 }
 .branding-page .upload-picture-con .right .btn-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: nowrap;
 }
 .branding-page .upload-picture-con .right .btn-wrap button {
   outline: none;
   cursor: pointer;
-  padding: 10px 13px;
+  padding: 8px 12px;
   border-radius: 50px;
-
   cursor: pointer;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 12px;
+  line-height: 14px;
   transition: background-color 0.2s;
   white-space: nowrap;
-  height: 40px;
+  height: 30px;
+  flex-shrink: 0;
 }
 .branding-page .upload-picture-con .right .btn-wrap button:nth-child(1) {
   background-color: #ffffff;
@@ -290,6 +384,9 @@
 .branding-page .upload-picture-con .uploaded-logo {
   border-radius: 50%;
   object-fit: cover;
+  object-position: center;
+  width: 90px;
+  height: 90px;
 }
 .branding-page .info-text {
   margin-top: 20px;

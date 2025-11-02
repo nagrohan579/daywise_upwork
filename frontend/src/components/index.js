@@ -23,6 +23,8 @@ import "./Component.css";
 import ActionMenu from "./ui/ActionMenu/ActionMenu";
 import PricingTable from "./PricingTable/PricingTable";
 import GoogleButton from "./ui/googleButton/GoogleButton";
+import ImageCropEditor from "./ui/ImageCropEditor/ImageCropEditor";
+import CroppedImage from "./ui/CroppedImage/CroppedImage";
 import {
   EditIcon,
   InfoIcon,
@@ -67,5 +69,7 @@ export {
   ClockIcon,
   CalendarIcon2,
   GlobeIcon,
-  TickIcon
+  TickIcon,
+  ImageCropEditor,
+  CroppedImage
 };

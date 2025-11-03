@@ -18,6 +18,7 @@ import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { detectUserLocation } from "../../utils/locationDetection";
 import { getTimezoneOptions, getTimezoneLabel, getTimezoneValue, mapToSupportedTimezone } from '../../utils/timezones';
+import CroppedImage from "../../components/CroppedImage/CroppedImage";
 import "./PublicBooking.css";
 
 // Initialize dayjs plugins
@@ -466,8 +467,9 @@ const PublicBooking = () => {
               <div className="profile-con">
                 {branding?.logoUrl && (
                   <div className="logo-wrapper">
-                    <img
+                    <CroppedImage
                       src={branding.logoUrl}
+                      cropData={branding.logoCropData}
                       alt={`${userData.businessName || userData.name} logo`}
                       className={`logo-image ${branding.logoUrl.toLowerCase().endsWith('.gif') ? 'gif-logo' : ''}`}
                       referrerPolicy="no-referrer"
@@ -480,8 +482,10 @@ const PublicBooking = () => {
                   )}
                 {branding?.showProfilePicture && (branding?.profilePictureUrl || userData.picture) && (
                   <div className="profile-picture-wrapper">
-                    <img
+                    <CroppedImage
                       src={branding?.profilePictureUrl || userData.picture}
+                      cropData={branding?.profilePictureUrl ? branding?.profileCropData : null}
+                      fallbackSrc={branding?.profilePictureUrl && userData.picture ? userData.picture : null}
                       alt={`${userData.name || "User"} profile picture`}
                       className="profile-picture"
                       referrerPolicy="no-referrer"

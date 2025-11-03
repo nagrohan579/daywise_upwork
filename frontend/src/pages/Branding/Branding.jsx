@@ -14,6 +14,7 @@ import { EditIconBranding } from "../../components/SVGICONS/Svg";
 import { getCroppedImageUrl } from "../../utils/imageCropUtils";
 import { useImageCropContext } from "../../providers/ImageCropProvider";
 import { readFile } from "../../utils/cropImage";
+import CroppedImage from "../../components/CroppedImage/CroppedImage";
 
 import "./Branding.css";
 
@@ -41,9 +42,11 @@ const Branding = () => {
   const [cropEditorType, setCropEditorType] = useState(null); // 'logo' or 'profile'
   const [logoCropData, setLogoCropData] = useState(null);
   const [profileCropData, setProfileCropData] = useState(null);
+  const [selectedLogoFile, setSelectedLogoFile] = useState(null); // Store original file for upload
+  const [selectedProfileFile, setSelectedProfileFile] = useState(null); // Store original file for upload
   
   // Get context functions
-  const { setImage, setAspect, setShape, resetStates } = useImageCropContext();
+  const { setImage, setAspect, setShape, resetStates, restoreCropState, imageSrc } = useImageCropContext();
 
   // Track if displayName has been initialized from API
   const displayNameInitialized = useRef(false);
@@ -301,6 +304,9 @@ const Branding = () => {
     }
 
     try {
+      // Store the original file for upload when crop is saved
+      setSelectedLogoFile(file);
+      
       // Read file and set image in context - opens crop editor instantly
       const imageDataUrl = await readFile(file);
       setImage(imageDataUrl);
@@ -362,15 +368,14 @@ const Branding = () => {
     if (!logoUrl) return;
     
     try {
-      // Load existing image into context - opens crop editor instantly
+      // Load the original image
       setImage(logoUrl);
       setAspect(undefined); // No aspect ratio for logo
       setShape('rect');
       
-      // Restore previous crop data if available
+      // Restore previous crop data to show how it was cropped
       if (logoCropData) {
-        // Note: We'll need to restore crop state in the provider or handle it here
-        // For now, just set the image and open editor
+        restoreCropState(logoCropData);
       }
       
       setCropEditorType('logo');
@@ -388,13 +393,21 @@ const Branding = () => {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       const formData = new FormData();
       
-      // Use cropped blob from context
-      if (!croppedBlob) {
-        toast.error('No cropped image available');
+      // Upload the original file (not the cropped blob)
+      if (!selectedLogoFile && !logoUrl) {
+        toast.error('No file selected');
         return;
       }
 
-      formData.append('file', croppedBlob, 'logo.png');
+      // If we have a new file selected, upload it
+      if (selectedLogoFile) {
+        formData.append('file', selectedLogoFile);
+      } else {
+        // If editing existing, we don't need to upload file again, just update crop data
+        // But we need to tell backend it's an edit, not a new upload
+        formData.append('isEdit', 'true');
+      }
+      
       if (cropData) {
         formData.append('cropData', JSON.stringify(cropData));
       }
@@ -411,13 +424,14 @@ const Branding = () => {
       }
 
       const data = await response.json();
-      setLogoUrl(data.logoUrl);
+      setLogoUrl(data.logoUrl || logoUrl); // Keep existing URL if editing
       setLogoCropData(data.logoCropData || cropData);
-      toast.success('Logo uploaded successfully!');
+      setSelectedLogoFile(null); // Clear selected file
+      toast.success('Logo saved successfully!');
       resetStates(); // Reset context state
     } catch (error) {
-      console.error('Error uploading logo:', error);
-      toast.error(error.message || 'Failed to upload logo');
+      console.error('Error saving logo:', error);
+      toast.error(error.message || 'Failed to save logo');
     } finally {
       setLogoUploading(false);
     }
@@ -441,6 +455,9 @@ const Branding = () => {
     }
 
     try {
+      // Store the original file for upload when crop is saved
+      setSelectedProfileFile(file);
+      
       // Read file and set image in context - opens crop editor instantly
       const imageDataUrl = await readFile(file);
       setImage(imageDataUrl);
@@ -462,15 +479,14 @@ const Branding = () => {
     if (!profileUrl) return;
     
     try {
-      // Load existing image into context - opens crop editor instantly
+      // Load the original image
       setImage(profileUrl);
       setAspect(1); // Square aspect ratio for profile picture
       setShape('round'); // Circular crop for profile
       
-      // Restore previous crop data if available
+      // Restore previous crop data to show how it was cropped
       if (profileCropData) {
-        // Note: We'll need to restore crop state in the provider or handle it here
-        // For now, just set the image and open editor
+        restoreCropState(profileCropData);
       }
       
       setCropEditorType('profile');
@@ -488,13 +504,21 @@ const Branding = () => {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       const formData = new FormData();
       
-      // Use cropped blob from context
-      if (!croppedBlob) {
-        toast.error('No cropped image available');
+      // Upload the original file (not the cropped blob)
+      if (!selectedProfileFile && !profileUrl) {
+        toast.error('No file selected');
         return;
       }
 
-      formData.append('file', croppedBlob, 'profile.png');
+      // If we have a new file selected, upload it
+      if (selectedProfileFile) {
+        formData.append('file', selectedProfileFile);
+      } else {
+        // If editing existing, we don't need to upload file again, just update crop data
+        // But we need to tell backend it's an edit, not a new upload
+        formData.append('isEdit', 'true');
+      }
+      
       if (cropData) {
         formData.append('cropData', JSON.stringify(cropData));
       }
@@ -511,13 +535,14 @@ const Branding = () => {
       }
 
       const data = await response.json();
-      setProfileUrl(data.profilePictureUrl);
+      setProfileUrl(data.profilePictureUrl || profileUrl); // Keep existing URL if editing
       setProfileCropData(data.profileCropData || cropData);
-      toast.success('Profile picture uploaded successfully!');
-      setSelectedFile(null);
+      setSelectedProfileFile(null); // Clear selected file
+      toast.success('Profile picture saved successfully!');
+      resetStates(); // Reset context state
     } catch (error) {
-      console.error('Error uploading profile picture:', error);
-      toast.error(error.message || 'Failed to upload profile picture');
+      console.error('Error saving profile picture:', error);
+      toast.error(error.message || 'Failed to save profile picture');
     } finally {
       setProfileUploading(false);
     }
@@ -618,9 +643,10 @@ const Branding = () => {
             <div className="upload-con">
               <div className={`logo-display-box ${!hasCustomBranding ? "grayed-out" : ""}`}>
                 {logoUrl ? (
-                  // State: Logo uploaded
-                  <img
+                  // State: Logo uploaded - show cropped version
+                  <CroppedImage
                     src={logoUrl}
+                    cropData={logoCropData}
                     alt="Uploaded Logo"
                     className="uploaded-logo"
                   />
@@ -755,10 +781,23 @@ const Branding = () => {
             <div className="upload-picture-con">
               <div className="left">
                 {profileUrl ? (
-                  <img
+                  <CroppedImage
                     src={profileUrl}
-                    alt="Uploaded Logo"
-                    className="uploaded-logo"
+                    cropData={profileCropData}
+                    alt="Profile Picture"
+                    style={{
+                      width: "90px",
+                      height: "90px",
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                      objectPosition: "center",
+                      flexShrink: 0,
+                      display: "block",
+                      minWidth: "90px",
+                      minHeight: "90px",
+                      maxWidth: "90px",
+                      maxHeight: "90px",
+                    }}
                   />
                 ) : (
                   <img src="/assets/images/avatar.png" alt="avatar" />

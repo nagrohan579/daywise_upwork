@@ -177,16 +177,16 @@ export default defineSchema({
     primary: v.string(),
     secondary: v.string(),
     accent: v.string(),
-    logoUrl: v.optional(v.string()),
-    profilePictureUrl: v.optional(v.string()),
+    logoUrl: v.optional(v.string()), // Original logo URL (cropped on display using logoCropData)
+    profilePictureUrl: v.optional(v.string()), // Original profile picture URL (cropped on display using profileCropData)
     displayName: v.optional(v.string()),
     showDisplayName: v.boolean(),
     showProfilePicture: v.boolean(),
     usePlatformBranding: v.boolean(),
     // Crop data for logo
-    logoCropData: v.optional(v.any()), // { x, y, width, height, zoom, rotation }
+    logoCropData: v.optional(v.any()), // { x, y, width, height, zoom, rotation, croppedAreaPixels }
     // Crop data for profile picture
-    profileCropData: v.optional(v.any()), // { x, y, width, height, zoom, rotation }
+    profileCropData: v.optional(v.any()), // { x, y, width, height, zoom, rotation, croppedAreaPixels }
     updatedAt: v.number(),
   }).index("by_userId", ["userId"]),
 

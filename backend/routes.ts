@@ -4234,10 +4234,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       //   return res.status(403).json({ message: "Logo upload not available in your plan" });
       // }
 
+      // Check if this is an edit (no new file upload) or new upload
+      const isEdit = req.body.isEdit === 'true';
       const file = req.file;
-      if (!file) return res.status(400).json({ message: "No file provided" });
-      if (!["image/png","image/jpeg","image/gif"].includes(file.mimetype)) {
-        return res.status(400).json({ message: "Only PNG/JPG/GIF allowed" });
+      
+      if (!isEdit && !file) {
+        return res.status(400).json({ message: "No file provided" });
       }
 
       // Ensure branding record exists; create default if missing
@@ -4257,23 +4259,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Get existing branding to check for old logo
-      existingBranding = await storage.getBranding(userId);
-      if (existingBranding?.logoUrl && isSpacesUrl(existingBranding.logoUrl)) {
-        // Delete old logo from DO Spaces
-        await deleteFile(existingBranding.logoUrl);
+      let logoUrl = existingBranding?.logoUrl;
+      
+      // If new file is uploaded, delete old logo and upload new one
+      if (file) {
+        if (!["image/png","image/jpeg","image/gif"].includes(file.mimetype)) {
+          return res.status(400).json({ message: "Only PNG/JPG/GIF allowed" });
+        }
+
+        // Delete old logo from DO Spaces if it exists
+        if (existingBranding?.logoUrl && isSpacesUrl(existingBranding.logoUrl)) {
+          await deleteFile(existingBranding.logoUrl);
+        }
+
+        // Upload original image to Digital Ocean Spaces
+        const ext = file.mimetype === "image/png" ? "png" : file.mimetype === "image/gif" ? "gif" : "jpg";
+        const filename = `logo-${userId}-${Date.now()}.${ext}`;
+
+        logoUrl = await uploadFile({
+          fileBuffer: file.buffer,
+          fileName: filename,
+          folder: 'business_logos',
+          contentType: file.mimetype,
+        });
       }
-
-      // Upload to Digital Ocean Spaces
-      const ext = file.mimetype === "image/png" ? "png" : file.mimetype === "image/gif" ? "gif" : "jpg";
-      const filename = `logo-${userId}-${Date.now()}.${ext}`;
-
-      const logoUrl = await uploadFile({
-        fileBuffer: file.buffer,
-        fileName: filename,
-        folder: 'business_logos',
-        contentType: file.mimetype,
-      });
 
       // Parse crop data if provided
       let logoCropData = null;
@@ -4286,7 +4295,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await storage.updateBranding(userId, { 
-        logoUrl, 
+        logoUrl: logoUrl || undefined,
         logoCropData: logoCropData || undefined,
         updatedAt: Date.now() 
       });
@@ -4309,8 +4318,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await deleteFile(currentUrl);
       }
 
-      // Clear optional field at the DB layer to ensure it is removed
-      await storage.clearBrandingField(userId, "logoUrl");
+      // Clear optional fields at the DB layer to ensure they are removed
+      await storage.updateBranding(userId, {
+        logoUrl: undefined,
+        logoCropData: undefined,
+        updatedAt: Date.now()
+      });
       return res.json({ success: true });
     } catch (e: any) {
       return res.status(500).json({ message: e?.message ?? "Delete failed" });
@@ -4331,10 +4344,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       //   return res.status(403).json({ message: "Profile picture upload not available in your plan" });
       // }
 
+      // Check if this is an edit (no new file upload) or new upload
+      const isEdit = req.body.isEdit === 'true';
       const file = req.file;
-      if (!file) return res.status(400).json({ message: "No file provided" });
-      if (!["image/png","image/jpeg","image/gif"].includes(file.mimetype)) {
-        return res.status(400).json({ message: "Only PNG/JPG/GIF allowed" });
+      
+      if (!isEdit && !file) {
+        return res.status(400).json({ message: "No file provided" });
       }
 
       // Ensure branding record exists; create default if missing
@@ -4354,22 +4369,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Get existing branding to check for old profile picture
-      if (existingBranding?.profilePictureUrl && isSpacesUrl(existingBranding.profilePictureUrl)) {
-        // Delete old profile picture from DO Spaces
-        await deleteFile(existingBranding.profilePictureUrl);
+      let profilePictureUrl = existingBranding?.profilePictureUrl;
+      
+      // If new file is uploaded, delete old profile picture and upload new one
+      if (file) {
+        if (!["image/png","image/jpeg","image/gif"].includes(file.mimetype)) {
+          return res.status(400).json({ message: "Only PNG/JPG/GIF allowed" });
+        }
+
+        // Delete old profile picture from DO Spaces if it exists
+        if (existingBranding?.profilePictureUrl && isSpacesUrl(existingBranding.profilePictureUrl)) {
+          await deleteFile(existingBranding.profilePictureUrl);
+        }
+
+        // Upload original image to Digital Ocean Spaces
+        const ext = file.mimetype === "image/png" ? "png" : file.mimetype === "image/gif" ? "gif" : "jpg";
+        const filename = `profile-${userId}-${Date.now()}.${ext}`;
+
+        profilePictureUrl = await uploadFile({
+          fileBuffer: file.buffer,
+          fileName: filename,
+          folder: 'profile_pictures',
+          contentType: file.mimetype,
+        });
       }
-
-      // Upload to Digital Ocean Spaces
-      const ext = file.mimetype === "image/png" ? "png" : file.mimetype === "image/gif" ? "gif" : "jpg";
-      const filename = `profile-${userId}-${Date.now()}.${ext}`;
-
-      const profilePictureUrl = await uploadFile({
-        fileBuffer: file.buffer,
-        fileName: filename,
-        folder: 'profile_pictures',
-        contentType: file.mimetype,
-      });
 
       // Parse crop data if provided
       let profileCropData = null;
@@ -4382,7 +4405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await storage.updateBranding(userId, { 
-        profilePictureUrl, 
+        profilePictureUrl: profilePictureUrl || undefined,
         profileCropData: profileCropData || undefined,
         updatedAt: Date.now() 
       });
@@ -4405,8 +4428,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await deleteFile(currentUrl);
       }
 
-      // Clear optional field at the DB layer to ensure it is removed
-      await storage.clearBrandingField(userId, "profilePictureUrl");
+      // Clear optional fields at the DB layer to ensure they are removed
+      await storage.updateBranding(userId, {
+        profilePictureUrl: undefined,
+        profileCropData: undefined,
+        updatedAt: Date.now()
+      });
       return res.json({ success: true });
     } catch (e: any) {
       return res.status(500).json({ message: e?.message ?? "Delete failed" });

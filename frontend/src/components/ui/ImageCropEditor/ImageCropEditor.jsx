@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Cropper from 'react-easy-crop';
 import { Modal } from 'react-bootstrap';
 import { IoClose } from 'react-icons/io5';
@@ -60,14 +60,6 @@ const ImageCropEditor = ({
     }
   };
 
-  // Reset when modal closes
-  useEffect(() => {
-    if (!show) {
-      setCrop({ x: 0, y: 0 });
-      setZoom(1);
-      setRotation(0);
-    }
-  }, [show, setCrop, setZoom, setRotation]);
 
   if (!imageSrc) {
     return null;

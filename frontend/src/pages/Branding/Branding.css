@@ -217,10 +217,11 @@
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  padding: 8px 10px;
-  gap: 2px;
-  width: 59px;
+  padding: 8px 12px;
+  gap: 4px;
   height: 30px;
+  min-height: 30px;
+  max-height: 30px;
   background: #F9FAFF;
   border-radius: 50px;
   border: none;
@@ -228,6 +229,9 @@
   transition: background-color 0.2s;
   box-sizing: border-box;
   flex-shrink: 0;
+  font-size: 12px;
+  line-height: 14px;
+  white-space: nowrap;
 }
 
 .branding-page .edit-btn:disabled {
@@ -236,8 +240,6 @@
 }
 
 .branding-page .edit-btn span {
-  width: 23px;
-  height: 14px;
   font-family: 'Inter';
   font-style: normal;
   font-weight: 500;
@@ -381,12 +383,16 @@
   vertical-align: middle;
   color: #64748b;
 }
-.branding-page .upload-picture-con .uploaded-logo {
-  border-radius: 50%;
-  object-fit: cover;
+.branding-page .logo-display-box img.uploaded-logo {
+  max-width: calc(100% - 40px);
+  max-height: calc(100% - 40px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
   object-position: center;
-  width: 90px;
-  height: 90px;
+  border-radius: 0;
+  margin: 0;
+  display: block;
 }
 .branding-page .info-text {
   margin-top: 20px;

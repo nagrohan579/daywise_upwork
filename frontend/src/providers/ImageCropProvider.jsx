@@ -59,6 +59,24 @@ export const ImageCropProvider = ({ children }) => {
     setCropShape(shape);
   }, []);
 
+  // Restore crop state from saved crop data
+  const restoreCropState = useCallback((cropData) => {
+    if (cropData) {
+      if (cropData.x !== undefined && cropData.y !== undefined) {
+        setCrop({ x: cropData.x, y: cropData.y });
+      }
+      if (cropData.zoom !== undefined) {
+        setZoom(cropData.zoom);
+      }
+      if (cropData.rotation !== undefined) {
+        setRotation(cropData.rotation);
+      }
+      if (cropData.croppedAreaPixels) {
+        setCroppedAreaPixels(cropData.croppedAreaPixels);
+      }
+    }
+  }, [setCrop, setZoom, setRotation, setCroppedAreaPixels]);
+
   const value = {
     imageSrc,
     crop,
@@ -76,6 +94,7 @@ export const ImageCropProvider = ({ children }) => {
     getProcessedImage,
     setAspect,
     setShape,
+    restoreCropState,
   };
 
   return <ImageCropContext.Provider value={value}>{children}</ImageCropContext.Provider>;

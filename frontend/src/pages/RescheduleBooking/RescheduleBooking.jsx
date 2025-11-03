@@ -17,6 +17,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { getTimezoneOptions, getTimezoneLabel, getTimezoneValue, mapToSupportedTimezone } from '../../utils/timezones';
+import CroppedImage from "../../components/CroppedImage/CroppedImage";
 import "../PublicBooking/PublicBooking.css";
 
 // Initialize dayjs plugins
@@ -438,29 +439,52 @@ const RescheduleBooking = () => {
               </div>
 
               <div className="profile-con">
-                {((branding && branding.profilePictureUrl) || userData.picture) && (
-                  <div className="profile-picture-wrapper">
-                    <img
-                      src={(branding && branding.profilePictureUrl) ? branding.profilePictureUrl : userData.picture}
-                      alt={`${userData.name || "User"} profile picture`}
-                      className="profile-picture"
+                {branding?.logoUrl && (
+                  <div className="logo-wrapper">
+                    <CroppedImage
+                      src={branding.logoUrl}
+                      cropData={branding.logoCropData}
+                      alt={`${userData.businessName || userData.name} logo`}
+                      className={`logo-image ${branding.logoUrl.toLowerCase().endsWith('.gif') ? 'gif-logo' : ''}`}
                       referrerPolicy="no-referrer"
                       onError={(e) => {
-                        console.error('Failed to load profile picture');
+                        console.error('Failed to load logo:', branding.logoUrl);
                         e.currentTarget.style.display = 'none';
                       }}
                     />
                   </div>
                 )}
-                <div className="profile-wrapper">
-                  {userData.logoUrl && (
-                    <img
-                      src={userData.logoUrl}
-                      alt={`${userData.businessName || userData.name} logo`}
+                {branding?.showProfilePicture && (branding?.profilePictureUrl || userData.picture) && (
+                  <div className="profile-picture-wrapper">
+                    <CroppedImage
+                      src={branding?.profilePictureUrl || userData.picture}
+                      cropData={branding?.profilePictureUrl ? branding?.profileCropData : null}
+                      fallbackSrc={branding?.profilePictureUrl && userData.picture ? userData.picture : null}
+                      alt={`${userData.name || "User"} profile picture`}
+                      className="profile-picture"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        // If branding picture fails, try users table picture as fallback
+                        if (branding?.profilePictureUrl && userData.picture && e.currentTarget.src !== userData.picture) {
+                          console.error('Failed to load branding profile picture, trying fallback:', userData.picture);
+                          e.currentTarget.src = userData.picture;
+                          e.currentTarget.onerror = () => {
+                            e.currentTarget.style.display = 'none';
+                          };
+                        } else {
+                          // If users table picture also fails or no fallback available, hide it
+                          console.error('Failed to load profile picture');
+                          e.currentTarget.style.display = 'none';
+                        }
+                      }}
                     />
-                  )}
-                  <h5>{userData.name || "User"}</h5>
-                </div>
+                  </div>
+                )}
+                {branding?.showDisplayName && (
+                  <div className="profile-wrapper">
+                    <h5>{branding?.displayName || userData.name}</h5>
+                  </div>
+                )}
 
                 <div className="business-wrapper">
                   <h2>{userData.businessName || "Business Name Here"}</h2>

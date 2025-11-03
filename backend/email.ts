@@ -721,3 +721,117 @@ export async function sendFeedbackEmail(data: FeedbackEmailData): Promise<boolea
     `,
   });
 }
+
+export async function sendEmailChangeOtp(email: string, otp: string): Promise<boolean> {
+  return await handleEmailSend('Email Change OTP', {
+    from: FROM_EMAIL!,
+    to: email,
+    subject: 'Verify your new email address - DayWise',
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Email Change Verification</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        
+        <div style="text-align: center; margin-bottom: 40px;">
+          <div style="display: inline-block; width: 60px; height: 60px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-radius: 12px; color: white; font-weight: bold; font-size: 24px; line-height: 60px;">
+            ✉️
+          </div>
+        </div>
+
+        <div style="background: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          
+          <h1 style="color: #1f2937; margin-bottom: 24px; font-size: 24px; font-weight: 600;">
+            Verify Your New Email Address
+          </h1>
+          
+          <p style="color: #6b7280; margin-bottom: 24px; font-size: 16px;">
+            You requested to change your email address. Please use the verification code below to confirm your new email:
+          </p>
+          
+          <div style="text-align: center; margin: 32px 0;">
+            <div style="display: inline-block; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 20px 40px; border-radius: 8px; font-weight: 600; font-size: 32px; letter-spacing: 8px;">
+              ${otp}
+            </div>
+          </div>
+          
+          <p style="color: #6b7280; margin-bottom: 16px; font-size: 14px;">
+            Enter this code in the email change verification form to complete the process.
+          </p>
+          
+          <p style="color: #9ca3af; margin-bottom: 0; font-size: 14px;">
+            This verification code will expire in 10 minutes. If you didn't request this change, please ignore this email.
+          </p>
+          
+        </div>
+        
+        <div style="text-align: center; margin-top: 24px; color: #9ca3af; font-size: 12px;">
+          <p>© ${new Date().getFullYear()} DayWise. All rights reserved.</p>
+        </div>
+        
+      </body>
+      </html>
+    `,
+  });
+}
+
+export async function sendPasswordChangeOtp(email: string, otp: string): Promise<boolean> {
+  return await handleEmailSend('Password Change OTP', {
+    from: FROM_EMAIL!,
+    to: email,
+    subject: 'Verify your identity to change password - DayWise',
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Password Change Verification</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        
+        <div style="text-align: center; margin-bottom: 40px;">
+          <div style="display: inline-block; width: 60px; height: 60px; background: linear-gradient(135deg, #ef4444, #f97316); border-radius: 12px; color: white; font-weight: bold; font-size: 24px; line-height: 60px;">
+            🔒
+          </div>
+        </div>
+
+        <div style="background: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          
+          <h1 style="color: #1f2937; margin-bottom: 24px; font-size: 24px; font-weight: 600;">
+            Verify Your Identity
+          </h1>
+          
+          <p style="color: #6b7280; margin-bottom: 24px; font-size: 16px;">
+            You requested to change your password. Please use the verification code below to verify your identity:
+          </p>
+          
+          <div style="text-align: center; margin: 32px 0;">
+            <div style="display: inline-block; background: linear-gradient(135deg, #ef4444, #f97316); color: white; padding: 20px 40px; border-radius: 8px; font-weight: 600; font-size: 32px; letter-spacing: 8px;">
+              ${otp}
+            </div>
+          </div>
+          
+          <p style="color: #6b7280; margin-bottom: 16px; font-size: 14px;">
+            Enter this code in the password change verification form to continue.
+          </p>
+          
+          <p style="color: #9ca3af; margin-bottom: 0; font-size: 14px;">
+            This verification code will expire in 10 minutes. If you didn't request a password change, please ignore this email and consider securing your account.
+          </p>
+          
+        </div>
+        
+        <div style="text-align: center; margin-top: 24px; color: #9ca3af; font-size: 12px;">
+          <p>© ${new Date().getFullYear()} DayWise. All rights reserved.</p>
+        </div>
+        
+      </body>
+      </html>
+    `,
+  });
+}

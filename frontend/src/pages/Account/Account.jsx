@@ -6,6 +6,8 @@ import {
   Input,
   Select,
 } from "../../components";
+import ChangeEmailModal from "../../components/ui/modals/ChangeEmailModal";
+import ChangePasswordModal from "../../components/ui/modals/ChangePasswordModal";
 import { useMobile } from "../../hooks";
 import { toast } from "sonner";
 import ct from "countries-and-timezones";
@@ -17,6 +19,8 @@ const Account = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [userData, setUserData] = useState({
@@ -277,7 +281,7 @@ const Account = () => {
               <Button
                 text={"Change Email"}
                 type="button"
-                onClick={() => toast.info('Email change feature coming soon!')}
+                onClick={() => setShowChangeEmailModal(true)}
                 style={{
                   border: "1px solid #E0E9FE",
                   background: "transparent",
@@ -302,7 +306,7 @@ const Account = () => {
               <Button
                 text={"Change Password"}
                 type="button"
-                onClick={() => toast.info('Password change feature coming soon!')}
+                onClick={() => setShowChangePasswordModal(true)}
                 style={{
                   border: "1px solid #E0E9FE",
                   background: "transparent",
@@ -527,6 +531,24 @@ const Account = () => {
             </div>
           </div>
         )}
+
+        <ChangeEmailModal
+          show={showChangeEmailModal}
+          onClose={() => setShowChangeEmailModal(false)}
+          currentEmail={userData.email}
+          onEmailChanged={() => {
+            fetchUserData();
+          }}
+        />
+
+        <ChangePasswordModal
+          show={showChangePasswordModal}
+          onClose={() => setShowChangePasswordModal(false)}
+          userEmail={userData.email}
+          onPasswordChanged={() => {
+            fetchUserData();
+          }}
+        />
       </div>
     </AppLayout>
   );

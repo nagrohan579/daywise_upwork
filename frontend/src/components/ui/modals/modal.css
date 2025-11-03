@@ -49,6 +49,248 @@
   align-items: center;
 }
 
+/* Change Email Modal */
+.changeEmailModal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  border-bottom: none;
+  padding: 24px 24px 16px 24px;
+}
+.changeEmailModal .modal-header .content-wrap {
+  flex: 1;
+  padding-right: 16px;
+}
+.changeEmailModal .modal-dialog {
+  max-width: 512px;
+  font-family: Inter, sans-serif;
+}
+.changeEmailModal .content-wrap .modal-title {
+  font-family: Inter;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 22px;
+  line-height: 36px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: #121212;
+  margin: 0 0 8px 0;
+}
+.changeEmailModal .content-wrap p {
+  font-family: Inter;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: #64748b;
+  margin: 0;
+}
+
+.changeEmailModal .close-btn {
+  border: none;
+  outline: none;
+  background-color: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.changeEmailModal .modal-body {
+  padding: 0 24px 24px 24px;
+}
+.changeEmailModal .modal-body .content-wrap {
+  width: 100%;
+}
+.changeEmailModal .modal-body .btn-wrap {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+}
+.changeEmailModal .modal-body .input-wrap {
+  margin-bottom: 24px;
+  width: 100%;
+}
+.changeEmailModal .modal-body .input-wrap:last-of-type {
+  margin-bottom: 0;
+}
+.changeEmailModal .modal-body .input-wrap .input-group-comp {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Change Password Modal */
+.changePasswordModal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  border-bottom: none;
+  padding: 24px 24px 16px 24px;
+}
+.changePasswordModal .modal-header .content-wrap {
+  flex: 1;
+  padding-right: 16px;
+}
+.changePasswordModal .modal-dialog {
+  max-width: 512px;
+  font-family: Inter, sans-serif;
+}
+.changePasswordModal .content-wrap .modal-title {
+  font-family: Inter;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 22px;
+  line-height: 36px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: #121212;
+  margin: 0 0 8px 0;
+}
+.changePasswordModal .content-wrap p {
+  font-family: Inter;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: #64748b;
+  margin: 0;
+}
+
+.changePasswordModal .close-btn {
+  border: none;
+  outline: none;
+  background-color: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.changePasswordModal .modal-body {
+  padding: 0 24px 24px 24px;
+}
+.changePasswordModal .modal-body .content-wrap {
+  width: 100%;
+}
+.changePasswordModal .modal-body .btn-wrap {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+}
+.changePasswordModal .modal-body .input-wrap {
+  margin-bottom: 24px;
+  width: 100%;
+}
+.changePasswordModal .modal-body .input-wrap:last-of-type {
+  margin-bottom: 0;
+}
+.changePasswordModal .modal-body .input-wrap .input-group-comp {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Password Strength Indicator */
+.changePasswordModal .password-strength-container {
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.changePasswordModal .password-strength-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.changePasswordModal .password-strength-bar {
+  flex: 1;
+  max-width: calc(100% - 70px);
+  height: 3px;
+  background-color: #e5e7eb;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.changePasswordModal .password-strength-fill {
+  height: 100%;
+  transition: width 0.3s ease, background-color 0.3s ease;
+  border-radius: 2px;
+}
+
+.changePasswordModal .password-strength-weak {
+  background-color: #ef4444; /* Red */
+}
+
+.changePasswordModal .password-strength-poor {
+  background-color: #f59e0b; /* Orange */
+}
+
+.changePasswordModal .password-strength-fair {
+  background-color: #eab308; /* Yellow */
+}
+
+.changePasswordModal .password-strength-good {
+  background-color: #10b981; /* Green */
+}
+
+.changePasswordModal .password-strength-strong {
+  background-color: #059669; /* Dark Green */
+}
+
+.changePasswordModal .password-strength-label {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 0.3s ease;
+  min-width: 70px;
+  text-align: center;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  height: auto;
+  width: auto;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.changePasswordModal .password-strength-label.password-strength-weak {
+  color: #ef4444;
+}
+
+.changePasswordModal .password-strength-label.password-strength-poor {
+  color: #f59e0b;
+}
+
+.changePasswordModal .password-strength-label.password-strength-fair {
+  color: #eab308;
+}
+
+.changePasswordModal .password-strength-label.password-strength-good {
+  color: #10b981;
+}
+
+.changePasswordModal .password-strength-label.password-strength-strong {
+  color: #059669;
+}
+
+.changePasswordModal .password-requirements {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.changePasswordModal .password-requirement-item {
+  font-size: 12px;
+  color: #ef4444;
+  line-height: 16px;
+}
+
 /* dateSpecificHour */
 .dateSpecificHour {
 }

@@ -30,6 +30,11 @@ export default defineSchema({
     closedMonths: v.optional(v.array(v.number())),
     country: v.string(),
     isAdmin: v.boolean(),
+    // Stripe Connect fields
+    stripeAccountId: v.optional(v.string()),
+    stripeAccessToken: v.optional(v.string()),
+    stripeRefreshToken: v.optional(v.string()),
+    stripeScope: v.optional(v.string()),
   })
     .index("by_email", ["email"])
     .index("by_googleId", ["googleId"])

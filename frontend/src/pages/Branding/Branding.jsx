@@ -12,6 +12,8 @@ import { RiDeleteBin5Line } from "react-icons/ri";
 import { toast } from "sonner";
 import { EditIconBranding } from "../../components/SVGICONS/Svg";
 import { getCroppedImageUrl } from "../../utils/imageCropUtils";
+import { useImageCropContext } from "../../providers/ImageCropProvider";
+import { readFile } from "../../utils/cropImage";
 
 import "./Branding.css";
 
@@ -36,11 +38,12 @@ const Branding = () => {
 
   // Crop editor state
   const [showCropEditor, setShowCropEditor] = useState(false);
-  const [cropEditorImage, setCropEditorImage] = useState(null);
   const [cropEditorType, setCropEditorType] = useState(null); // 'logo' or 'profile'
   const [logoCropData, setLogoCropData] = useState(null);
   const [profileCropData, setProfileCropData] = useState(null);
-  const [selectedFile, setSelectedFile] = useState(null);
+  
+  // Get context functions
+  const { setImage, setAspect, setShape, resetStates } = useImageCropContext();
 
   // Track if displayName has been initialized from API
   const displayNameInitialized = useRef(false);
@@ -297,15 +300,18 @@ const Branding = () => {
       return;
     }
 
-    // Read file as data URL and show crop editor
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setSelectedFile(file);
-      setCropEditorImage(e.target.result);
+    try {
+      // Read file and set image in context - opens crop editor instantly
+      const imageDataUrl = await readFile(file);
+      setImage(imageDataUrl);
+      setAspect(undefined); // No aspect ratio for logo
+      setShape('rect');
       setCropEditorType('logo');
       setShowCropEditor(true);
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error reading file:', error);
+      toast.error('Failed to load image');
+    }
     
     // Reset input
     event.target.value = '';
@@ -352,12 +358,27 @@ const Branding = () => {
   };
 
   // Handle edit button click for logo
-  const handleEditLogo = () => {
+  const handleEditLogo = async () => {
     if (!logoUrl) return;
-    // Load existing image and show crop editor with previous crop data
-    setCropEditorImage(logoUrl);
-    setCropEditorType('logo');
-    setShowCropEditor(true);
+    
+    try {
+      // Load existing image into context - opens crop editor instantly
+      setImage(logoUrl);
+      setAspect(undefined); // No aspect ratio for logo
+      setShape('rect');
+      
+      // Restore previous crop data if available
+      if (logoCropData) {
+        // Note: We'll need to restore crop state in the provider or handle it here
+        // For now, just set the image and open editor
+      }
+      
+      setCropEditorType('logo');
+      setShowCropEditor(true);
+    } catch (error) {
+      console.error('Error loading logo for editing:', error);
+      toast.error('Failed to load logo');
+    }
   };
 
   // Handle crop editor save for logo
@@ -367,26 +388,13 @@ const Branding = () => {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       const formData = new FormData();
       
-      // Use cropped blob if available, otherwise use original file
-      const fileToUpload = croppedBlob ? croppedBlob : selectedFile;
-      if (!fileToUpload) {
-        // If editing existing, we need to upload the cropped version
-        // For now, just save crop data
-        const response = await fetch(`${apiUrl}/api/branding`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ logoCropData: cropData }),
-        });
-        
-        if (response.ok) {
-          setLogoCropData(cropData);
-          toast.success('Logo crop settings saved!');
-        }
+      // Use cropped blob from context
+      if (!croppedBlob) {
+        toast.error('No cropped image available');
         return;
       }
 
-      formData.append('file', fileToUpload, selectedFile?.name || 'logo.png');
+      formData.append('file', croppedBlob, 'logo.png');
       if (cropData) {
         formData.append('cropData', JSON.stringify(cropData));
       }
@@ -406,7 +414,7 @@ const Branding = () => {
       setLogoUrl(data.logoUrl);
       setLogoCropData(data.logoCropData || cropData);
       toast.success('Logo uploaded successfully!');
-      setSelectedFile(null);
+      resetStates(); // Reset context state
     } catch (error) {
       console.error('Error uploading logo:', error);
       toast.error(error.message || 'Failed to upload logo');
@@ -432,27 +440,45 @@ const Branding = () => {
       return;
     }
 
-    // Read file as data URL and show crop editor
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setSelectedFile(file);
-      setCropEditorImage(e.target.result);
+    try {
+      // Read file and set image in context - opens crop editor instantly
+      const imageDataUrl = await readFile(file);
+      setImage(imageDataUrl);
+      setAspect(1); // Square aspect ratio for profile picture
+      setShape('round'); // Circular crop for profile
       setCropEditorType('profile');
       setShowCropEditor(true);
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error reading file:', error);
+      toast.error('Failed to load image');
+    }
     
     // Reset input
     event.target.value = '';
   };
 
   // Handle edit button click for profile
-  const handleEditProfile = () => {
+  const handleEditProfile = async () => {
     if (!profileUrl) return;
-    // Load existing image and show crop editor with previous crop data
-    setCropEditorImage(profileUrl);
-    setCropEditorType('profile');
-    setShowCropEditor(true);
+    
+    try {
+      // Load existing image into context - opens crop editor instantly
+      setImage(profileUrl);
+      setAspect(1); // Square aspect ratio for profile picture
+      setShape('round'); // Circular crop for profile
+      
+      // Restore previous crop data if available
+      if (profileCropData) {
+        // Note: We'll need to restore crop state in the provider or handle it here
+        // For now, just set the image and open editor
+      }
+      
+      setCropEditorType('profile');
+      setShowCropEditor(true);
+    } catch (error) {
+      console.error('Error loading profile for editing:', error);
+      toast.error('Failed to load profile picture');
+    }
   };
 
   // Handle crop editor save for profile
@@ -462,25 +488,13 @@ const Branding = () => {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       const formData = new FormData();
       
-      // Use cropped blob if available, otherwise use original file
-      const fileToUpload = croppedBlob ? croppedBlob : selectedFile;
-      if (!fileToUpload) {
-        // If editing existing, just save crop data
-        const response = await fetch(`${apiUrl}/api/branding`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ profileCropData: cropData }),
-        });
-        
-        if (response.ok) {
-          setProfileCropData(cropData);
-          toast.success('Profile picture crop settings saved!');
-        }
+      // Use cropped blob from context
+      if (!croppedBlob) {
+        toast.error('No cropped image available');
         return;
       }
 
-      formData.append('file', fileToUpload, selectedFile?.name || 'profile.png');
+      formData.append('file', croppedBlob, 'profile.png');
       if (cropData) {
         formData.append('cropData', JSON.stringify(cropData));
       }
@@ -929,14 +943,10 @@ const Branding = () => {
         show={showCropEditor}
         onClose={() => {
           setShowCropEditor(false);
-          setCropEditorImage(null);
           setCropEditorType(null);
+          resetStates();
         }}
-        imageSrc={cropEditorImage}
         onSave={cropEditorType === 'logo' ? handleLogoCropSave : handleProfileCropSave}
-        initialCropData={cropEditorType === 'logo' ? logoCropData : profileCropData}
-        aspectRatio={cropEditorType === 'profile' ? 1 : undefined}
-        shape={cropEditorType === 'profile' ? 'round' : 'rect'}
       />
     </AppLayout>
   );

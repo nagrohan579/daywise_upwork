@@ -95,6 +95,299 @@
   flex-shrink: 0;
 }
 
+/* Rotation specific styles */
+.control-group-rotation {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.control-row-rotation {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  position: relative;
+}
+
+.control-row-rotation .label-rotation {
+  font-family: Inter, sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #121212;
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.control-row-rotation #rotation-slider,
+.control-row-rotation .slider-rotation {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: transparent;
+  outline: none;
+  -webkit-appearance: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  border: none;
+}
+
+.control-row-rotation #rotation-slider::before,
+.control-row-rotation .slider-rotation::before,
+.control-row-rotation #rotation-slider::after,
+.control-row-rotation .slider-rotation::after {
+  display: none !important;
+  content: none !important;
+}
+
+.control-row-rotation #rotation-slider:focus,
+.control-row-rotation .slider-rotation:focus {
+  outline: none;
+  box-shadow: none;
+  border: none;
+}
+
+.control-row-rotation .value-rotation {
+  font-family: Inter, sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #64748B;
+  min-width: 45px;
+  text-align: right;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.control-row-rotation #rotation-slider::-webkit-slider-thumb,
+.control-row-rotation .slider-rotation::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #0053F1;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  border: none;
+  box-shadow: none;
+  margin-top: -6px;
+  outline: none;
+}
+
+.control-row-rotation #rotation-slider:focus::-webkit-slider-thumb,
+.control-row-rotation .slider-rotation:focus::-webkit-slider-thumb {
+  outline: none;
+  box-shadow: none;
+  border: none;
+}
+
+.control-row-rotation #rotation-slider::-moz-range-thumb,
+.control-row-rotation .slider-rotation::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #0053F1;
+  cursor: pointer;
+  border: none;
+  box-shadow: none;
+  position: relative;
+  z-index: 1;
+  margin-top: -6px;
+  outline: none;
+}
+
+.control-row-rotation #rotation-slider:focus::-moz-range-thumb,
+.control-row-rotation .slider-rotation:focus::-moz-range-thumb {
+  outline: none;
+  box-shadow: none;
+  border: none;
+}
+
+.control-row-rotation #rotation-slider::-webkit-slider-runnable-track,
+.control-row-rotation .slider-rotation::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 6px;
+  background: #E0E9FE;
+  border-radius: 3px;
+  border: none;
+  -webkit-appearance: none;
+}
+
+.control-row-rotation #rotation-slider::-moz-range-track,
+.control-row-rotation .slider-rotation::-moz-range-track {
+  width: 100%;
+  height: 6px;
+  background: #E0E9FE;
+  border-radius: 3px;
+  border: none;
+  -moz-appearance: none;
+}
+
+.control-row-rotation #rotation-slider::-moz-range-progress,
+.control-row-rotation .slider-rotation::-moz-range-progress {
+  background: transparent;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.control-row-rotation #rotation-slider::-ms-track {
+  width: 100%;
+  height: 6px;
+  background: transparent;
+  border-color: transparent;
+  color: transparent;
+}
+
+/* Zoom specific styles */
+.control-group-zoom {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.control-row-zoom {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  position: relative;
+}
+
+.control-row-zoom .label-zoom {
+  font-family: Inter, sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #121212;
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.control-row-zoom #zoom-slider,
+.control-row-zoom .slider-zoom {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: transparent;
+  outline: none;
+  -webkit-appearance: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  border: none;
+}
+
+.control-row-zoom #zoom-slider::before,
+.control-row-zoom .slider-zoom::before,
+.control-row-zoom #zoom-slider::after,
+.control-row-zoom .slider-zoom::after {
+  display: none !important;
+  content: none !important;
+}
+
+.control-row-zoom #zoom-slider:focus,
+.control-row-zoom .slider-zoom:focus {
+  outline: none;
+  box-shadow: none;
+  border: none;
+}
+
+.control-row-zoom .value-zoom {
+  font-family: Inter, sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #64748B;
+  min-width: 45px;
+  text-align: right;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.control-row-zoom #zoom-slider::-webkit-slider-thumb,
+.control-row-zoom .slider-zoom::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #0053F1;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  border: none;
+  box-shadow: none;
+  margin-top: -6px;
+  outline: none;
+}
+
+.control-row-zoom #zoom-slider:focus::-webkit-slider-thumb,
+.control-row-zoom .slider-zoom:focus::-webkit-slider-thumb {
+  outline: none;
+  box-shadow: none;
+  border: none;
+}
+
+.control-row-zoom #zoom-slider::-moz-range-thumb,
+.control-row-zoom .slider-zoom::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #0053F1;
+  cursor: pointer;
+  border: none;
+  box-shadow: none;
+  position: relative;
+  z-index: 1;
+  margin-top: -6px;
+  outline: none;
+}
+
+.control-row-zoom #zoom-slider:focus::-moz-range-thumb,
+.control-row-zoom .slider-zoom:focus::-moz-range-thumb {
+  outline: none;
+  box-shadow: none;
+  border: none;
+}
+
+.control-row-zoom #zoom-slider::-webkit-slider-runnable-track,
+.control-row-zoom .slider-zoom::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 6px;
+  background: #E0E9FE;
+  border-radius: 3px;
+  border: none;
+  -webkit-appearance: none;
+}
+
+.control-row-zoom #zoom-slider::-moz-range-track,
+.control-row-zoom .slider-zoom::-moz-range-track {
+  width: 100%;
+  height: 6px;
+  background: #E0E9FE;
+  border-radius: 3px;
+  border: none;
+  -moz-appearance: none;
+}
+
+.control-row-zoom #zoom-slider::-moz-range-progress,
+.control-row-zoom .slider-zoom::-moz-range-progress {
+  background: transparent;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.control-row-zoom #zoom-slider::-ms-track {
+  width: 100%;
+  height: 6px;
+  background: transparent;
+  border-color: transparent;
+  color: transparent;
+}
+
+/* Generic slider styles for backwards compatibility */
 .control-row .slider {
   flex: 1;
   height: 6px;

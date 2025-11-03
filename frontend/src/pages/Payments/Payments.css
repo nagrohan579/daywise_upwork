@@ -150,8 +150,15 @@
 .payments-page .status-dot {
   width: 11px;
   height: 11px;
-  background: #CC0B0B;
   border-radius: 50%;
+}
+
+.payments-page .status-dot-red {
+  background: #CC0B0B;
+}
+
+.payments-page .status-dot-green {
+  background: #68C772;
 }
 
 .payments-page .stripe-status span {
@@ -160,7 +167,97 @@
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
+}
+
+.payments-page .status-text-red {
   color: #CC0B0B;
+}
+
+.payments-page .status-text-green {
+  color: #68C772;
+}
+
+.payments-page .stripe-connected-button {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 11px;
+  gap: 6px;
+  width: 127px;
+  height: 40px;
+  background: rgba(100, 116, 139, 0.2);
+  border-radius: 50px;
+  border: none;
+  cursor: default;
+  flex: none;
+}
+
+.payments-page .stripe-connected-button svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.payments-page .stripe-connected-button span {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  color: #64748B;
+  flex: none;
+}
+
+.payments-page .stripe-manage-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 12px;
+  width: 417px;
+  align-self: stretch;
+}
+
+.payments-page .stripe-manage-heading {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 20px;
+  color: #121212;
+  margin: 0;
+  width: 100%;
+}
+
+.payments-page .stripe-visit-dashboard-button {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 11px;
+  gap: 6px;
+  width: 417px;
+  height: 40px;
+  background: #0053F1;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.payments-page .stripe-visit-dashboard-button:hover {
+  background: #0041C7;
+}
+
+.payments-page .stripe-visit-dashboard-button span {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  color: #FFFFFF;
+  text-align: center;
 }
 
 /* Responsive Design */
@@ -174,6 +271,14 @@
   }
 
   .payments-page .stripe-details p {
+    width: 100%;
+  }
+
+  .payments-page .stripe-manage-section {
+    width: 100%;
+  }
+
+  .payments-page .stripe-visit-dashboard-button {
     width: 100%;
   }
 }

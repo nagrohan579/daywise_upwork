@@ -24,7 +24,7 @@ import { RESERVED_SLUGS } from "./constants";
 import { toSlug, ensureUniqueSlug, generateBusinessIdentifiers } from "./lib/slug";
 import { googleCalendarService } from "./lib/google-calendar";
 import { z } from "zod";
-import { sendCustomerConfirmation, sendBusinessNotification, sendRescheduleConfirmation, sendRescheduleBusinessNotification, sendCancellationConfirmation, sendCancellationBusinessNotification, sendFeedbackEmail } from "./email";
+import { sendCustomerConfirmation, sendBusinessNotification, sendRescheduleConfirmation, sendRescheduleBusinessNotification, sendCancellationConfirmation, sendCancellationBusinessNotification, sendFeedbackEmail, sendEmailChangeOtp, sendPasswordChangeOtp } from "./email";
 import { FeatureGate } from "./featureGating";
 import { uploadFile, deleteFile, isSpacesUrl } from "./services/spaces";
 
@@ -33,6 +33,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize dayjs plugins
   dayjs.extend(utc);
   dayjs.extend(timezone);
+  
+  // OTP storage for email change (in-memory with expiration)
+  // Format: Map<userId, { otp: string, newEmail: string, expiresAt: number }>
+  const emailChangeOtps = new Map<string, { otp: string; newEmail: string; expiresAt: number }>();
+  
+  // OTP storage for password change (in-memory with expiration)
+  // Format: Map<userId, { otp: string, expiresAt: number }>
+  const passwordChangeOtps = new Map<string, { otp: string; expiresAt: number }>();
+  
+  // Cleanup expired OTPs every 5 minutes
+  setInterval(() => {
+    const now = Date.now();
+    for (const [userId, data] of emailChangeOtps.entries()) {
+      if (data.expiresAt < now) {
+        emailChangeOtps.delete(userId);
+      }
+    }
+    for (const [userId, data] of passwordChangeOtps.entries()) {
+      if (data.expiresAt < now) {
+        passwordChangeOtps.delete(userId);
+      }
+    }
+  }, 5 * 60 * 1000);
+  
+  // Helper middleware for authentication and admin checks
+  const requireAuth = (req: any, res: any, next: any) => {
+    const session = req.session as any;
+    if (!session?.userId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+    next();
+  };
   
   // Initialize Google OAuth client
   const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -3313,6 +3345,256 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send OTP for email change
+  app.post("/api/users/change-email/send-otp", requireAuth, async (req, res) => {
+    try {
+      const session = req.session as any;
+      const userId = session.userId;
+      
+      const { newEmail } = req.body;
+      
+      if (!newEmail || typeof newEmail !== 'string') {
+        return res.status(400).json({ message: 'New email address is required' });
+      }
+      
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(newEmail)) {
+        return res.status(400).json({ message: 'Invalid email address format' });
+      }
+      
+      // Get current user to check if email is different
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      if (newEmail.toLowerCase() === user.email?.toLowerCase()) {
+        return res.status(400).json({ message: 'New email must be different from current email' });
+      }
+      
+      // Check if email is already taken
+      const existingUser = await storage.getUserByEmail(newEmail);
+      if (existingUser && existingUser._id !== userId) {
+        return res.status(400).json({ message: 'This email address is already in use' });
+      }
+      
+      // Generate 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      // Store OTP with 10-minute expiration
+      emailChangeOtps.set(userId, {
+        otp,
+        newEmail: newEmail.toLowerCase(),
+        expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+      });
+      
+      // Send OTP email
+      await sendEmailChangeOtp(newEmail, otp);
+      
+      res.json({ message: 'OTP sent successfully' });
+    } catch (error) {
+      console.error('Error sending OTP:', error);
+      res.status(500).json({ 
+        message: 'Failed to send OTP', 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+  
+  // Verify OTP and change email
+  app.post("/api/users/change-email/verify-otp", requireAuth, async (req, res) => {
+    try {
+      const session = req.session as any;
+      const userId = session.userId;
+      
+      const { newEmail, otp } = req.body;
+      
+      if (!newEmail || !otp) {
+        return res.status(400).json({ message: 'Email and OTP are required' });
+      }
+      
+      if (typeof otp !== 'string' || otp.length !== 6) {
+        return res.status(400).json({ message: 'OTP must be 6 digits' });
+      }
+      
+      // Get stored OTP data
+      const storedData = emailChangeOtps.get(userId);
+      if (!storedData) {
+        return res.status(400).json({ message: 'OTP not found or expired. Please request a new OTP.' });
+      }
+      
+      // Check expiration
+      if (storedData.expiresAt < Date.now()) {
+        emailChangeOtps.delete(userId);
+        return res.status(400).json({ message: 'OTP has expired. Please request a new OTP.' });
+      }
+      
+      // Verify OTP and email match
+      if (storedData.otp !== otp || storedData.newEmail.toLowerCase() !== newEmail.toLowerCase()) {
+        return res.status(400).json({ message: 'Invalid OTP or email mismatch' });
+      }
+      
+      // Get user to verify they still exist
+      const user = await storage.getUser(userId);
+      if (!user) {
+        emailChangeOtps.delete(userId);
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Check if email is still available
+      const existingUser = await storage.getUserByEmail(newEmail);
+      if (existingUser && existingUser._id !== userId) {
+        emailChangeOtps.delete(userId);
+        return res.status(400).json({ message: 'This email address is already in use' });
+      }
+      
+      // Update email in Convex
+      await storage.updateUser(userId, { email: newEmail.toLowerCase() });
+      
+      // Remove OTP after successful change
+      emailChangeOtps.delete(userId);
+      
+      res.json({ message: 'Email changed successfully' });
+    } catch (error) {
+      console.error('Error verifying OTP:', error);
+      res.status(500).json({ 
+        message: 'Failed to verify OTP', 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
+  // Send OTP for password change
+  app.post("/api/users/change-password/send-otp", requireAuth, async (req, res) => {
+    try {
+      const session = req.session as any;
+      const userId = session.userId;
+      
+      // Get current user to get email
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      if (!user.email) {
+        return res.status(400).json({ message: 'User email not found' });
+      }
+      
+      // Generate 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      // Store OTP with 10-minute expiration
+      passwordChangeOtps.set(userId, {
+        otp,
+        expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+      });
+      
+      // Send OTP email
+      await sendPasswordChangeOtp(user.email, otp);
+      
+      res.json({ message: 'OTP sent successfully' });
+    } catch (error) {
+      console.error('Error sending password change OTP:', error);
+      res.status(500).json({ 
+        message: 'Failed to send OTP', 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+  
+  // Verify OTP for password change
+  app.post("/api/users/change-password/verify-otp", requireAuth, async (req, res) => {
+    try {
+      const session = req.session as any;
+      const userId = session.userId;
+      
+      const { otp } = req.body;
+      
+      if (!otp) {
+        return res.status(400).json({ message: 'OTP is required' });
+      }
+      
+      if (typeof otp !== 'string' || otp.length !== 6) {
+        return res.status(400).json({ message: 'OTP must be 6 digits' });
+      }
+      
+      // Get stored OTP data
+      const storedData = passwordChangeOtps.get(userId);
+      if (!storedData) {
+        return res.status(400).json({ message: 'OTP not found or expired. Please request a new OTP.' });
+      }
+      
+      // Check expiration
+      if (storedData.expiresAt < Date.now()) {
+        passwordChangeOtps.delete(userId);
+        return res.status(400).json({ message: 'OTP has expired. Please request a new OTP.' });
+      }
+      
+      // Verify OTP
+      if (storedData.otp !== otp) {
+        return res.status(400).json({ message: 'Invalid OTP' });
+      }
+      
+      // OTP verified - keep it stored for the password update step
+      res.json({ message: 'OTP verified successfully' });
+    } catch (error) {
+      console.error('Error verifying password change OTP:', error);
+      res.status(500).json({ 
+        message: 'Failed to verify OTP', 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
+  // Update password after OTP verification
+  app.post("/api/users/change-password/update", requireAuth, async (req, res) => {
+    try {
+      const session = req.session as any;
+      const userId = session.userId;
+      
+      const { newPassword } = req.body;
+      
+      if (!newPassword) {
+        return res.status(400).json({ message: 'New password is required' });
+      }
+      
+      if (typeof newPassword !== 'string' || newPassword.length < 12) {
+        return res.status(400).json({ message: 'Password must be at least 12 characters long' });
+      }
+      
+      // Verify OTP was previously verified
+      const storedData = passwordChangeOtps.get(userId);
+      if (!storedData) {
+        return res.status(400).json({ message: 'Please verify your OTP first' });
+      }
+      
+      // Get user to verify they still exist
+      const user = await storage.getUser(userId);
+      if (!user) {
+        passwordChangeOtps.delete(userId);
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Hash the new password
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+      
+      // Update password in Convex
+      await storage.updateUser(userId, { password: hashedPassword });
+      
+      // Remove OTP after successful password change
+      passwordChangeOtps.delete(userId);
+      
+      res.json({ message: 'Password changed successfully' });
+    } catch (error) {
+      console.error('Error updating password:', error);
+      res.status(500).json({ 
+        message: 'Failed to update password', 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
   // Delete user account
   app.delete("/api/users/:id", async (req, res) => {
     try {
@@ -3559,15 +3841,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/ping", (req, res) => {
     res.json({ message: "pong" });
   });
-
-  // Helper middleware for authentication and admin checks
-  const requireAuth = (req: any, res: any, next: any) => {
-    const session = req.session as any;
-    if (!session?.userId) {
-      return res.status(401).json({ message: "Authentication required" });
-    }
-    next();
-  };
 
   const requireAdmin = async (req: any, res: any, next: any) => {
     // If HTTP Basic Auth already passed, allow immediately
@@ -4498,6 +4771,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: e?.message ?? "Portal creation error" });
     }
   });
+
+  // ========== Stripe Connect Routes ==========
+
+  // Initiate Stripe Connect OAuth flow
+  app.get("/api/stripe/connect", requireAuth, async (req, res) => {
+    try {
+      const session = req.session as any;
+      const userId = session.userId;
+
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      // Build Stripe OAuth URL
+      const clientId = process.env.STRIPE_CONNECT_CLIENT_ID;
+      const redirectUri = `${process.env.BASE_URL}/api/stripe/callback`;
+
+      if (!clientId) {
+        console.error('STRIPE_CONNECT_CLIENT_ID is not configured');
+        return res.status(500).json({ message: "Stripe Connect is not configured" });
+      }
+
+      const stripeOAuthUrl = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${clientId}&scope=read_write&redirect_uri=${encodeURIComponent(redirectUri)}&state=${userId}`;
+
+      // Redirect user to Stripe OAuth
+      return res.redirect(stripeOAuthUrl);
+    } catch (error: any) {
+      console.error('Error initiating Stripe Connect:', error);
+      return res.status(500).json({ message: error.message || "Failed to initiate Stripe Connect" });
+    }
+  });
+
+  // Handle Stripe Connect OAuth callback
+  app.get("/api/stripe/callback", async (req, res) => {
+    try {
+      const { code, state: userId, error } = req.query;
+
+      if (error) {
+        console.error('Stripe OAuth error:', error);
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        return res.redirect(`${frontendUrl}/payments?error=${encodeURIComponent(error as string)}`);
+      }
+
+      if (!code || !userId) {
+        return res.status(400).json({ message: "Missing authorization code or user ID" });
+      }
+
+      // Exchange authorization code for access token
+      const tokenResponse = await stripe.oauth.token({
+        grant_type: 'authorization_code',
+        code: code as string,
+      });
+
+      // Extract credentials
+      const {
+        stripe_user_id: stripeAccountId,
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        scope,
+      } = tokenResponse;
+
+      console.log('Stripe Connect successful for user:', userId);
+      console.log('Stripe Account ID:', stripeAccountId);
+
+      // Update user in Convex with Stripe Connect credentials
+      const user = await storage.getUser(userId as string);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      await storage.updateUser(user._id, {
+        stripeAccountId,
+        stripeAccessToken: accessToken,
+        stripeRefreshToken: refreshToken,
+        stripeScope: scope,
+      });
+
+      console.log('Stripe credentials saved to database for user:', userId);
+
+      // Redirect back to frontend Payments page with success
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      return res.redirect(`${frontendUrl}/payments?connected=true`);
+    } catch (error: any) {
+      console.error('Error in Stripe Connect callback:', error);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      return res.redirect(`${frontendUrl}/payments?error=${encodeURIComponent(error.message || 'Connection failed')}`);
+    }
+  });
+
+  // Get Stripe Connect status for current user
+  app.get("/api/stripe/status", requireAuth, async (req, res) => {
+    try {
+      const session = req.session as any;
+      const userId = session.userId;
+
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      // Fetch user from Convex
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const isConnected = !!user.stripeAccountId;
+
+      return res.json({
+        isConnected,
+        stripeAccountId: user.stripeAccountId || null,
+      });
+    } catch (error: any) {
+      console.error('Error checking Stripe Connect status:', error);
+      return res.status(500).json({ message: error.message || "Failed to check Stripe status" });
+    }
+  });
+
+  // ========== End Stripe Connect Routes ==========
 
   // Stripe Webhooks with signature verification
   app.post("/api/stripe/webhook", async (req, res) => {

@@ -5909,6 +5909,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Initialize default subscription plans if they don't exist
+  const initializeDefaultPlans = async () => {
+    try {
+      console.log('Checking for default subscription plans...');
+      const existingPlans = await storage.getAllSubscriptionPlans();
+
+      // Check if "free" plan exists
+      const freePlanExists = existingPlans.some((p: any) => p.planId === 'free');
+      if (!freePlanExists) {
+        console.log('Creating default "free" plan...');
+        const freePlan = {
+          planId: 'free',
+          name: 'Free Plan',
+          description: 'Perfect for getting started. Manage your first bookings with all the essential tools at no cost.',
+          features: applyDefaults({}),
+          isActive: true,
+        };
+        await storage.createSubscriptionPlan(freePlan);
+        console.log('✅ Free plan created');
+      }
+
+      // Check if "pro" plan exists
+      const proPlanExists = existingPlans.some((p: any) => p.planId === 'pro');
+      if (!proPlanExists) {
+        console.log('Creating default "pro" plan...');
+        const proPlan = {
+          planId: 'pro',
+          name: 'Pro Plan',
+          description: 'Unlock unlimited bookings, custom branding, payment processing, and automated reminders to scale your business.',
+          priceMonthly: 10,
+          priceYearly: 96,
+          features: applyDefaults({}),
+          isActive: true,
+        };
+
+        // Create plan first
+        const created = await storage.createSubscriptionPlan(proPlan);
+
+        // Ensure Stripe prices exist
+        if (created) {
+          const prices = await ensureStripePrices({
+            id: created._id,
+            name: created.name,
+            priceMonthly: created.priceMonthly,
+            priceYearly: created.priceYearly,
+            stripePriceMonthly: created.stripePriceMonthly,
+            stripePriceYearly: created.stripePriceYearly,
+          });
+
+          if (prices.monthly || prices.yearly) {
+            await storage.updateSubscriptionPlan(created._id, {
+              stripePriceMonthly: prices.monthly ?? created.stripePriceMonthly,
+              stripePriceYearly: prices.yearly ?? created.stripePriceYearly,
+            });
+          }
+        }
+        console.log('✅ Pro plan created with Stripe prices');
+      }
+
+      console.log('✅ Default subscription plans initialized');
+    } catch (error) {
+      console.error('Error initializing default plans:', error);
+      // Don't throw - let the server start even if plan initialization fails
+    }
+  };
+
+  // Initialize plans on startup
+  await initializeDefaultPlans();
+
   const httpServer = createServer(app);
   return httpServer;
 }

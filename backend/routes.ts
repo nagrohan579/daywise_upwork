@@ -5938,8 +5938,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           planId: 'pro',
           name: 'Pro Plan',
           description: 'Unlock unlimited bookings, custom branding, payment processing, and automated reminders to scale your business.',
-          priceMonthly: 10,
-          priceYearly: 96,
+          priceMonthly: 1000, // $10.00 in cents
+          priceYearly: 9600,  // $96.00 in cents
           features: applyDefaults({}),
           isActive: true,
         };

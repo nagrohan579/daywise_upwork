@@ -10,7 +10,7 @@ const Billing = () => {
   const [plans, setPlans] = useState([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState(null);
-  const [isSelectingPlan, setIsSelectingPlan] = useState(false);
+  const [selectingPlan, setSelectingPlan] = useState(null); // Track which plan is being selected (e.g., "pro-month", "pro-year")
   const [subscriptionData, setSubscriptionData] = useState(null); // Full subscription details
 
   // Fetch current subscription
@@ -114,7 +114,8 @@ const Billing = () => {
 
   // Handle plan selection
   const handlePlanSelect = async (planId, interval) => {
-    if (isSelectingPlan) return;
+    const planKey = `${planId}-${interval}`;
+    if (selectingPlan) return;
 
     // Check if this is already the current plan
     const isCurrentPlan = currentPlan === planId && (planId === "free" || (isAnnual ? interval === "year" : interval === "month"));
@@ -122,7 +123,7 @@ const Billing = () => {
       return; // Already on this plan
     }
 
-    setIsSelectingPlan(true);
+    setSelectingPlan(planKey);
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -130,7 +131,7 @@ const Billing = () => {
       if (planId === "free") {
         // Downgrade to free (requires cancellation via portal)
         toast.error("To cancel your subscription, please use the 'Manage Subscription' button.");
-        setIsSelectingPlan(false);
+        setSelectingPlan(null);
         return;
       }
 
@@ -155,7 +156,7 @@ const Billing = () => {
     } catch (error) {
       console.error('Error selecting plan:', error);
       toast.error(error.message || 'Failed to start checkout');
-      setIsSelectingPlan(false);
+      setSelectingPlan(null);
     }
   };
 
@@ -226,12 +227,12 @@ const Billing = () => {
                       <Button
                         text={isCurrentPlanCard("free", null) ? "Your Current Plan" : "Select"}
                         onClick={() => !isCurrentPlanCard("free", null) && handlePlanSelect("free", "month")}
-                        disabled={isCurrentPlanCard("free", null) || isSelectingPlan}
+                        disabled={isCurrentPlanCard("free", null) || selectingPlan}
                         style={{
                           backgroundColor: isCurrentPlanCard("free", null) ? "#64748B33" : "#0053F1",
                           color: isCurrentPlanCard("free", null) ? "#64748B" : "#fff",
-                          cursor: isCurrentPlanCard("free", null) || isSelectingPlan ? "not-allowed" : "pointer",
-                          opacity: isSelectingPlan ? 0.6 : 1,
+                          cursor: isCurrentPlanCard("free", null) || selectingPlan ? "not-allowed" : "pointer",
+                          opacity: selectingPlan ? 0.6 : 1,
                         }}
                       />
                     </div>
@@ -252,14 +253,14 @@ const Billing = () => {
                         </p>
                       </div>
                       <Button
-                        text={isCurrentPlanCard("pro", "month") ? "Your Current Plan" : isSelectingPlan ? "Processing..." : "Select"}
+                        text={isCurrentPlanCard("pro", "month") ? "Your Current Plan" : selectingPlan === "pro-month" ? "Processing..." : "Select"}
                         onClick={() => !isCurrentPlanCard("pro", "month") && handlePlanSelect("pro", "month")}
-                        disabled={isCurrentPlanCard("pro", "month") || isSelectingPlan}
+                        disabled={isCurrentPlanCard("pro", "month") || selectingPlan}
                         style={{
                           backgroundColor: isCurrentPlanCard("pro", "month") ? "#64748B33" : "#0053F1",
                           color: isCurrentPlanCard("pro", "month") ? "#64748B" : "#fff",
-                          cursor: isCurrentPlanCard("pro", "month") || isSelectingPlan ? "not-allowed" : "pointer",
-                          opacity: isSelectingPlan ? 0.6 : 1,
+                          cursor: isCurrentPlanCard("pro", "month") || selectingPlan ? "not-allowed" : "pointer",
+                          opacity: selectingPlan === "pro-month" ? 0.6 : 1,
                         }}
                       />
                     </div>
@@ -281,14 +282,14 @@ const Billing = () => {
                         </p>
                       </div>
                       <Button
-                        text={isCurrentPlanCard("pro", "year") ? "Your Current Plan" : isSelectingPlan ? "Processing..." : "Select"}
+                        text={isCurrentPlanCard("pro", "year") ? "Your Current Plan" : selectingPlan === "pro-year" ? "Processing..." : "Select"}
                         onClick={() => !isCurrentPlanCard("pro", "year") && handlePlanSelect("pro", "year")}
-                        disabled={isCurrentPlanCard("pro", "year") || isSelectingPlan}
+                        disabled={isCurrentPlanCard("pro", "year") || selectingPlan}
                         style={{
                           backgroundColor: isCurrentPlanCard("pro", "year") ? "#64748B33" : "#0053F1",
                           color: isCurrentPlanCard("pro", "year") ? "#64748B" : "#fff",
-                          cursor: isCurrentPlanCard("pro", "year") || isSelectingPlan ? "not-allowed" : "pointer",
-                          opacity: isSelectingPlan ? 0.6 : 1,
+                          cursor: isCurrentPlanCard("pro", "year") || selectingPlan ? "not-allowed" : "pointer",
+                          opacity: selectingPlan === "pro-year" ? 0.6 : 1,
                         }}
                       />
                     </div>

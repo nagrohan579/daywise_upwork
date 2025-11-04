@@ -4,13 +4,17 @@ import { toast } from "sonner";
 import "./Billing.css";
 
 const Billing = () => {
-  // FOR TESTING PURPOSES - REMOVE ONCE TESTED
-  const [currentPlan, setCurrentPlan] = useState(null); // null = not yet loaded
-  const [isToggling, setIsToggling] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState(null); // null = not yet loaded, "free", "pro"
+  const [isAnnual, setIsAnnual] = useState(false); // Is current plan annual
   const [isFetchingPlan, setIsFetchingPlan] = useState(true);
+  const [plans, setPlans] = useState([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState(null);
+  const [isSelectingPlan, setIsSelectingPlan] = useState(false);
+  const [subscriptionData, setSubscriptionData] = useState(null); // Full subscription details
 
+  // Fetch current subscription
   useEffect(() => {
-    // Fetch current subscription
     const fetchSubscription = async () => {
       setIsFetchingPlan(true);
       try {
@@ -20,18 +24,18 @@ const Billing = () => {
         });
         if (response.ok) {
           const data = await response.json();
-          // Set planId from subscription, default to "free" if no subscription exists
           const planId = data.subscription?.planId || "free";
+          const annual = data.subscription?.isAnnual || false;
           setCurrentPlan(planId);
-          console.log('Fetched subscription plan:', planId); // Debug log
+          setIsAnnual(annual);
+          setSubscriptionData(data.subscription || null);
+          console.log('Fetched subscription:', planId, annual ? '(Annual)' : '(Monthly)');
         } else {
-          // If endpoint fails, default to free
           console.error('Failed to fetch subscription, defaulting to free');
           setCurrentPlan("free");
         }
       } catch (error) {
         console.error('Error fetching subscription:', error);
-        // On error, default to free
         setCurrentPlan("free");
       } finally {
         setIsFetchingPlan(false);
@@ -40,42 +44,151 @@ const Billing = () => {
     fetchSubscription();
   }, []);
 
-  // FOR TESTING PURPOSES - REMOVE ONCE TESTED
-  const handleTogglePlan = async () => {
-    if (isToggling) return;
-    setIsToggling(true);
+  // Fetch subscription plans
+  useEffect(() => {
+    const fetchPlans = async () => {
+      setLoadingPlans(true);
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const response = await fetch(`${apiUrl}/api/subscription-plans`, {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setPlans(data.plans || []);
+        }
+      } catch (error) {
+        console.error('Error fetching plans:', error);
+      } finally {
+        setLoadingPlans(false);
+      }
+    };
+    fetchPlans();
+  }, []);
+
+  // Fetch payment method (only if user has a Stripe customer ID)
+  useEffect(() => {
+    const fetchPaymentMethod = async () => {
+      if (currentPlan === "free") {
+        setPaymentMethod(null);
+        return;
+      }
+
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const response = await fetch(`${apiUrl}/api/billing/payment-method`, {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setPaymentMethod(data.paymentMethod || null);
+        }
+      } catch (error) {
+        console.error('Error fetching payment method:', error);
+      }
+    };
+
+    if (currentPlan && !isFetchingPlan) {
+      fetchPaymentMethod();
+    }
+  }, [currentPlan, isFetchingPlan]);
+
+  // Handle success/cancel URL params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get('success');
+    const canceled = params.get('canceled');
+
+    if (success === '1') {
+      toast.success('Subscription activated successfully!');
+      // Clean URL
+      window.history.replaceState({}, '', '/billing');
+      // Refetch subscription to update UI
+      setTimeout(() => window.location.reload(), 1000);
+    } else if (canceled === '1') {
+      toast.info('Checkout canceled. You can try again anytime.');
+      // Clean URL
+      window.history.replaceState({}, '', '/billing');
+    }
+  }, []);
+
+  // Handle plan selection
+  const handlePlanSelect = async (planId, interval) => {
+    if (isSelectingPlan) return;
+
+    // Check if this is already the current plan
+    const isCurrentPlan = currentPlan === planId && (planId === "free" || (isAnnual ? interval === "year" : interval === "month"));
+    if (isCurrentPlan) {
+      return; // Already on this plan
+    }
+
+    setIsSelectingPlan(true);
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      const newPlan = currentPlan === "free" ? "pro" : "free";
-      
-      const response = await fetch(`${apiUrl}/api/subscription/test-toggle`, {
+
+      if (planId === "free") {
+        // Downgrade to free (requires cancellation via portal)
+        toast.error("To cancel your subscription, please use the 'Manage Subscription' button.");
+        setIsSelectingPlan(false);
+        return;
+      }
+
+      // Redirect to Stripe Checkout
+      const response = await fetch(`${apiUrl}/api/checkout/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ planId: newPlan }),
+        body: JSON.stringify({ planId, interval }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to toggle plan');
+        throw new Error(error.message || 'Failed to start checkout');
       }
 
-      const result = await response.json();
-      // Update plan from response or use the newPlan we sent
-      const updatedPlanId = result.subscription?.planId || newPlan;
-      setCurrentPlan(updatedPlanId);
-      console.log('Plan toggled to:', updatedPlanId); // Debug log
-      toast.success(`Successfully switched to ${updatedPlanId === "pro" ? "Pro" : "Free"} plan`);
+      const data = await response.json();
+      // Redirect to Stripe Checkout
+      window.location.href = data.url;
     } catch (error) {
-      console.error('Error toggling plan:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to toggle plan';
-      toast.error(errorMessage);
-    } finally {
-      setIsToggling(false);
+      console.error('Error selecting plan:', error);
+      toast.error(error.message || 'Failed to start checkout');
+      setIsSelectingPlan(false);
     }
+  };
+
+  // Handle Manage Subscription click
+  const handleManageSubscription = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/billing/portal`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to open billing portal');
+      }
+
+      const data = await response.json();
+      // Redirect to Stripe Customer Portal
+      window.location.href = data.url;
+    } catch (error) {
+      console.error('Error opening billing portal:', error);
+      toast.error(error.message || 'Failed to open billing portal');
+    }
+  };
+
+  // Helper: Check if a plan is the current one
+  const isCurrentPlanCard = (planId, interval) => {
+    if (planId === "free") {
+      return currentPlan === "free";
+    }
+    // For pro plans, check both planId and interval
+    return currentPlan === "pro" && (isAnnual ? interval === "year" : interval === "month");
   };
 
   return (
@@ -86,98 +199,158 @@ const Billing = () => {
             <h1>Billing & Subsciption</h1>
             <p>Manage your subscription and payment methods</p>
           </div>
-          {/* FOR TESTING PURPOSES - REMOVE ONCE TESTED */}
-          <Button
-            text={
-              isFetchingPlan 
-                ? "Fetching..." 
-                : isToggling 
-                  ? "Toggling..." 
-                  : currentPlan === null 
-                    ? "Fetching..." 
-                    : currentPlan === "free" 
-                      ? "Turn On Pro Plan" 
-                      : "Switch to Free Plan"
-            }
-            onClick={handleTogglePlan}
-            disabled={isToggling || isFetchingPlan || currentPlan === null}
-            style={{
-              backgroundColor: (isToggling || isFetchingPlan || currentPlan === null) ? "#ccc" : "#0053F1",
-              color: "#fff",
-              opacity: (isToggling || isFetchingPlan || currentPlan === null) ? 0.6 : 1,
-              cursor: (isToggling || isFetchingPlan || currentPlan === null) ? "not-allowed" : "pointer",
-              whiteSpace: "nowrap",
-            }}
-          />
         </div>
         <div className="subscription-plan-con">
           <div className="header">
             <h1>Subscription Plans</h1>
             <div className="subscription-card-box">
-              <div className="subs-card">
-                <div className="boxx">
-                  <div className="top-content">
-                    <div className="wrap">
-                      <h3>Free Plan</h3>
-                      <h5>$0/month</h5>
-                    </div>
-                    <p>
-                      Perfect for getting started. Manage your first bookings
-                      with all the essential tools at no cost.
-                    </p>
-                  </div>
-                  <Button
-                    text={"Your Current Plan"}
-                    style={{ backgroundColor: "#64748B33", color: "#64748B" }}
-                  />
+              {loadingPlans || isFetchingPlan ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#64748B' }}>
+                  Loading plans...
                 </div>
-              </div>
-              <div className="subs-card">
-                <div className="boxx">
-                  <div className="top-content">
-                    <div className="wrap">
-                      <h3>Pro Plan</h3>
-                      <h5>$10/month</h5>
+              ) : (
+                <>
+                  {/* Free Plan Card */}
+                  <div className="subs-card">
+                    <div className="boxx">
+                      <div className="top-content">
+                        <div className="wrap">
+                          <h3>Free Plan</h3>
+                          <h5>$0/month</h5>
+                        </div>
+                        <p>
+                          Perfect for getting started. Manage your first bookings
+                          with all the essential tools at no cost.
+                        </p>
+                      </div>
+                      <Button
+                        text={isCurrentPlanCard("free", null) ? "Your Current Plan" : "Select"}
+                        onClick={() => !isCurrentPlanCard("free", null) && handlePlanSelect("free", "month")}
+                        disabled={isCurrentPlanCard("free", null) || isSelectingPlan}
+                        style={{
+                          backgroundColor: isCurrentPlanCard("free", null) ? "#64748B33" : "#0053F1",
+                          color: isCurrentPlanCard("free", null) ? "#64748B" : "#fff",
+                          cursor: isCurrentPlanCard("free", null) || isSelectingPlan ? "not-allowed" : "pointer",
+                          opacity: isSelectingPlan ? 0.6 : 1,
+                        }}
+                      />
                     </div>
-                    <p>
-                      Perfect for getting started. Manage your first bookings
-                      with all the essential tools at no cost.
-                    </p>
                   </div>
-                  <Button
-                    text={"Select"}
-                    style={{ backgroundColor: "#0053F1", color: "#fff" }}
-                  />
-                </div>
-              </div>
-              <div className="subs-card">
-                <div className="boxx">
-                  <div className="top-content">
-                    <div className="wrap">
-                      <h3>Pro Plan</h3>
-                      <h5>$96/month</h5>
+
+                  {/* Pro Monthly Plan Card */}
+                  <div className="subs-card">
+                    <div className="boxx">
+                      <div className="top-content">
+                        <div className="wrap">
+                          <h3>Pro Plan</h3>
+                          <h5>$10/month</h5>
+                        </div>
+                        <p>
+                          Unlock unlimited bookings, custom branding, payment
+                          processing, and automated reminders to scale your
+                          business.
+                        </p>
+                      </div>
+                      <Button
+                        text={isCurrentPlanCard("pro", "month") ? "Your Current Plan" : isSelectingPlan ? "Processing..." : "Select"}
+                        onClick={() => !isCurrentPlanCard("pro", "month") && handlePlanSelect("pro", "month")}
+                        disabled={isCurrentPlanCard("pro", "month") || isSelectingPlan}
+                        style={{
+                          backgroundColor: isCurrentPlanCard("pro", "month") ? "#64748B33" : "#0053F1",
+                          color: isCurrentPlanCard("pro", "month") ? "#64748B" : "#fff",
+                          cursor: isCurrentPlanCard("pro", "month") || isSelectingPlan ? "not-allowed" : "pointer",
+                          opacity: isSelectingPlan ? 0.6 : 1,
+                        }}
+                      />
                     </div>
-                    <p>
-                      Get the full power of Pro for only $96 a year and save
-                      20%. Unlock unlimited bookings, custom branding, and
-                      automated reminders while keeping more money in your
-                      pocket.
-                    </p>
                   </div>
-                  <Button
-                    text={"Select"}
-                    style={{ backgroundColor: "#0053F1", color: "#fff" }}
-                  />
-                </div>
-              </div>
+
+                  {/* Pro Annual Plan Card */}
+                  <div className="subs-card">
+                    <div className="boxx">
+                      <div className="top-content">
+                        <div className="wrap">
+                          <h3>Pro Plan</h3>
+                          <h5>$96/year</h5>
+                        </div>
+                        <p>
+                          Get the full power of Pro for only $96 a year and save
+                          20%. Unlock unlimited bookings, custom branding, and
+                          automated reminders while keeping more money in your
+                          pocket.
+                        </p>
+                      </div>
+                      <Button
+                        text={isCurrentPlanCard("pro", "year") ? "Your Current Plan" : isSelectingPlan ? "Processing..." : "Select"}
+                        onClick={() => !isCurrentPlanCard("pro", "year") && handlePlanSelect("pro", "year")}
+                        disabled={isCurrentPlanCard("pro", "year") || isSelectingPlan}
+                        style={{
+                          backgroundColor: isCurrentPlanCard("pro", "year") ? "#64748B33" : "#0053F1",
+                          color: isCurrentPlanCard("pro", "year") ? "#64748B" : "#fff",
+                          cursor: isCurrentPlanCard("pro", "year") || isSelectingPlan ? "not-allowed" : "pointer",
+                          opacity: isSelectingPlan ? 0.6 : 1,
+                        }}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
           <PricingTable />
         </div>
-        <div className="add-update-billing-card">
-          <h1>Add/Update Your Payment Method</h1>
-          <p className="no-card-text">You have no payment methods added.</p>
-        </div>
+
+        {/* Payment Method Section - Only show for Pro users */}
+        {currentPlan === "pro" && (
+          <div className="add-update-billing-card">
+            <h1>Payment Method</h1>
+            {paymentMethod ? (
+              <div style={{ marginTop: '1rem' }}>
+                <p style={{ fontSize: '1rem', color: '#334155', marginBottom: '0.5rem' }}>
+                  <strong>{paymentMethod.brand.toUpperCase()}</strong> ending in <strong>••••{paymentMethod.last4}</strong>
+                </p>
+                <p style={{ fontSize: '0.875rem', color: '#64748B' }}>
+                  Expires {paymentMethod.expMonth}/{paymentMethod.expYear}
+                </p>
+                <Button
+                  text="Manage Subscription"
+                  onClick={handleManageSubscription}
+                  style={{
+                    marginTop: '1rem',
+                    backgroundColor: "#0053F1",
+                    color: "#fff",
+                  }}
+                />
+                <p style={{ fontSize: '0.875rem', color: '#64748B', marginTop: '0.5rem' }}>
+                  Update payment method, view invoices, or cancel subscription
+                </p>
+              </div>
+            ) : (
+              <div>
+                <p className="no-card-text">Setting up payment method...</p>
+                <Button
+                  text="Manage Subscription"
+                  onClick={handleManageSubscription}
+                  style={{
+                    marginTop: '1rem',
+                    backgroundColor: "#0053F1",
+                    color: "#fff",
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Show message for Free users */}
+        {currentPlan === "free" && (
+          <div className="add-update-billing-card">
+            <h1>Payment Method</h1>
+            <p className="no-card-text">
+              Upgrade to a Pro plan to add payment methods and start accepting payments.
+            </p>
+          </div>
+        )}
       </div>
     </AppLayout>
   );

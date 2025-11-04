@@ -4521,7 +4521,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // FOR TESTING PURPOSES - REMOVE ONCE TESTED
+  /* FOR TESTING PURPOSES - COMMENTED OUT FOR PRODUCTION
   // Test endpoint to toggle between free and pro plan without Stripe
   app.post("/api/subscription/test-toggle", requireAuth, async (req, res) => {
     try {
@@ -4557,18 +4557,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Fetch updated subscription
       const updatedSubscription = await storage.getUserSubscription(userId);
-      res.json({ 
+      res.json({
         message: `Successfully switched to ${planId} plan`,
-        subscription: updatedSubscription 
+        subscription: updatedSubscription
       });
     } catch (error) {
       console.error("Error toggling subscription:", error);
-      res.status(500).json({ 
-        message: "Failed to toggle subscription", 
-        error: error instanceof Error ? error.message : "Unknown error" 
+      res.status(500).json({
+        message: "Failed to toggle subscription",
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
+  */
 
   // Free Plan Assignment
   app.post("/api/subscription/free", requireAuth, async (req, res) => {
@@ -4770,29 +4771,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get payment method details
+  app.get("/api/billing/payment-method", requireAuth, async (req, res) => {
+    try {
+      const session = req.session as any;
+      const userId = session.userId;
+
+      // Get user's subscription
+      const userSubscription = await storage.getUserSubscription(userId);
+      if (!userSubscription?.stripeCustomerId) {
+        return res.json({ paymentMethod: null });
+      }
+
+      // Fetch payment methods from Stripe
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: userSubscription.stripeCustomerId,
+        type: 'card',
+      });
+
+      if (paymentMethods.data.length === 0) {
+        return res.json({ paymentMethod: null });
+      }
+
+      // Get the first (default) payment method
+      const pm = paymentMethods.data[0];
+      return res.json({
+        paymentMethod: {
+          brand: pm.card?.brand || 'card',
+          last4: pm.card?.last4 || '****',
+          expMonth: pm.card?.exp_month,
+          expYear: pm.card?.exp_year,
+        }
+      });
+    } catch (e: any) {
+      console.error('Error fetching payment method:', e);
+      return res.status(500).json({ message: e?.message ?? "Failed to fetch payment method" });
+    }
+  });
+
   // Stripe Customer Portal for payment method management
   app.post("/api/billing/portal", requireAuth, async (req, res) => {
     try {
       const session = req.session as any;
       const userId = session.userId;
-      
+
       // Get user's Stripe customer ID
       const userSubscription = await storage.getUserSubscription(userId);
       if (!userSubscription?.stripeCustomerId) {
-        return res.status(400).json({ 
-          message: "No payment method found. Please upgrade to a paid plan first." 
+        return res.status(400).json({
+          message: "No payment method found. Please upgrade to a paid plan first."
         });
       }
-      
+
       const returnUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       const billingUrl = `${returnUrl}/billing`;
-      
+
       // Create customer portal session
       const portalSession = await stripe.billingPortal.sessions.create({
         customer: userSubscription.stripeCustomerId,
         return_url: billingUrl,
       });
-      
+
       return res.json({ url: portalSession.url });
     } catch (e: any) {
       return res.status(500).json({ message: e?.message ?? "Portal creation error" });

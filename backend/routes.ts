@@ -4669,7 +4669,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       const success = `${frontendUrl}/billing?success=1`;
-      const cancel = `${frontendUrl}/pricing?canceled=1`;
+      const cancel = `${frontendUrl}/billing?canceled=1`;
 
       const checkoutOptions: any = {
         mode: "subscription",
@@ -4690,8 +4690,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const checkout = await stripe.checkout.sessions.create(checkoutOptions);
 
-      // optimistic target plan (still locked by getUserFeatures until webhook marks active)
-      await storage.updateUserSubscription(userId, { planId, isAnnual: interval === "year" });
+      // DO NOT update subscription here - wait for webhook confirmation
+      // The subscription will only be activated after successful payment via webhook
 
       return res.json({ url: checkout.url });
     } catch (e: any) {
@@ -4983,16 +4983,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const customerId = session.customer as string;
           const subscriptionId = session.subscription as string;
           const userId = session.metadata?.userId;
+          const planId = session.metadata?.planId || "pro";
 
-          if (userId) {
+          if (userId && subscriptionId) {
+            // Get subscription details to determine if annual or monthly
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+            const priceId = subscription.items.data[0]?.price?.id;
+            
+            // Determine if annual based on price interval
+            let isAnnual = false;
+            if (priceId) {
+              const price = await stripe.prices.retrieve(priceId);
+              isAnnual = price.recurring?.interval === "year";
+            }
+
             // Explicit upgrade to Pro plan
             await storage.updateUserSubscription(userId, {
               stripeCustomerId: customerId,
               stripeSubscriptionId: subscriptionId,
-              planId: "pro",
+              planId: planId,
+              isAnnual: isAnnual,
               status: "active",
             });
-            console.log(`✅ Upgraded user ${userId} to Pro`);
+            console.log(`✅ Upgraded user ${userId} to ${planId} (${isAnnual ? 'Annual' : 'Monthly'})`);
           } else if (subscriptionId) {
             // Fallback to existing logic if no userId in metadata
             const subscription = await stripe.subscriptions.retrieve(subscriptionId);

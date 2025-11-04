@@ -109,6 +109,8 @@ const Billing = () => {
       toast.info('Checkout canceled. You can try again anytime.');
       // Clean URL
       window.history.replaceState({}, '', '/billing');
+      // Clear any stuck processing state
+      setSelectingPlan(null);
     }
   }, []);
 

@@ -30,23 +30,35 @@ export async function ensureStripePrices(plan: {
   
   // Only create monthly price if needed and doesn't exist
   if (plan.priceMonthly && !plan.stripePriceMonthly) {
+    // Prices should already be in cents (e.g., 1000 = $10.00)
+    // Log for debugging if price seems wrong
+    if (plan.priceMonthly < 100) {
+      console.warn(`⚠️ Warning: priceMonthly (${plan.priceMonthly}) seems low. Expected value in cents (e.g., 1000 for $10.00).`);
+    }
     const p = await stripe.prices.create({
       unit_amount: plan.priceMonthly, 
       currency: "usd",
       recurring: { interval: "month" }, 
       product: product.id
     });
+    console.log(`✅ Created monthly price: $${(plan.priceMonthly / 100).toFixed(2)} (${plan.priceMonthly} cents)`);
     out.monthly = p.id;
   }
   
   // Only create yearly price if needed and doesn't exist
   if (plan.priceYearly && !plan.stripePriceYearly) {
+    // Prices should already be in cents (e.g., 9600 = $96.00)
+    // Log for debugging if price seems wrong
+    if (plan.priceYearly < 100) {
+      console.warn(`⚠️ Warning: priceYearly (${plan.priceYearly}) seems low. Expected value in cents (e.g., 9600 for $96.00).`);
+    }
     const p = await stripe.prices.create({
       unit_amount: plan.priceYearly, 
       currency: "usd",
       recurring: { interval: "year" }, 
       product: product.id
     });
+    console.log(`✅ Created yearly price: $${(plan.priceYearly / 100).toFixed(2)} (${plan.priceYearly} cents)`);
     out.yearly = p.id;
   }
   

@@ -5166,10 +5166,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const arpu = totalUsers > 0 ? monthlyRevenue / totalUsers : 0;
       
       // Plan distribution
+      // Get admin user IDs to exclude from counts
+      const adminUserIds = allUsers.filter(user => user.isAdmin).map(user => user._id);
+      
+      // Get all non-admin user IDs
+      const nonAdminUserIds = allUsers.filter(user => !user.isAdmin).map(user => user._id);
+      
       const planDistribution = allPlans.map(plan => {
-        const subscriptions = allUserSubscriptions.filter(sub => 
-          sub.planId === plan._id && sub.status === "active"
-        ).length;
+        let subscriptions = 0;
+        
+        if (plan.planId === "free") {
+          // For free plan: count all non-admin users who either:
+          // 1. Have no subscription record, OR
+          // 2. Have a subscription with planId "free" and status "active"
+          subscriptions = nonAdminUserIds.filter(userId => {
+            const userSub = allUserSubscriptions.find(sub => sub.userId === userId);
+            return !userSub || (userSub.planId === "free" && userSub.status === "active");
+          }).length;
+        } else {
+          // For other plans (pro): count non-admin users with matching planId and active status
+          subscriptions = allUserSubscriptions.filter(sub => {
+            const userIsAdmin = adminUserIds.includes(sub.userId);
+            return sub.planId === plan.planId && sub.status === "active" && !userIsAdmin;
+          }).length;
+        }
+        
         return {
           planName: plan.name,
           subscriptions,
@@ -5255,14 +5276,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const usersWithDetails = allUsers.map(user => {
         const userBookings = allBookings.filter(booking => booking.userId === user._id);
         const userSubscription = allUserSubscriptions.find(sub => sub.userId === user._id);
-        const userPlan = userSubscription ? allPlans.find(plan => plan._id === userSubscription.planId) : null;
+        // Map planId to display name: "free" -> "Free", "pro" -> "Pro"
+        let planDisplayName = "Free";
+        if (userSubscription?.planId) {
+          const planId = userSubscription.planId.toLowerCase();
+          planDisplayName = planId === "pro" ? "Pro" : "Free";
+        }
+        
+        console.log(`[Admin Users] User ${user.email}: subscription planId=${userSubscription?.planId}, display plan=${planDisplayName}`);
         
         return {
           id: user._id,
           name: user.name || 'No Name', // User's actual name
           businessName: user.businessName || '', // Keep business name for reference if needed
           email: user.email,
-          plan: userPlan ? userPlan.name : "Free",
+          plan: planDisplayName,
           bookingCount: userBookings.length,
           joinDate: user._creationTime ? new Date(user._creationTime).toLocaleDateString() : new Date().toLocaleDateString(),
           status: user.isAdmin ? "Admin" : "Active"

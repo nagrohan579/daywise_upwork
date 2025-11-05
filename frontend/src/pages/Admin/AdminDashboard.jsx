@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { FaUsers, FaUserCheck, FaDollarSign, FaPercent, FaPlus, FaEllipsisV } from "react-icons/fa";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ViewIcon, EditIconAdmin, ManageSubscriptionIcon, SuspendIcon, UserGrowthIcon, BookingTrendsIcon, DeleteIcon } from "../../components/SVGICONS/Svg";
 import "./AdminDashboard.css";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
+  const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,30 +28,37 @@ const AdminDashboard = () => {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
         console.log('Fetching admin data from:', apiUrl);
 
-        const [statsResponse, usersResponse] = await Promise.all([
+        const [statsResponse, usersResponse, plansResponse] = await Promise.all([
           fetch(`${apiUrl}/api/admin/stats`, { credentials: 'include' }),
-          fetch(`${apiUrl}/api/admin/users`, { credentials: 'include' })
+          fetch(`${apiUrl}/api/admin/users`, { credentials: 'include' }),
+          fetch(`${apiUrl}/api/admin/plans`, { credentials: 'include' })
         ]);
 
         console.log('Stats response status:', statsResponse.status);
         console.log('Users response status:', usersResponse.status);
+        console.log('Plans response status:', plansResponse.status);
 
-        if (!statsResponse.ok || !usersResponse.ok) {
+        if (!statsResponse.ok || !usersResponse.ok || !plansResponse.ok) {
           const statsError = await statsResponse.text();
           const usersError = await usersResponse.text();
+          const plansError = await plansResponse.text();
           console.error('Stats error:', statsError);
           console.error('Users error:', usersError);
+          console.error('Plans error:', plansError);
           throw new Error('Failed to fetch admin data');
         }
 
         const statsData = await statsResponse.json();
         const usersData = await usersResponse.json();
+        const plansData = await plansResponse.json();
 
         console.log('Stats data:', statsData);
         console.log('Users data count:', usersData.length);
+        console.log('Plans data:', plansData);
 
         setStats(statsData);
         setUsers(usersData);
+        setPlans(plansData);
       } catch (error) {
         console.error('Error fetching admin data:', error);
         toast.error('Failed to load dashboard data. Check console for details.');
@@ -68,6 +77,7 @@ const AdminDashboard = () => {
   };
 
   const [showUserMenu, setShowUserMenu] = useState(null);
+  const [showPlanMenu, setShowPlanMenu] = useState(null);
 
   // Prepare subscription data for pie chart from stats
   const subscriptionData = stats?.planDistribution?.map((plan, index) => ({
@@ -160,7 +170,10 @@ const AdminDashboard = () => {
           {/* User Growth Trend */}
           <div className="chart-card">
             <div className="chart-header">
-              <h3>📈 User Growth Trend</h3>
+              <h3>
+                <UserGrowthIcon style={{ display: 'inline-block', marginRight: '8px', verticalAlign: 'middle' }} />
+                User Growth Trend
+              </h3>
             </div>
             <div className="chart-container">
               <ResponsiveContainer width="100%" height={250}>
@@ -191,7 +204,10 @@ const AdminDashboard = () => {
           {/* Booking Trends */}
           <div className="chart-card">
             <div className="chart-header">
-              <h3>📊 Booking Trends</h3>
+              <h3>
+                <BookingTrendsIcon style={{ display: 'inline-block', marginRight: '8px', verticalAlign: 'middle' }} />
+                Booking Trends
+              </h3>
             </div>
             <div className="chart-container">
               <ResponsiveContainer width="100%" height={250}>
@@ -324,10 +340,22 @@ const AdminDashboard = () => {
                         </button>
                         {showUserMenu === user.id && (
                           <div className="action-menu-dropdown">
-                            <button className="action-menu-item">👁️ View</button>
-                            <button className="action-menu-item">✏️ Edit</button>
-                            <button className="action-menu-item">🔔 Manage Subscription</button>
-                            <button className="action-menu-item">💳 Suspend/Deactivate Account</button>
+                            <button className="action-menu-item">
+                              <span className="action-menu-icon"><ViewIcon /></span>
+                              <span>View</span>
+                            </button>
+                            <button className="action-menu-item">
+                              <span className="action-menu-icon"><EditIconAdmin /></span>
+                              <span>Edit</span>
+                            </button>
+                            <button className="action-menu-item">
+                              <span className="action-menu-icon"><ManageSubscriptionIcon /></span>
+                              <span>Manage Subscription</span>
+                            </button>
+                            <button className="action-menu-item">
+                              <span className="action-menu-icon"><SuspendIcon /></span>
+                              <span>Suspend/Deactivate Account</span>
+                            </button>
                           </div>
                         )}
                       </div>
@@ -341,35 +369,72 @@ const AdminDashboard = () => {
 
         {/* Subscription Plan Management */}
         <div className="plan-management-section">
-          <div className="section-header">
+          <div className="plan-management-header">
             <h3>Subscription Plan Management</h3>
             <button className="create-plan-btn">
-              <FaPlus /> Create New Plan
+              <FaPlus style={{ width: '16px', height: '16px' }} />
+              <span>Create New Plan</span>
             </button>
           </div>
 
           <div className="plans-list">
-            <div className="plan-row">
-              <div className="plan-row-info">
-                <span className="plan-row-name">Free Plan</span>
-                <span className="plan-row-badge active">Active</span>
-              </div>
-              <div className="plan-row-price">$0.00 <span>/month</span></div>
-              <button className="plan-row-menu">
-                <FaEllipsisV />
-              </button>
-            </div>
-
-            <div className="plan-row">
-              <div className="plan-row-info">
-                <span className="plan-row-name">Pro Plan</span>
-                <span className="plan-row-badge active">Active</span>
-              </div>
-              <div className="plan-row-price">$10.00 <span>/month</span></div>
-              <button className="plan-row-menu">
-                <FaEllipsisV />
-              </button>
-            </div>
+            {plans.map((plan, index) => {
+              const isPro = plan.planId === 'pro';
+              const monthlyPrice = plan.priceMonthly ? (plan.priceMonthly / 100).toFixed(2) : '0.00';
+              const yearlyPrice = plan.priceYearly ? (plan.priceYearly / 100).toFixed(2) : null;
+              
+              return (
+                <div key={plan._id || index}>
+                  <div className="plan-row">
+                    <div className="plan-row-left">
+                      <div className="plan-name-badge">
+                        <span className="plan-name">{plan.name}</span>
+                        <span className="plan-status-badge active">Active</span>
+                      </div>
+                    </div>
+                    <div className="plan-row-right">
+                      <div className="plan-prices">
+                        <div className="plan-price-item">
+                          <div className="plan-price-row">
+                            <span className="plan-price-amount">${monthlyPrice}</span>
+                            <span className="plan-price-period">/month</span>
+                          </div>
+                        </div>
+                        {isPro && yearlyPrice && (
+                          <div className="plan-price-item">
+                            <div className="plan-price-row">
+                              <span className="plan-price-amount">${yearlyPrice}</span>
+                              <span className="plan-price-period">/year</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="plan-menu-wrapper">
+                        <button
+                          className="plan-menu-btn"
+                          onClick={() => setShowPlanMenu(showPlanMenu === plan._id ? null : plan._id)}
+                        >
+                          <FaEllipsisV />
+                        </button>
+                        {showPlanMenu === plan._id && (
+                          <div className="plan-menu-dropdown">
+                            <button className="plan-menu-item">
+                              <span className="plan-menu-icon"><EditIconAdmin /></span>
+                              <span>Edit</span>
+                            </button>
+                            <button className="plan-menu-item">
+                              <span className="plan-menu-icon"><DeleteIcon /></span>
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {index < plans.length - 1 && <div className="plan-divider"></div>}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -93,23 +93,35 @@ const Billing = () => {
     }
   }, [currentPlan, isFetchingPlan]);
 
-  // Handle success/cancel URL params
+  // Handle success/cancel URL params and browser back button
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const success = params.get('success');
     const canceled = params.get('canceled');
 
+    // Check if user was in checkout flow (stored in sessionStorage)
+    const wasSelectingPlan = sessionStorage.getItem('selectingPlan');
+
     if (success === '1') {
       toast.success('Subscription activated successfully!');
       // Clean URL
       window.history.replaceState({}, '', '/billing');
+      // Clear checkout flag
+      sessionStorage.removeItem('selectingPlan');
       // Refetch subscription to update UI - increased delay to allow webhook processing
       setTimeout(() => window.location.reload(), 3000);
     } else if (canceled === '1') {
       toast.info('Checkout canceled. You can try again anytime.');
       // Clean URL
       window.history.replaceState({}, '', '/billing');
-      // Clear any stuck processing state
+      // Clear checkout flag and stuck processing state
+      sessionStorage.removeItem('selectingPlan');
+      setSelectingPlan(null);
+    } else if (wasSelectingPlan && !success && !canceled) {
+      // User navigated back using browser back button without going through Stripe cancel
+      console.log('Detected browser back button - clearing stuck state');
+      toast.info('Checkout canceled. You can try again anytime.');
+      sessionStorage.removeItem('selectingPlan');
       setSelectingPlan(null);
     }
   }, []);
@@ -153,6 +165,8 @@ const Billing = () => {
       }
 
       const data = await response.json();
+      // Store flag in sessionStorage to detect browser back button
+      sessionStorage.setItem('selectingPlan', planKey);
       // Redirect to Stripe Checkout
       window.location.href = data.url;
     } catch (error) {

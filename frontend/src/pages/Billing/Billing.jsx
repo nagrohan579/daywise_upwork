@@ -103,8 +103,8 @@ const Billing = () => {
       toast.success('Subscription activated successfully!');
       // Clean URL
       window.history.replaceState({}, '', '/billing');
-      // Refetch subscription to update UI
-      setTimeout(() => window.location.reload(), 1000);
+      // Refetch subscription to update UI - increased delay to allow webhook processing
+      setTimeout(() => window.location.reload(), 3000);
     } else if (canceled === '1') {
       toast.info('Checkout canceled. You can try again anytime.');
       // Clean URL

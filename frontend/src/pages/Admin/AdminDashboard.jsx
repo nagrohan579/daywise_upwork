@@ -78,6 +78,7 @@ const AdminDashboard = () => {
 
   const [showUserMenu, setShowUserMenu] = useState(null);
   const [showPlanMenu, setShowPlanMenu] = useState(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
 
   // Prepare subscription data for pie chart from stats
   const subscriptionData = stats?.planDistribution?.map((plan, index) => ({
@@ -331,15 +332,29 @@ const AdminDashboard = () => {
                       </span>
                     </td>
                     <td>
-                      <div className="action-menu-wrapper">
+                      <div className={`action-menu-wrapper ${showUserMenu === user.id ? 'menu-open' : ''}`}>
                         <button
                           className="action-menu-btn"
-                          onClick={() => setShowUserMenu(showUserMenu === user.id ? null : user.id)}
+                          onClick={(e) => {
+                            const button = e.currentTarget;
+                            const rect = button.getBoundingClientRect();
+                            setDropdownPosition({
+                              top: rect.bottom + 4,
+                              right: window.innerWidth - rect.right
+                            });
+                            setShowUserMenu(showUserMenu === user.id ? null : user.id);
+                          }}
                         >
                           <FaEllipsisV />
                         </button>
                         {showUserMenu === user.id && (
-                          <div className="action-menu-dropdown">
+                          <div 
+                            className="action-menu-dropdown"
+                            style={{
+                              top: `${dropdownPosition.top}px`,
+                              right: `${dropdownPosition.right}px`
+                            }}
+                          >
                             <button className="action-menu-item">
                               <span className="action-menu-icon"><ViewIcon /></span>
                               <span>View</span>

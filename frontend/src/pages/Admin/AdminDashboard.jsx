@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { FaUsers, FaUserCheck, FaDollarSign, FaPercent, FaPlus, FaEllipsisV } from "react-icons/fa";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ViewIcon, EditIconAdmin, ManageSubscriptionIcon, SuspendIcon, UserGrowthIcon, BookingTrendsIcon, DeleteIcon } from "../../components/SVGICONS/Svg";
+import { Input } from "../../components/index";
+import Select from "../../components/ui/Input/Select";
 import "./AdminDashboard.css";
 
 const AdminDashboard = () => {
@@ -78,7 +80,26 @@ const AdminDashboard = () => {
 
   const [showUserMenu, setShowUserMenu] = useState(null);
   const [showPlanMenu, setShowPlanMenu] = useState(null);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
+  const [showCreatePlanModal, setShowCreatePlanModal] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target) && 
+          !event.target.closest('.action-menu-btn')) {
+        setShowUserMenu(null);
+      }
+    };
+
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showUserMenu]);
 
   // Prepare subscription data for pie chart from stats
   const subscriptionData = stats?.planDistribution?.map((plan, index) => ({
@@ -335,25 +356,14 @@ const AdminDashboard = () => {
                       <div className={`action-menu-wrapper ${showUserMenu === user.id ? 'menu-open' : ''}`}>
                         <button
                           className="action-menu-btn"
-                          onClick={(e) => {
-                            const button = e.currentTarget;
-                            const rect = button.getBoundingClientRect();
-                            setDropdownPosition({
-                              top: rect.bottom + 4,
-                              right: window.innerWidth - rect.right
-                            });
-                            setShowUserMenu(showUserMenu === user.id ? null : user.id);
-                          }}
+                          onClick={() => setShowUserMenu(showUserMenu === user.id ? null : user.id)}
                         >
                           <FaEllipsisV />
                         </button>
                         {showUserMenu === user.id && (
                           <div 
+                            ref={dropdownRef}
                             className="action-menu-dropdown"
-                            style={{
-                              top: `${dropdownPosition.top}px`,
-                              right: `${dropdownPosition.right}px`
-                            }}
                           >
                             <button className="action-menu-item">
                               <span className="action-menu-icon"><ViewIcon /></span>
@@ -386,7 +396,7 @@ const AdminDashboard = () => {
         <div className="plan-management-section">
           <div className="plan-management-header">
             <h3>Subscription Plan Management</h3>
-            <button className="create-plan-btn">
+            <button className="create-plan-btn" onClick={() => setShowCreatePlanModal(true)}>
               <FaPlus style={{ width: '16px', height: '16px' }} />
               <span>Create New Plan</span>
             </button>
@@ -451,6 +461,258 @@ const AdminDashboard = () => {
               );
             })}
           </div>
+        </div>
+      </div>
+
+      {/* Create Plan Modal */}
+      {showCreatePlanModal && (
+        <CreatePlanModal 
+          onClose={() => setShowCreatePlanModal(false)}
+          onSuccess={() => {
+            setShowCreatePlanModal(false);
+            // Refresh plans data
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+            fetch(`${apiUrl}/api/admin/plans`, { credentials: 'include' })
+              .then(res => res.json())
+              .then(data => setPlans(data))
+              .catch(err => console.error('Error refreshing plans:', err));
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// Create Plan Modal Component
+const CreatePlanModal = ({ onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({
+    planName: '',
+    bookingsPerMonth: 0,
+    appointmentTypes: 0,
+    monthlyPrice: 0,
+    annualPrice: 0,
+    emailConfirmations: 'Yes',
+    emailReminders: 'Yes',
+    customBookingLink: 'Yes',
+    customBranding: 'Yes',
+    googleCalendarIntegration: 'Yes',
+    removeDaywiseBranding: 'Yes',
+    emailSupport: 'Priority',
+    stripePaymentCollection: 'Yes',
+    trialPeriod: 0,
+    stripeProductIdMonthly: '',
+    stripeProductIdAnnual: ''
+  });
+
+  const handleInputChange = (field, e) => {
+    const value = e.target.value;
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleNumberChange = (field, e) => {
+    const value = e.target.value === '' ? 0 : (field.includes('Price') ? parseFloat(e.target.value) || 0 : parseInt(e.target.value) || 0);
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSelectChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    // TODO: Implement API call to create plan
+    console.log('Form data:', formData);
+    toast.success('Plan created successfully!');
+    onSuccess();
+  };
+
+  return (
+    <div className="create-plan-modal-overlay" onClick={onClose}>
+      <div className="create-plan-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="create-plan-modal-content">
+          <div className="create-plan-modal-header">
+            <h2>Create Subscription Plan</h2>
+            <button className="create-plan-close-btn" onClick={onClose}>
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M4.5 4.5L13.5 13.5M13.5 4.5L4.5 13.5" stroke="#64748B" strokeWidth="1.125" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+
+          <form className="create-plan-form" onSubmit={handleSubmit}>
+            {/* Plan Name */}
+            <Input
+              label="Plan Name"
+              name="planName"
+              type="text"
+              placeholder="Name here"
+              value={formData.planName}
+              onChange={(e) => handleInputChange('planName', e)}
+              required
+            />
+
+            {/* Bookings Per Month & Appointment Types */}
+            <div className="create-plan-row">
+              <Input
+                label="Bookings Per Month"
+                name="bookingsPerMonth"
+                type="number"
+                value={formData.bookingsPerMonth}
+                onChange={(e) => handleNumberChange('bookingsPerMonth', e)}
+                min="0"
+              />
+              <Input
+                label="Appointment Types"
+                name="appointmentTypes"
+                type="number"
+                value={formData.appointmentTypes}
+                onChange={(e) => handleNumberChange('appointmentTypes', e)}
+                min="0"
+              />
+            </div>
+
+            {/* Monthly Price & Annual Price */}
+            <div className="create-plan-row">
+              <Input
+                label="Monthly Price"
+                name="monthlyPrice"
+                type="number"
+                value={formData.monthlyPrice}
+                onChange={(e) => handleNumberChange('monthlyPrice', e)}
+                min="0"
+                step="0.01"
+              />
+              <Input
+                label="Annual Price"
+                name="annualPrice"
+                type="number"
+                value={formData.annualPrice}
+                onChange={(e) => handleNumberChange('annualPrice', e)}
+                min="0"
+                step="0.01"
+              />
+            </div>
+
+            {/* Email Confirmations & Email Reminders */}
+            <div className="create-plan-row">
+              <Select
+                label="Email Confirmations"
+                name="emailConfirmations"
+                options={['Yes', 'No']}
+                value={formData.emailConfirmations}
+                onChange={(value) => handleSelectChange('emailConfirmations', value)}
+                placeholder="Select an option"
+              />
+              <Select
+                label="Email Reminders"
+                name="emailReminders"
+                options={['Yes', 'No']}
+                value={formData.emailReminders}
+                onChange={(value) => handleSelectChange('emailReminders', value)}
+                placeholder="Select an option"
+              />
+            </div>
+
+            {/* Custom Booking Link & Custom Branding */}
+            <div className="create-plan-row">
+              <Select
+                label="Custom Booking Link"
+                name="customBookingLink"
+                options={['Yes', 'No']}
+                value={formData.customBookingLink}
+                onChange={(value) => handleSelectChange('customBookingLink', value)}
+                placeholder="Select an option"
+              />
+              <Select
+                label="Custom Branding"
+                name="customBranding"
+                options={['Yes', 'No']}
+                value={formData.customBranding}
+                onChange={(value) => handleSelectChange('customBranding', value)}
+                placeholder="Select an option"
+              />
+            </div>
+
+            {/* Google Calendar Integration & Remove Daywise Branding */}
+            <div className="create-plan-row">
+              <Select
+                label="Google Calendar Integration"
+                name="googleCalendarIntegration"
+                options={['Yes', 'No']}
+                value={formData.googleCalendarIntegration}
+                onChange={(value) => handleSelectChange('googleCalendarIntegration', value)}
+                placeholder="Select an option"
+              />
+              <Select
+                label="Remove Daywise Branding"
+                name="removeDaywiseBranding"
+                options={['Yes', 'No']}
+                value={formData.removeDaywiseBranding}
+                onChange={(value) => handleSelectChange('removeDaywiseBranding', value)}
+                placeholder="Select an option"
+              />
+            </div>
+
+            {/* Email Support & Stripe Payment Collection */}
+            <div className="create-plan-row">
+              <Select
+                label="Email Support"
+                name="emailSupport"
+                options={['Basic', 'Priority']}
+                value={formData.emailSupport}
+                onChange={(value) => handleSelectChange('emailSupport', value)}
+                placeholder="Select an option"
+              />
+              <Select
+                label="Stripe Payment Collection"
+                name="stripePaymentCollection"
+                options={['Yes', 'No']}
+                value={formData.stripePaymentCollection}
+                onChange={(value) => handleSelectChange('stripePaymentCollection', value)}
+                placeholder="Select an option"
+              />
+            </div>
+
+            {/* Trial Period */}
+            <Input
+              label="Trial Period"
+              name="trialPeriod"
+              type="number"
+              value={formData.trialPeriod}
+              onChange={(e) => handleNumberChange('trialPeriod', e)}
+              min="0"
+            />
+
+            {/* Stripe Product IDs */}
+            <div className="create-plan-row">
+              <Input
+                label="Stripe Product ID (Monthly)"
+                name="stripeProductIdMonthly"
+                type="text"
+                placeholder="ID goes here"
+                value={formData.stripeProductIdMonthly}
+                onChange={(e) => handleInputChange('stripeProductIdMonthly', e)}
+              />
+              <Input
+                label="Stripe Product ID (Annual)"
+                name="stripeProductIdAnnual"
+                type="text"
+                placeholder="ID goes here"
+                value={formData.stripeProductIdAnnual}
+                onChange={(e) => handleInputChange('stripeProductIdAnnual', e)}
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="create-plan-actions">
+              <button type="button" className="create-plan-cancel-btn" onClick={onClose}>
+                Cancel
+              </button>
+              <button type="submit" className="create-plan-submit-btn">
+                Create Plan
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

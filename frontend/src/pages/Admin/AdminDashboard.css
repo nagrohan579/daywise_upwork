@@ -225,7 +225,7 @@
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  margin-bottom: 200px;
+  margin-bottom: 175px;
   overflow: visible !important;
   position: relative;
 }
@@ -328,7 +328,7 @@
   color: #111827;
   position: relative;
   overflow: visible;
-  z-index: 1;
+  z-index: 0;
 }
 
 
@@ -400,14 +400,12 @@
 
 .action-menu-wrapper {
   position: relative;
-  z-index: auto;
-  isolation: isolate;
+  z-index: 1;
 }
 
 .action-menu-wrapper.menu-open {
-  z-index: 999999 !important;
+  z-index: 10000 !important;
   position: relative;
-  transform: translateZ(0);
 }
 
 .action-menu-btn {
@@ -431,18 +429,24 @@
   align-items: flex-start;
   padding: 5px 0px;
   gap: 8px;
-  position: fixed;
+  position: absolute;
   width: 217px;
   height: 160px;
   background: #FFFFFF !important;
   border: 1px solid rgba(100, 116, 139, 0.2);
   border-radius: 12px;
-  z-index: 999999 !important;
+  z-index: 9999999 !important;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  isolation: isolate;
-  transform: translateZ(0);
-  will-change: z-index;
-  margin: 0;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  pointer-events: auto !important;
+}
+
+/* Prevent interaction with table rows when dropdown is open */
+body:has(.action-menu-dropdown) .users-table tbody tr:not(:has(.menu-open)) {
+  pointer-events: none;
+  z-index: 0;
 }
 
 
@@ -945,5 +949,382 @@
   .plan-prices {
     flex-wrap: wrap;
     gap: 12px;
+  }
+}
+
+/* Create Plan Modal */
+.create-plan-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000000;
+  padding: 20px;
+}
+
+.create-plan-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 8px;
+  position: relative;
+  width: 638px;
+  max-width: 100%;
+  max-height: 90vh;
+  background: #FFFFFF;
+  border-radius: 12px;
+  overflow-y: auto;
+}
+
+.create-plan-modal-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 30px;
+  gap: 28px;
+  width: 100%;
+}
+
+.create-plan-modal-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 28px;
+  width: 100%;
+  height: 36px;
+}
+
+.create-plan-modal-header h2 {
+  width: 264px;
+  height: 36px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 36px;
+  display: flex;
+  align-items: center;
+  color: #121212;
+  margin: 0;
+}
+
+.create-plan-close-btn {
+  width: 18px;
+  height: 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.create-plan-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 28px;
+  width: 100%;
+}
+
+.create-plan-field-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 5px;
+  width: 100%;
+}
+
+.create-plan-form .input-group-comp {
+  width: 100%;
+}
+
+.create-plan-form > .input-group-comp {
+  width: 100%;
+}
+
+.create-plan-field-group label {
+  width: 100%;
+  height: 20px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  color: #121212;
+}
+
+.create-plan-input {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 12px;
+  gap: 12px;
+  width: 100%;
+  height: 44px;
+  background: #F9FAFF;
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #121212;
+  outline: none;
+}
+
+.create-plan-input::placeholder {
+  color: #64748B;
+}
+
+.create-plan-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 28px;
+  width: 100%;
+}
+
+.create-plan-row .input-group-comp {
+  flex: 1;
+  width: 275px;
+}
+
+.create-plan-number-input {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  gap: 12px;
+  width: 100%;
+  height: 44px;
+  background: #F9FAFF;
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  border-radius: 12px;
+}
+
+.create-plan-number-input input {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  color: #121212;
+  flex: 1;
+}
+
+.create-plan-number-arrows {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  width: 12px;
+  height: 16px;
+  gap: 2px;
+}
+
+.create-plan-number-arrows button {
+  background: none;
+  border: none;
+  padding: 2px;
+  margin: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 8px;
+  height: 8px;
+  transition: opacity 0.2s;
+}
+
+.create-plan-number-arrows button:hover {
+  opacity: 0.7;
+}
+
+.arrow-up {
+  width: 6px;
+  height: 6px;
+  background: #64748B;
+  border-radius: 0.5px;
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+}
+
+.arrow-down {
+  width: 6px;
+  height: 6px;
+  background: #64748B;
+  border-radius: 0.5px;
+  clip-path: polygon(0% 0%, 50% 100%, 100% 0%);
+}
+
+.create-plan-select {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  gap: 12px;
+  width: 100%;
+  height: 44px;
+  background: #F9FAFF;
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #121212;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='14' height='14' viewBox='0 0 14 14' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3.5 5.25L7 8.75L10.5 5.25' stroke='%2364748B' stroke-width='0.875' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.create-plan-actions {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 0px;
+  gap: 12px;
+  width: 100%;
+  height: 40px;
+  margin: 0;
+}
+
+.create-plan-cancel-btn {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 13px;
+  gap: 6px;
+  width: 73px;
+  height: 40px;
+  background: #FFFFFF;
+  border: 1px solid #E0E9FE;
+  border-radius: 50px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #64748B;
+  cursor: pointer;
+}
+
+.create-plan-submit-btn {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 12px;
+  gap: 6px;
+  width: 122px;
+  height: 40px;
+  background: #0053F1;
+  border: none;
+  border-radius: 50px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #FFFFFF;
+  cursor: pointer;
+}
+
+.create-plan-submit-btn:hover {
+  background: #0040C1;
+}
+
+.create-plan-cancel-btn:hover {
+  background: #F9FAFF;
+}
+
+/* Responsive Design for Modal */
+@media (max-width: 768px) {
+  .create-plan-modal {
+    width: 100%;
+    max-width: 100%;
+    margin: 20px;
+  }
+
+  .create-plan-modal-content {
+    padding: 20px;
+    gap: 20px;
+  }
+
+  .create-plan-row {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .create-plan-row .create-plan-field-group {
+    width: 100%;
+  }
+
+  .create-plan-form {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .create-plan-modal {
+    margin: 10px;
+    max-height: 95vh;
+  }
+
+  .create-plan-modal-content {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .create-plan-modal-header h2 {
+    font-size: 18px;
+    line-height: 24px;
+  }
+
+  .create-plan-actions {
+    width: 100%;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .create-plan-cancel-btn,
+  .create-plan-submit-btn {
+    width: 100%;
   }
 }

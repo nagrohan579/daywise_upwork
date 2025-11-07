@@ -27,6 +27,7 @@ import CancelledEventPage from "./pages/CancelledEvent/CancelledEvent";
 import RescheduleBookingPage from "./pages/RescheduleBooking/RescheduleBooking";
 import AdminLogin from "./pages/Admin/AdminLogin";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
+import Onboarding from "./pages/Onboard/Onboarding";
 
 // Import slick carousel CSS for calendar/slider components
 import "slick-carousel/slick/slick.css";
@@ -57,6 +58,8 @@ function App() {
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/onboard" element={<Onboarding />} />
+        <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/reschedule_event/:token" element={<RescheduleBookingPage />} />
         <Route path="/event/:token" element={<EventPage />} />
         <Route path="/cancelled_event/:slug" element={<CancelledEventPage />} />

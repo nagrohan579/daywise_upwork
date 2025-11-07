@@ -29,6 +29,8 @@ export default defineSchema({
     bookingWindowEnd: v.optional(v.string()),
     closedMonths: v.optional(v.array(v.number())),
     country: v.string(),
+    industry: v.optional(v.string()),
+    onboardingCompleted: v.optional(v.boolean()),
     isAdmin: v.boolean(),
     // Stripe Connect fields
     stripeAccountId: v.optional(v.string()),

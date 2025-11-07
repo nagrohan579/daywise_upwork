@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { FaUsers, FaUserCheck, FaDollarSign, FaPercent, FaPlus, FaEllipsisV } from "react-icons/fa";
+import { FaUsers, FaUserCheck, FaDollarSign, FaPercent, FaPlus, FaEllipsisV, FaTimes } from "react-icons/fa";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { ViewIcon, EditIconAdmin, ManageSubscriptionIcon, SuspendIcon, UserGrowthIcon, BookingTrendsIcon, DeleteIcon } from "../../components/SVGICONS/Svg";
+import { ViewIcon, EditIconAdmin, ManageSubscriptionIcon, SuspendIcon, UserGrowthIcon, BookingTrendsIcon, DeleteIcon, CalendarIcon } from "../../components/SVGICONS/Svg";
 import { Input } from "../../components/index";
 import Select from "../../components/ui/Input/Select";
 import "./AdminDashboard.css";
@@ -14,6 +14,11 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [showViewUserModal, setShowViewUserModal] = useState(false);
+  const [showManageSubscriptionModal, setShowManageSubscriptionModal] = useState(false);
+  const [showSuspendModal, setShowSuspendModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
     // Check if admin is logged in
@@ -78,28 +83,89 @@ const AdminDashboard = () => {
     navigate('/admin/login');
   };
 
+  // Handle Edit Plan
+  const handleEditPlan = (plan) => {
+    setEditingPlan(plan);
+    setShowEditPlanModal(true);
+    setShowPlanMenu(null);
+  };
+
+  // Handle Delete Plan
+  const handleDeletePlan = (plan) => {
+    setDeletingPlan(plan);
+    setShowDeleteModal(true);
+    setShowPlanMenu(null);
+  };
+
+  // Confirm Delete Plan
+  const [isDeletingPlan, setIsDeletingPlan] = useState(false);
+  const confirmDeletePlan = async () => {
+    if (!deletingPlan) return;
+
+    setIsDeletingPlan(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/admin/plans/${deletingPlan._id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete plan');
+      }
+
+      toast.success('Plan deleted successfully');
+      setShowDeleteModal(false);
+      setDeletingPlan(null);
+
+      // Refresh plans list
+      const plansResponse = await fetch(`${apiUrl}/api/admin/plans`, { credentials: 'include' });
+      if (plansResponse.ok) {
+        const plansData = await plansResponse.json();
+        setPlans(plansData);
+      }
+    } catch (error) {
+      console.error('Error deleting plan:', error);
+      toast.error(error.message || 'Failed to delete plan');
+    } finally {
+      setIsDeletingPlan(false);
+    }
+  };
+
   const [showUserMenu, setShowUserMenu] = useState(null);
   const [showPlanMenu, setShowPlanMenu] = useState(null);
   const [showCreatePlanModal, setShowCreatePlanModal] = useState(false);
+  const [showEditPlanModal, setShowEditPlanModal] = useState(false);
+  const [editingPlan, setEditingPlan] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [createdPriceIds, setCreatedPriceIds] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingPlan, setDeletingPlan] = useState(null);
   const dropdownRef = useRef(null);
+  const planDropdownRef = useRef(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target) && 
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
           !event.target.closest('.action-menu-btn')) {
         setShowUserMenu(null);
       }
+      if (planDropdownRef.current && !planDropdownRef.current.contains(event.target) &&
+          !event.target.closest('.plan-menu-btn')) {
+        setShowPlanMenu(null);
+      }
     };
 
-    if (showUserMenu) {
+    if (showUserMenu || showPlanMenu) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showUserMenu]);
+  }, [showUserMenu, showPlanMenu]);
 
   // Prepare subscription data for pie chart from stats
   const subscriptionData = stats?.planDistribution?.map((plan, index) => ({
@@ -365,19 +431,47 @@ const AdminDashboard = () => {
                             ref={dropdownRef}
                             className="action-menu-dropdown"
                           >
-                            <button className="action-menu-item">
+                            <button 
+                              className="action-menu-item"
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setShowViewUserModal(true);
+                                setShowUserMenu(null);
+                              }}
+                            >
                               <span className="action-menu-icon"><ViewIcon /></span>
                               <span>View</span>
                             </button>
-                            <button className="action-menu-item">
+                            <button 
+                              className="action-menu-item"
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setShowEditUserModal(true);
+                                setShowUserMenu(null);
+                              }}
+                            >
                               <span className="action-menu-icon"><EditIconAdmin /></span>
                               <span>Edit</span>
                             </button>
-                            <button className="action-menu-item">
+                            <button 
+                              className="action-menu-item"
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setShowManageSubscriptionModal(true);
+                                setShowUserMenu(null);
+                              }}
+                            >
                               <span className="action-menu-icon"><ManageSubscriptionIcon /></span>
                               <span>Manage Subscription</span>
                             </button>
-                            <button className="action-menu-item">
+                            <button 
+                              className="action-menu-item"
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setShowSuspendModal(true);
+                                setShowUserMenu(null);
+                              }}
+                            >
                               <span className="action-menu-icon"><SuspendIcon /></span>
                               <span>Suspend/Deactivate Account</span>
                             </button>
@@ -442,12 +536,21 @@ const AdminDashboard = () => {
                           <FaEllipsisV />
                         </button>
                         {showPlanMenu === plan._id && (
-                          <div className="plan-menu-dropdown">
-                            <button className="plan-menu-item">
+                          <div
+                            ref={planDropdownRef}
+                            className="plan-menu-dropdown"
+                          >
+                            <button
+                              className="plan-menu-item"
+                              onClick={() => handleEditPlan(plan)}
+                            >
                               <span className="plan-menu-icon"><EditIconAdmin /></span>
                               <span>Edit</span>
                             </button>
-                            <button className="plan-menu-item">
+                            <button
+                              className="plan-menu-item"
+                              onClick={() => handleDeletePlan(plan)}
+                            >
                               <span className="plan-menu-icon"><DeleteIcon /></span>
                               <span>Delete</span>
                             </button>
@@ -466,7 +569,7 @@ const AdminDashboard = () => {
 
       {/* Create Plan Modal */}
       {showCreatePlanModal && (
-        <CreatePlanModal 
+        <CreatePlanModal
           onClose={() => setShowCreatePlanModal(false)}
           onSuccess={() => {
             setShowCreatePlanModal(false);
@@ -477,15 +580,154 @@ const AdminDashboard = () => {
               .then(data => setPlans(data))
               .catch(err => console.error('Error refreshing plans:', err));
           }}
+          setCreatedPriceIds={setCreatedPriceIds}
+          setShowSuccessModal={setShowSuccessModal}
+        />
+      )}
+
+      {/* Edit Plan Modal */}
+      {showEditPlanModal && editingPlan && (
+        <CreatePlanModal
+          editMode={true}
+          planData={editingPlan}
+          onClose={() => {
+            setShowEditPlanModal(false);
+            setEditingPlan(null);
+          }}
+          onSuccess={() => {
+            setShowEditPlanModal(false);
+            setEditingPlan(null);
+            // Refresh plans data
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+            fetch(`${apiUrl}/api/admin/plans`, { credentials: 'include' })
+              .then(res => res.json())
+              .then(data => setPlans(data))
+              .catch(err => console.error('Error refreshing plans:', err));
+          }}
+          setCreatedPriceIds={setCreatedPriceIds}
+          setShowSuccessModal={setShowSuccessModal}
+        />
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && createdPriceIds && (
+        <PlanSuccessModal
+          onClose={() => {
+            setShowSuccessModal(false);
+            setCreatedPriceIds(null);
+          }}
+          priceIds={createdPriceIds}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && deletingPlan && (
+        <DeletePlanModal
+          onClose={() => {
+            setShowDeleteModal(false);
+            setDeletingPlan(null);
+          }}
+          onConfirm={confirmDeletePlan}
+          planName={deletingPlan.name}
+          isDeleting={isDeletingPlan}
+        />
+      )}
+
+      {/* Edit User Modal */}
+      {showEditUserModal && selectedUser && (
+        <EditUserModal
+          user={selectedUser}
+          onClose={() => {
+            setShowEditUserModal(false);
+            setSelectedUser(null);
+          }}
+          onSuccess={() => {
+            setShowEditUserModal(false);
+            setSelectedUser(null);
+            // Refresh users data
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+            fetch(`${apiUrl}/api/admin/users`, { credentials: 'include' })
+              .then(res => res.json())
+              .then(data => setUsers(data))
+              .catch(err => console.error('Error refreshing users:', err));
+          }}
+        />
+      )}
+
+      {/* View User Modal */}
+      {showViewUserModal && selectedUser && (
+        <ViewUserModal
+          user={selectedUser}
+          onClose={() => {
+            setShowViewUserModal(false);
+            setSelectedUser(null);
+          }}
+        />
+      )}
+
+      {/* Manage Subscription Modal */}
+      {showManageSubscriptionModal && selectedUser && (
+        <ManageSubscriptionModal
+          user={selectedUser}
+          onClose={() => {
+            setShowManageSubscriptionModal(false);
+            setSelectedUser(null);
+          }}
+          onSuccess={() => {
+            setShowManageSubscriptionModal(false);
+            setSelectedUser(null);
+            // Refresh users data
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+            fetch(`${apiUrl}/api/admin/users`, { credentials: 'include' })
+              .then(res => res.json())
+              .then(data => setUsers(data))
+              .catch(err => console.error('Error refreshing users:', err));
+          }}
+        />
+      )}
+
+      {/* Suspend/Deactivate Account Modal */}
+      {showSuspendModal && selectedUser && (
+        <SuspendAccountModal
+          user={selectedUser}
+          onClose={() => {
+            setShowSuspendModal(false);
+            setSelectedUser(null);
+          }}
+          onSuccess={() => {
+            setShowSuspendModal(false);
+            setSelectedUser(null);
+            // Refresh users data
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+            fetch(`${apiUrl}/api/admin/users`, { credentials: 'include' })
+              .then(res => res.json())
+              .then(data => setUsers(data))
+              .catch(err => console.error('Error refreshing users:', err));
+          }}
         />
       )}
     </div>
   );
 };
 
-// Create Plan Modal Component
-const CreatePlanModal = ({ onClose, onSuccess }) => {
-  const [formData, setFormData] = useState({
+// Create/Edit Plan Modal Component
+const CreatePlanModal = ({ onClose, onSuccess, editMode = false, planData = null, setCreatedPriceIds, setShowSuccessModal }) => {
+  const [formData, setFormData] = useState(editMode && planData ? {
+    planName: planData.name || '',
+    bookingsPerMonth: planData.features?.bookingLimit ?? 0,
+    appointmentTypes: planData.features?.appointmentTypeLimit ?? 0,
+    monthlyPrice: planData.priceMonthly ? (planData.priceMonthly / 100) : 0,
+    annualPrice: planData.priceYearly ? (planData.priceYearly / 100) : 0,
+    emailConfirmations: planData.features?.emailConfirmations ? 'Yes' : 'No',
+    emailReminders: planData.features?.emailReminders ? 'Yes' : 'No',
+    customBookingLink: 'Yes', // Not in features
+    customBranding: planData.features?.customBranding ? 'Yes' : 'No',
+    googleCalendarIntegration: 'Yes', // Not in features
+    removeDaywiseBranding: planData.features?.poweredBy ? 'No' : 'Yes',
+    emailSupport: planData.features?.prioritySupport ? 'Priority' : 'Basic',
+    stripePaymentCollection: 'Yes', // Not in features
+    trialPeriod: 0 // Not in features
+  } : {
     planName: '',
     bookingsPerMonth: 0,
     appointmentTypes: 0,
@@ -499,10 +741,10 @@ const CreatePlanModal = ({ onClose, onSuccess }) => {
     removeDaywiseBranding: 'Yes',
     emailSupport: 'Priority',
     stripePaymentCollection: 'Yes',
-    trialPeriod: 0,
-    stripeProductIdMonthly: '',
-    stripeProductIdAnnual: ''
+    trialPeriod: 0
   });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleInputChange = (field, e) => {
     const value = e.target.value;
@@ -520,10 +762,75 @@ const CreatePlanModal = ({ onClose, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Implement API call to create plan
-    console.log('Form data:', formData);
-    toast.success('Plan created successfully!');
-    onSuccess();
+
+    if (!formData.planName.trim()) {
+      toast.error('Plan name is required');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+      // Build the payload
+      const payload = {
+        id: editMode ? planData.planId : formData.planName.toLowerCase().replace(/\s+/g, '-'),
+        name: formData.planName,
+        priceMonthly: Math.round(formData.monthlyPrice * 100), // Convert to cents
+        priceYearly: Math.round(formData.annualPrice * 100), // Convert to cents
+        features: {
+          bookingLimit: formData.bookingsPerMonth === 0 ? null : formData.bookingsPerMonth,
+          appointmentTypeLimit: formData.appointmentTypes === 0 ? null : formData.appointmentTypes,
+          emailConfirmations: formData.emailConfirmations === 'Yes',
+          emailReminders: formData.emailReminders === 'Yes',
+          customBranding: formData.customBranding === 'Yes',
+          prioritySupport: formData.emailSupport === 'Priority',
+          poweredBy: formData.removeDaywiseBranding !== 'Yes'
+        },
+        isActive: true
+      };
+
+      const url = editMode
+        ? `${apiUrl}/api/admin/plans/${planData._id}`
+        : `${apiUrl}/api/admin/plans`;
+      const method = editMode ? 'PATCH' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || `Failed to ${editMode ? 'update' : 'create'} plan`);
+      }
+
+      const result = await response.json();
+
+      // Set the created/updated Price IDs for the success modal
+      setCreatedPriceIds({
+        planName: result.name,
+        monthly: result.stripePriceMonthly,
+        yearly: result.stripePriceYearly
+      });
+
+      // Close this modal and show success modal
+      onClose();
+      setShowSuccessModal(true);
+
+      // Refresh plans list
+      onSuccess();
+    } catch (error) {
+      console.error(`Error ${editMode ? 'updating' : 'creating'} plan:`, error);
+      toast.error(error.message || `Failed to ${editMode ? 'update' : 'create'} plan`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -531,8 +838,8 @@ const CreatePlanModal = ({ onClose, onSuccess }) => {
       <div className="create-plan-modal" onClick={(e) => e.stopPropagation()}>
         <div className="create-plan-modal-content">
           <div className="create-plan-modal-header">
-            <h2>Create Subscription Plan</h2>
-            <button className="create-plan-close-btn" onClick={onClose}>
+            <h2>{editMode ? 'Edit Subscription Plan' : 'Create Subscription Plan'}</h2>
+            <button className="create-plan-close-btn" onClick={onClose} disabled={isSubmitting}>
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                 <path d="M4.5 4.5L13.5 13.5M13.5 4.5L4.5 13.5" stroke="#64748B" strokeWidth="1.125" strokeLinecap="round"/>
               </svg>
@@ -683,37 +990,786 @@ const CreatePlanModal = ({ onClose, onSuccess }) => {
               min="0"
             />
 
-            {/* Stripe Product IDs */}
-            <div className="create-plan-row">
-              <Input
-                label="Stripe Product ID (Monthly)"
-                name="stripeProductIdMonthly"
-                type="text"
-                placeholder="ID goes here"
-                value={formData.stripeProductIdMonthly}
-                onChange={(e) => handleInputChange('stripeProductIdMonthly', e)}
-              />
-              <Input
-                label="Stripe Product ID (Annual)"
-                name="stripeProductIdAnnual"
-                type="text"
-                placeholder="ID goes here"
-                value={formData.stripeProductIdAnnual}
-                onChange={(e) => handleInputChange('stripeProductIdAnnual', e)}
-              />
-            </div>
-
             {/* Action Buttons */}
             <div className="create-plan-actions">
-              <button type="button" className="create-plan-cancel-btn" onClick={onClose}>
+              <button type="button" className="create-plan-cancel-btn" onClick={onClose} disabled={isSubmitting}>
                 Cancel
               </button>
-              <button type="submit" className="create-plan-submit-btn">
-                Create Plan
+              <button type="submit" className="create-plan-submit-btn" disabled={isSubmitting}>
+                {isSubmitting ? (editMode ? 'Saving...' : 'Creating...') : (editMode ? 'Save Changes' : 'Create Plan')}
               </button>
             </div>
           </form>
         </div>
+      </div>
+    </div>
+  );
+};
+
+// Plan Success Modal Component
+const PlanSuccessModal = ({ onClose, priceIds }) => {
+  if (!priceIds) return null;
+
+  return (
+    <div className="create-plan-modal-overlay" onClick={onClose}>
+      <div className="create-plan-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+        <div className="create-plan-modal-content">
+          <div className="create-plan-modal-header">
+            <h2>Plan Saved Successfully</h2>
+            <button className="create-plan-close-btn" onClick={onClose}>
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M4.5 4.5L13.5 13.5M13.5 4.5L4.5 13.5" stroke="#64748B" strokeWidth="1.125" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+
+          <div style={{ padding: '1.5rem 0', borderTop: '1px solid #E2E8F0' }}>
+            <p style={{ fontSize: '0.9375rem', color: '#334155', marginBottom: '1.5rem' }}>
+              The plan "{priceIds.planName}" has been saved. Stripe Price IDs have been generated:
+            </p>
+
+            {priceIds.monthly && (
+              <div style={{ marginBottom: '1rem' }}>
+                <p style={{ fontSize: '0.875rem', color: '#64748B', marginBottom: '0.25rem' }}>
+                  Monthly Price ID:
+                </p>
+                <code style={{
+                  display: 'block',
+                  padding: '0.5rem 0.75rem',
+                  backgroundColor: '#F1F5F9',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: '6px',
+                  fontSize: '0.875rem',
+                  color: '#1E293B',
+                  fontFamily: 'monospace',
+                  wordBreak: 'break-all'
+                }}>
+                  {priceIds.monthly}
+                </code>
+              </div>
+            )}
+
+            {priceIds.yearly && (
+              <div style={{ marginBottom: '1rem' }}>
+                <p style={{ fontSize: '0.875rem', color: '#64748B', marginBottom: '0.25rem' }}>
+                  Annual Price ID:
+                </p>
+                <code style={{
+                  display: 'block',
+                  padding: '0.5rem 0.75rem',
+                  backgroundColor: '#F1F5F9',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: '6px',
+                  fontSize: '0.875rem',
+                  color: '#1E293B',
+                  fontFamily: 'monospace',
+                  wordBreak: 'break-all'
+                }}>
+                  {priceIds.yearly}
+                </code>
+              </div>
+            )}
+
+            <button
+              onClick={onClose}
+              style={{
+                marginTop: '1.5rem',
+                width: '100%',
+                padding: '0.625rem 1rem',
+                backgroundColor: '#0053F1',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '0.9375rem',
+                fontWeight: '500',
+                cursor: 'pointer'
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Delete Confirmation Modal Component
+const DeletePlanModal = ({ onClose, onConfirm, planName, isDeleting }) => {
+  return (
+    <div className="create-plan-modal-overlay" onClick={onClose}>
+      <div className="create-plan-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+        <div className="create-plan-modal-content">
+          <button
+            className="create-plan-close-btn"
+            onClick={onClose}
+            disabled={isDeleting}
+            style={{
+              position: 'absolute',
+              right: '13px',
+              top: '13px'
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M4.5 4.5L13.5 13.5M13.5 4.5L4.5 13.5" stroke="#64748B" strokeWidth="1.125" strokeLinecap="round"/>
+            </svg>
+          </button>
+
+          <div style={{ padding: '1.5rem' }}>
+            <h4 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#1E293B', marginBottom: '0.5rem' }}>
+              Delete {planName}?
+            </h4>
+            <p style={{ fontSize: '0.875rem', color: '#64748B', marginBottom: '1.5rem' }}>
+              This action can't be undone. Users on this plan may be affected.
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={onConfirm}
+                disabled={isDeleting}
+                style={{
+                  flex: 1,
+                  padding: '0.625rem 1rem',
+                  backgroundColor: '#DC2626',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '0.9375rem',
+                  fontWeight: '500',
+                  cursor: isDeleting ? 'not-allowed' : 'pointer',
+                  opacity: isDeleting ? 0.6 : 1
+                }}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+              <button
+                onClick={onClose}
+                disabled={isDeleting}
+                style={{
+                  flex: 1,
+                  padding: '0.625rem 1rem',
+                  backgroundColor: '#F1F5F9',
+                  color: '#64748B',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '0.9375rem',
+                  fontWeight: '500',
+                  cursor: isDeleting ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Edit User Modal Component
+const EditUserModal = ({ user, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({
+    name: user.name || '',
+    email: user.email || '',
+    plan: user.plan || 'Free',
+    status: user.status || 'Active',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const planOptions = ['Free', 'Pro'];
+  const statusOptions = ['Active', 'Inactive'];
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSelectChange = (value, field) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/admin/users/${user.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update user');
+      }
+
+      toast.success('User updated successfully');
+      onSuccess();
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast.error('Failed to update user');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString || dateString === 'N/A') return 'N/A';
+    try {
+      const date = new Date(dateString);
+      return date.toISOString().split('T')[0];
+    } catch {
+      return dateString;
+    }
+  };
+
+  return (
+    <div className="edit-user-modal-overlay" onClick={onClose}>
+      <div className="edit-user-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="edit-user-modal-header">
+          <h2>Edit User</h2>
+          <button className="edit-user-close-btn" onClick={onClose} disabled={isSubmitting}>
+            <FaTimes />
+          </button>
+        </div>
+
+        <form className="edit-user-form" onSubmit={handleSubmit}>
+          <div className="edit-user-form-content">
+            {/* Name */}
+            <Input
+              label="Name"
+              name="name"
+              type="text"
+              placeholder="Name here"
+              value={formData.name}
+              onChange={handleInputChange}
+            />
+
+            {/* Email */}
+            <Input
+              label="Email"
+              name="email"
+              type="email"
+              placeholder="Email address here"
+              value={formData.email}
+              onChange={handleInputChange}
+            />
+
+            {/* Plan & Status Row */}
+            <div className="edit-user-row">
+              <div className="edit-user-field-group">
+                <Select
+                  label="Plan"
+                  name="plan"
+                  placeholder="Plan type"
+                  value={formData.plan}
+                  onChange={(value) => handleSelectChange(value, 'plan')}
+                  options={planOptions}
+                />
+              </div>
+              <div className="edit-user-field-group">
+                <Select
+                  label="Status"
+                  name="status"
+                  placeholder="Status here"
+                  value={formData.status}
+                  onChange={(value) => handleSelectChange(value, 'status')}
+                  options={statusOptions}
+                />
+              </div>
+            </div>
+
+            {/* Joined Date & Total Bookings Row */}
+            <div className="edit-user-row">
+              <div className="edit-user-field-group">
+                <label className="edit-user-label">Joined Date</label>
+                <div className="edit-user-display-field">
+                  <span>{formatDate(user.joinDate)}</span>
+                  <CalendarIcon className="edit-user-calendar-icon" />
+                </div>
+              </div>
+              <div className="edit-user-field-group">
+                <label className="edit-user-label">Total Bookings</label>
+                <div className="edit-user-display-field">
+                  <span>{user.bookingCount || 0}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="edit-user-actions">
+            <button
+              type="button"
+              className="edit-user-cancel-btn"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="edit-user-save-btn"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// View User Modal Component
+const ViewUserModal = ({ user, onClose }) => {
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString || dateString === 'N/A') return 'N/A';
+    try {
+      const date = new Date(dateString);
+      return date.toISOString().split('T')[0];
+    } catch {
+      return dateString;
+    }
+  };
+
+  return (
+    <div className="view-user-modal-overlay" onClick={onClose}>
+      <div className="view-user-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="view-user-modal-header">
+          <h2>View User</h2>
+          <button className="view-user-close-btn" onClick={onClose}>
+            <FaTimes />
+          </button>
+        </div>
+
+        <div className="view-user-content">
+          <div className="view-user-form-content">
+            {/* Name */}
+            <div className="view-user-field-group">
+              <label className="view-user-label">Name</label>
+              <div className="view-user-display-field">
+                <span>{user.name || 'N/A'}</span>
+              </div>
+            </div>
+
+            {/* Email */}
+            <div className="view-user-field-group">
+              <label className="view-user-label">Email</label>
+              <div className="view-user-display-field">
+                <span>{user.email || 'N/A'}</span>
+              </div>
+            </div>
+
+            {/* Plan & Status Row */}
+            <div className="view-user-row">
+              <div className="view-user-field-group">
+                <label className="view-user-label">Plan</label>
+                <div className="view-user-display-field">
+                  <span>{user.plan || 'Free'}</span>
+                </div>
+              </div>
+              <div className="view-user-field-group">
+                <label className="view-user-label">Status</label>
+                <div className="view-user-display-field">
+                  <span>{user.status || 'Active'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Joined Date & Total Bookings Row */}
+            <div className="view-user-row">
+              <div className="view-user-field-group">
+                <label className="view-user-label">Joined Date</label>
+                <div className="view-user-display-field">
+                  <span>{formatDate(user.joinDate)}</span>
+                  <CalendarIcon className="view-user-calendar-icon" />
+                </div>
+              </div>
+              <div className="view-user-field-group">
+                <label className="view-user-label">Total Bookings</label>
+                <div className="view-user-display-field">
+                  <span>{user.bookingCount || 0}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Manage Subscription Modal Component
+const ManageSubscriptionModal = ({ user, onClose, onSuccess }) => {
+  const [subscriptionData, setSubscriptionData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [billingCycle, setBillingCycle] = useState('Free');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchSubscriptionData = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const response = await fetch(`${apiUrl}/api/admin/users/${user.id}/subscription`, {
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setSubscriptionData(data);
+          // Set initial billing cycle based on user's current plan
+          setBillingCycle(data.plan || user.plan || 'Free');
+        } else {
+          // If no subscription data, default to Free
+          setSubscriptionData({
+            plan: user.plan || 'Free',
+            startDate: null,
+            nextBillingDate: null,
+            lifetimeSpend: 0,
+          });
+          setBillingCycle(user.plan || 'Free');
+        }
+      } catch (error) {
+        console.error('Error fetching subscription data:', error);
+        // Default values on error
+        setSubscriptionData({
+          plan: user.plan || 'Free',
+          startDate: null,
+          nextBillingDate: null,
+          lifetimeSpend: 0,
+        });
+        setBillingCycle(user.plan || 'Free');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSubscriptionData();
+  }, [user]);
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    if (!amount && amount !== 0) return '$0.00';
+    return `$${parseFloat(amount).toFixed(2)}`;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/admin/users/${user.id}/subscription`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          plan: billingCycle,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update subscription');
+      }
+
+      toast.success('Subscription updated successfully');
+      onSuccess();
+    } catch (error) {
+      console.error('Error updating subscription:', error);
+      toast.error('Failed to update subscription');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="manage-subscription-modal-overlay" onClick={onClose}>
+        <div className="manage-subscription-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="manage-subscription-loading">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  const currentPlan = subscriptionData?.plan || user.plan || 'Free';
+  const startDate = subscriptionData?.startDate || subscriptionData?.subscriptionStartDate;
+  const nextBillingDate = subscriptionData?.nextBillingDate || subscriptionData?.nextBilling;
+  const lifetimeSpend = subscriptionData?.lifetimeSpend || subscriptionData?.totalSpend || 0;
+
+  return (
+    <div className="manage-subscription-modal-overlay" onClick={onClose}>
+      <div className="manage-subscription-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="manage-subscription-modal-header">
+          <h2>Manage Subscription</h2>
+          <button className="manage-subscription-close-btn" onClick={onClose} disabled={isSubmitting}>
+            <FaTimes />
+          </button>
+        </div>
+
+        <form className="manage-subscription-form" onSubmit={handleSubmit}>
+          <div className="manage-subscription-form-content">
+            {/* Current Plan */}
+            <div className="manage-subscription-field-group">
+              <label className="manage-subscription-label">Current Plan</label>
+              <div className="manage-subscription-display-field">
+                <span>{currentPlan}</span>
+              </div>
+            </div>
+
+            {/* Billing Cycle */}
+            <div className="manage-subscription-field-group">
+              <label className="manage-subscription-label">Billing Cycle</label>
+              <div className="manage-subscription-radio-group">
+                <label className="manage-subscription-radio-option">
+                  <input
+                    type="radio"
+                    name="billingCycle"
+                    value="Free"
+                    checked={billingCycle === 'Free'}
+                    onChange={(e) => setBillingCycle(e.target.value)}
+                  />
+                  <span className="manage-subscription-radio-custom"></span>
+                  <span className="manage-subscription-radio-label">Free</span>
+                </label>
+                <label className="manage-subscription-radio-option">
+                  <input
+                    type="radio"
+                    name="billingCycle"
+                    value="Pro"
+                    checked={billingCycle === 'Pro'}
+                    onChange={(e) => setBillingCycle(e.target.value)}
+                  />
+                  <span className="manage-subscription-radio-custom"></span>
+                  <span className="manage-subscription-radio-label">Pro</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Subscription Start Date */}
+            <div className="manage-subscription-field-group">
+              <label className="manage-subscription-label">Subscription Start Date</label>
+              <div className="manage-subscription-display-field">
+                <span>{formatDate(startDate)}</span>
+              </div>
+            </div>
+
+            {/* Next Billing Date */}
+            <div className="manage-subscription-field-group">
+              <label className="manage-subscription-label">Next Billing Date</label>
+              <div className="manage-subscription-display-field">
+                <span>{formatDate(nextBillingDate)}</span>
+              </div>
+            </div>
+
+            {/* Lifetime Spend */}
+            <div className="manage-subscription-field-group">
+              <label className="manage-subscription-label">Lifetime Spend</label>
+              <div className="manage-subscription-display-field">
+                <span>{formatCurrency(lifetimeSpend)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="manage-subscription-actions">
+            <button
+              type="button"
+              className="manage-subscription-cancel-btn"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="manage-subscription-save-btn"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Suspend/Deactivate Account Modal Component
+const SuspendAccountModal = ({ user, onClose, onSuccess }) => {
+  const [suspensionReason, setSuspensionReason] = useState('');
+  const [suspendTemporarily, setSuspendTemporarily] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeactivating, setIsDeactivating] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/admin/users/${user.id}/suspend`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          suspended: true,
+          reason: suspensionReason,
+          temporary: suspendTemporarily,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to suspend account');
+      }
+
+      toast.success('Account suspended successfully');
+      onSuccess();
+    } catch (error) {
+      console.error('Error suspending account:', error);
+      toast.error('Failed to suspend account');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeactivate = async () => {
+    setIsDeactivating(true);
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/admin/users/${user.id}/deactivate`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          deactivated: true,
+          reason: suspensionReason,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to deactivate account');
+      }
+
+      toast.success('Account deactivated successfully');
+      onSuccess();
+    } catch (error) {
+      console.error('Error deactivating account:', error);
+      toast.error('Failed to deactivate account');
+    } finally {
+      setIsDeactivating(false);
+    }
+  };
+
+  return (
+    <div className="suspend-account-modal-overlay" onClick={onClose}>
+      <div className="suspend-account-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="suspend-account-modal-header">
+          <h2>Suspend/Deactivate Account</h2>
+          <button className="suspend-account-close-btn" onClick={onClose} disabled={isSubmitting || isDeactivating}>
+            <FaTimes />
+          </button>
+        </div>
+
+        <form className="suspend-account-form" onSubmit={handleSubmit}>
+          <div className="suspend-account-form-content">
+            {/* Informational Text */}
+            <p className="suspend-account-info-text">
+              Suspending this account will prevent the user from logging in or making new bookings. Existing data will remain intact.
+            </p>
+
+            {/* Suspension Reason */}
+            <div className="suspend-account-field-group">
+              <label className="suspend-account-label">Suspension Reason (optional)</label>
+              <Input
+                name="suspensionReason"
+                type="text"
+                placeholder="Enter reason"
+                value={suspensionReason}
+                onChange={(e) => setSuspensionReason(e.target.value)}
+              />
+            </div>
+
+            {/* Action */}
+            <div className="suspend-account-field-group">
+              <label className="suspend-account-label">Action</label>
+              <div className="suspend-account-checkbox-group">
+                <label className="suspend-account-checkbox-option">
+                  <input
+                    type="checkbox"
+                    checked={suspendTemporarily}
+                    onChange={(e) => setSuspendTemporarily(e.target.checked)}
+                  />
+                  <span className="suspend-account-checkbox-custom"></span>
+                  <span className="suspend-account-checkbox-label">Suspend temporarily</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="suspend-account-actions">
+            <button
+              type="button"
+              className="suspend-account-deactivate-btn"
+              onClick={handleDeactivate}
+              disabled={isSubmitting || isDeactivating}
+            >
+              {isDeactivating ? 'Deactivating...' : 'Deactivate Account'}
+            </button>
+            <div className="suspend-account-actions-right">
+              <button
+                type="button"
+                className="suspend-account-cancel-btn"
+                onClick={onClose}
+                disabled={isSubmitting || isDeactivating}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="suspend-account-save-btn"
+                disabled={isSubmitting || isDeactivating}
+              >
+                {isSubmitting ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   );

@@ -8,6 +8,8 @@ import {
 import { FaPlus } from "react-icons/fa6";
 import { FaEye, FaEdit } from "react-icons/fa";
 import { RiDeleteBin5Line } from "react-icons/ri";
+import { FaTimes } from "react-icons/fa";
+import { MessageIcon } from "../../components/SVGICONS/Svg";
 import "./Booking.css";
 import React, { useState, useEffect } from "react";
 import { useMobile } from "../../hooks";
@@ -32,6 +34,9 @@ const BookingsPage = () => {
   const [bookingToDelete, setBookingToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [bookings, setBookings] = useState([]);
+  const [showCommentModal, setShowCommentModal] = useState(false);
+  const [selectedComment, setSelectedComment] = useState(null);
+  const [isModalBouncing, setIsModalBouncing] = useState(false);
   const [isCalendarConnected, setIsCalendarConnected] = useState(false);
   const [isCheckingCalendarStatus, setIsCheckingCalendarStatus] = useState(true);
   const [bookingLimit, setBookingLimit] = useState(null); // null = unlimited
@@ -702,6 +707,18 @@ const BookingsPage = () => {
                     </div>
 
                     <div className="right">
+                      {booking.notes && booking.notes.trim() && (
+                        <button
+                          className="booking-message-icon-btn"
+                          onClick={() => {
+                            setSelectedComment(booking.notes);
+                            setShowCommentModal(true);
+                          }}
+                          title="View comment"
+                        >
+                          <MessageIcon />
+                        </button>
+                      )}
                       <ActionMenu
                         items={[
                           {
@@ -770,6 +787,37 @@ const BookingsPage = () => {
           setSelectedBooking(null); // Clear selection after save
         }}
       />
+
+      {/* Comment Modal */}
+      {showCommentModal && selectedComment && (
+        <div className="booking-comment-modal-overlay" onClick={() => {
+          // Trigger scale animation instead of closing
+          setIsModalBouncing(true);
+          setTimeout(() => setIsModalBouncing(false), 300);
+        }}>
+          <div 
+            className={`booking-comment-modal ${isModalBouncing ? 'modal-bounce' : ''}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="booking-comment-modal-header">
+              <h2>Comment</h2>
+              <button 
+                className="booking-comment-close-btn" 
+                onClick={() => {
+                  setShowCommentModal(false);
+                  setSelectedComment(null);
+                  setIsModalBouncing(false);
+                }}
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className="booking-comment-modal-content">
+              <p>{selectedComment}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && bookingToDelete && (

@@ -154,10 +154,10 @@ const SignupPage = () => {
       setSignupSuccess(true);
       toast.success('Account created successfully! Please check your email to verify your account.');
 
-      // Optionally redirect to login after a delay
+      // Redirect to onboarding after a delay
       setTimeout(() => {
-        navigate('/login');
-      }, 3000);
+        navigate('/onboarding');
+      }, 2000);
 
     } catch (error) {
       console.error('Signup error:', error);
@@ -194,7 +194,7 @@ const SignupPage = () => {
             </svg>
             <h2 className="title" style={{ marginTop: '1rem' }}>Check your email!</h2>
             <p className="subtitle">We've sent you a verification link. Please check your email and click the link to verify your account.</p>
-            <p className="subtitle" style={{ marginTop: '1rem' }}>Redirecting to login...</p>
+            <p className="subtitle" style={{ marginTop: '1rem' }}>Redirecting to onboarding...</p>
           </div>
         </div>
       </div>

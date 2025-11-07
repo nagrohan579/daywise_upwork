@@ -347,6 +347,72 @@
   gap: 12px;
 }
 
+/* Closed Months Selection */
+.dateSpecificHour .closed-months-con {
+  margin-bottom: 28px;
+}
+
+.dateSpecificHour .closed-months-title {
+  font-family: Inter;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  color: #121212;
+  margin: 0 0 4px 0;
+}
+
+.dateSpecificHour .closed-months-subtitle {
+  font-family: Inter;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #64748B;
+  margin: 0 0 16px 0;
+}
+
+.dateSpecificHour .closed-months-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.dateSpecificHour .closed-month-btn {
+  padding: 10px 16px;
+  border: 1px solid #E0E9FE;
+  border-radius: 8px;
+  background-color: #FFFFFF;
+  font-family: Inter;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #121212;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  text-align: center;
+}
+
+.dateSpecificHour .closed-month-btn:hover {
+  background-color: #F9FAFF;
+  border-color: #0053F1;
+}
+
+.dateSpecificHour .closed-month-btn.selected {
+  background-color: #0053F1;
+  border-color: #0053F1;
+  color: #FFFFFF;
+}
+
+@media (max-width: 768px) {
+  .dateSpecificHour .input-wrap {
+    flex-direction: column;
+    gap: 0px;
+  }
+  
+  .dateSpecificHour .closed-months-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 /* addAppointmentModal */
 .addAppointmentModal {
 }
@@ -502,7 +568,9 @@
   cursor: pointer;
 }
 .previewBookingModal .modal-body {
-  padding: 80px;
+  padding: 24px;
+  max-height: 90vh;
+  overflow: auto;
 }
 .previewBookingModal .modal-header {
   display: flex;
@@ -515,13 +583,210 @@
   pointer-events: none;
 }
 
-.previewBookingModal .main-wrapper .containerr {
-  display: flex;
+.previewBookingModal .preview-main-wrapper {
+  border: 1px solid #E2E8F0;
+  border-radius: 20px;
+  width: 100%;
+  max-height: 80vh;
+  overflow: hidden;
+  background-color: #FFFFFF;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 }
-.previewBookingModal .main-wrapper .containerr .left {
+
+.previewBookingModal .preview-steps-one {
+  display: flex;
+  width: 100%;
+  max-height: 80vh;
+}
+
+.previewBookingModal .preview-left {
   flex: 0.5;
-  border-right: 1px solid #64748b33;
   padding: 30px;
+  border-right: 1px solid #E2E8F0;
+  overflow-y: auto;
+  max-height: 80vh;
+}
+
+.previewBookingModal .preview-right {
+  flex: 1;
+  padding: 30px;
+  overflow: hidden;
+  height: 100%;
+}
+
+/* Logo wrapper styles */
+.previewBookingModal .preview-left .profile-con .logo-wrapper {
+  width: 100%;
+  min-height: 80px;
+  max-height: 120px;
+  margin-bottom: 21px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.previewBookingModal .preview-left .profile-con .logo-wrapper img.logo-image {
+  max-width: calc(100% - 40px);
+  max-height: calc(100% - 40px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 0;
+  margin: 0;
+  display: block;
+}
+
+.previewBookingModal .preview-left .profile-con .logo-wrapper img.gif-logo {
+  background-color: #FFFFFF;
+  mix-blend-mode: normal;
+}
+
+/* Profile picture wrapper */
+.previewBookingModal .preview-left .profile-con .profile-picture-wrapper {
+  margin-bottom: 6px;
+}
+
+.previewBookingModal .preview-left .profile-con .profile-picture-wrapper .profile-picture {
+  width: 49px;
+  height: 49px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Daywise branding button */
+.previewBookingModal .preview-left .daywise-branding {
+  margin-bottom: 21px;
+}
+
+.previewBookingModal .preview-left .daywise-branding .powered-by-button {
+  font-size: 12px;
+  line-height: 1.2;
+  padding: 8px 20px;
+  height: auto;
+  min-width: 140px;
+  font-weight: 500;
+  background-color: #0053F1;
+  color: white;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: none;
+  text-decoration: none;
+}
+
+.previewBookingModal .preview-left .daywise-branding .powered-by-button:hover {
+  background-color: #0041C7;
+  transform: translateY(-1px);
+}
+
+/* Profile wrapper styles */
+.previewBookingModal .preview-left .profile-con .profile-wrapper {
+  margin-bottom: 21px;
+}
+
+.previewBookingModal .preview-left .profile-con .profile-wrapper h5 {
+  margin: 0;
+  color: #121212;
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 14px;
+  line-height: 20px;
+  vertical-align: middle;
+}
+
+/* Business wrapper styles */
+.previewBookingModal .preview-left .profile-con .business-wrapper {
+  margin-bottom: 65px;
+}
+
+.previewBookingModal .preview-left .profile-con .business-wrapper h2 {
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 22px;
+  line-height: 36px;
+  vertical-align: middle;
+  color: #121212;
+  margin-bottom: 6px;
+}
+
+.previewBookingModal .preview-left .profile-con .business-wrapper p {
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  vertical-align: middle;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Select con styles */
+.previewBookingModal .preview-left .profile-con .select-con {
+  margin-bottom: 30px;
+}
+
+.previewBookingModal .preview-left .profile-con .select-con h4 {
+  font-family: Inter;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 18px;
+  line-height: 28px;
+  vertical-align: middle;
+  color: #121212;
+  margin-bottom: 8px;
+}
+
+/* Description styles */
+.previewBookingModal .preview-left .profile-con .description {
+  color: #64748b;
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  vertical-align: middle;
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
+/* Calendar container styles for preview */
+.previewBookingModal .preview-right .single-calendar-container {
+  overflow: visible !important;
+}
+
+.previewBookingModal .preview-right .single-calendar-container .react-calendar {
+  overflow: visible !important;
+}
+
+@media (max-width: 768px) {
+  .previewBookingModal .preview-steps-one {
+    flex-direction: column;
+  }
+  
+  .previewBookingModal .preview-left {
+    border-right: none;
+    padding: 20px;
+  }
+  
+  .previewBookingModal .preview-left .profile-con .business-wrapper {
+    margin-bottom: 20px;
+  }
+  
+  .previewBookingModal .preview-right {
+    padding: 20px;
+  }
 }
 .previewBookingModal .main-wrapper .containerr .left .daywise-branding {
   margin-bottom: 21px;

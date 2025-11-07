@@ -465,6 +465,21 @@ const Account = () => {
                   <li>Branding and customization settings</li>
                   <li>All other associated data</li>
                 </ul>
+                <div
+                  style={{
+                    backgroundColor: '#FEF3C7',
+                    border: '1px solid #FCD34D',
+                    borderRadius: '8px',
+                    padding: '12px 16px',
+                    marginTop: '16px',
+                    marginBottom: '24px',
+                    textAlign: 'left',
+                  }}
+                >
+                  <p style={{ fontSize: '14px', color: '#92400E', margin: 0, fontWeight: '500' }}>
+                    ⚠️ Deleting your account does not cancel your subscription. If you have a paid account, cancel your subscription in the Billing section before deleting.
+                  </p>
+                </div>
               </div>
 
               <div style={{ marginBottom: '24px' }}>

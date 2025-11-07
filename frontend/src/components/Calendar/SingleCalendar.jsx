@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "./SingleCalendar.css";
@@ -16,13 +16,27 @@ const SingleCalendar = ({
   selectedAppointmentType = null,
   timezoneOptions = [],
   currentTimezone = null,
-  onTimezoneChange = null
+  onTimezoneChange = null,
+  value = null,
+  selectedTime: selectedTimeProp = null
 }) => {
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedTime, setSelectedTime] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(value || new Date());
+  const [selectedTime, setSelectedTime] = useState(selectedTimeProp);
   const isMobile = useMobile(999);
+  
+  // Update selectedTime when prop changes (including null)
+  useEffect(() => {
+    setSelectedTime(selectedTimeProp);
+  }, [selectedTimeProp]);
 
   const timeSlots = availableTimeSlots;
+
+  // Update selectedDate when value prop changes
+  useEffect(() => {
+    if (value) {
+      setSelectedDate(value);
+    }
+  }, [value]);
 
   const handleDateChange = (date) => {
     setSelectedDate(date);

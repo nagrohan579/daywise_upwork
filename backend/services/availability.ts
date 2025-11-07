@@ -38,6 +38,13 @@ export async function getAvailableSlots({
   const dayNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
   const dayName = dayNames[dayOfWeek];
 
+  // CHECK 1: Closed Months - entire month unavailable
+  const currentMonth = dateInUserTz.month(); // 0-11
+  const closedMonths = user?.closedMonths || [];
+  if (closedMonths.includes(currentMonth)) {
+    return []; // Entire month is closed
+  }
+
   // Filter availability by weekday
   const dayAvailability = availability.filter(slot => {
     const rawWeekday = (slot as any).weekday || '';
@@ -48,6 +55,16 @@ export async function getAvailableSlots({
   });
 
   if (dayAvailability.length === 0) return [];
+
+  // CHECK 2: Booking Window (blocked dates) - entire date range unavailable
+  const blockedDates = await storage.getBlockedDatesByUser(userId);
+  const dateTimestamp = dateInUserTz.valueOf();
+  const isBlocked = blockedDates.some((blocked: any) => {
+    const blockStart = dayjs(blocked.startDate).startOf('day').valueOf();
+    const blockEnd = dayjs(blocked.endDate).endOf('day').valueOf();
+    return dateTimestamp >= blockStart && dateTimestamp <= blockEnd;
+  });
+  if (isBlocked) return [];
 
   // Exceptions (check in user's timezone)
   const exceptions = await storage.getAvailabilityExceptionsByUser(userId);
@@ -123,6 +140,40 @@ export async function getAvailableSlots({
 
       currentTimeMinutes += appointmentDuration + bufferTimeAfter;
     }
+  }
+
+  // CHECK 3 & 4: Custom Hours and Special Availability - filter slots to specific time ranges
+  const customHoursException = exceptions.find((ex: any) => {
+    const exceptionDate = dayjs(ex.date).format('YYYY-MM-DD');
+    return exceptionDate === dateStr && ex.type === 'custom_hours' && !ex.appointmentTypeId;
+  });
+
+  const specialAvailabilityException = exceptions.find((ex: any) => {
+    const exceptionDate = dayjs(ex.date).format('YYYY-MM-DD');
+    return exceptionDate === dateStr && ex.type === 'special_availability' && ex.appointmentTypeId === appointmentTypeId;
+  });
+
+  // Apply custom hours (affects all services) or special availability (affects specific service)
+  const applicableException = specialAvailabilityException || customHoursException;
+
+  if (applicableException && applicableException.startTime && applicableException.endTime) {
+    // Filter slots to only those within the exception's time range
+    const filteredSlots = slots.filter(slotIso => {
+      const slotTime = dayjs.utc(slotIso).tz(userTimezone);
+      const slotHour = slotTime.hour();
+      const slotMin = slotTime.minute();
+      const slotTimeMinutes = slotHour * 60 + slotMin;
+
+      const [startHour, startMin] = applicableException.startTime.split(':').map(Number);
+      const [endHour, endMin] = applicableException.endTime.split(':').map(Number);
+      const startTimeMinutes = startHour * 60 + startMin;
+      const endTimeMinutes = endHour * 60 + endMin;
+
+      // Check if slot starts within the allowed time range
+      return slotTimeMinutes >= startTimeMinutes && slotTimeMinutes < endTimeMinutes;
+    });
+
+    return filteredSlots;
   }
 
   return slots;

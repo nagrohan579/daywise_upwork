@@ -15,6 +15,7 @@ import { getCroppedImageUrl } from "../../utils/imageCropUtils";
 import { useImageCropContext } from "../../providers/ImageCropProvider";
 import { readFile } from "../../utils/cropImage";
 import CroppedImage from "../../components/CroppedImage/CroppedImage";
+import { getTimezoneLabel, getTimezoneOptions, mapToSupportedTimezone } from "../../utils/timezones";
 
 import "./Branding.css";
 
@@ -36,6 +37,10 @@ const Branding = () => {
   const [savingDaywiseBranding, setSavingDaywiseBranding] = useState(false);
   const [savingDisplayName, setSavingDisplayName] = useState(false);
   const [hasCustomBranding, setHasCustomBranding] = useState(false); // Pro plan feature
+  const [userData, setUserData] = useState(null);
+  const [appointmentTypes, setAppointmentTypes] = useState([]);
+  const [userTimezone, setUserTimezone] = useState(null);
+  const [timezoneOptions, setTimezoneOptions] = useState([]);
 
   // Crop editor state
   const [showCropEditor, setShowCropEditor] = useState(false);
@@ -57,12 +62,18 @@ const Branding = () => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
         
-        // Fetch both branding data and features in parallel
-        const [brandingResponse, featuresResponse] = await Promise.all([
+        // Fetch branding data, features, user data, and appointment types in parallel
+        const [brandingResponse, featuresResponse, userResponse, appointmentTypesResponse] = await Promise.all([
           fetch(`${apiUrl}/api/branding`, {
             credentials: 'include',
           }),
           fetch(`${apiUrl}/api/user-subscriptions/me`, {
+            credentials: 'include',
+          }),
+          fetch(`${apiUrl}/api/auth/me`, {
+            credentials: 'include',
+          }),
+          fetch(`${apiUrl}/api/appointment-types`, {
             credentials: 'include',
           })
         ]);
@@ -86,40 +97,104 @@ const Branding = () => {
         }
 
         // Process branding data
+        let brandingData = null;
         if (brandingResponse.ok) {
-          const data = await brandingResponse.json();
-          console.log('Fetched branding data:', data);
-          if (data.logoUrl) {
-            console.log('Setting logo URL:', data.logoUrl);
-            setLogoUrl(data.logoUrl);
+          brandingData = await brandingResponse.json();
+          console.log('Fetched branding data:', brandingData);
+          if (brandingData.logoUrl) {
+            console.log('Setting logo URL:', brandingData.logoUrl);
+            setLogoUrl(brandingData.logoUrl);
           }
-          if (data.profilePictureUrl) {
-            console.log('Setting profile URL:', data.profilePictureUrl);
-            setProfileUrl(data.profilePictureUrl);
+          if (brandingData.profilePictureUrl) {
+            console.log('Setting profile URL:', brandingData.profilePictureUrl);
+            setProfileUrl(brandingData.profilePictureUrl);
           }
-          if (data.logoCropData) {
-            setLogoCropData(data.logoCropData);
+          if (brandingData.logoCropData) {
+            setLogoCropData(brandingData.logoCropData);
           }
-          if (data.profileCropData) {
-            setProfileCropData(data.profileCropData);
+          if (brandingData.profileCropData) {
+            setProfileCropData(brandingData.profileCropData);
           }
-          if (data.displayName !== undefined) {
-            setDisplayName(data.displayName || "");
+          if (brandingData.displayName !== undefined) {
+            setDisplayName(brandingData.displayName || "");
             // Mark as initialized so subsequent changes will show toast
             setTimeout(() => {
               displayNameInitialized.current = true;
             }, 100);
           }
-          if (data.showDisplayName !== undefined) setIsShownName(data.showDisplayName);
-          if (data.showProfilePicture !== undefined) setIsShownProfilePic(data.showProfilePicture);
+          if (brandingData.showDisplayName !== undefined) setIsShownName(brandingData.showDisplayName);
+          if (brandingData.showProfilePicture !== undefined) setIsShownProfilePic(brandingData.showProfilePicture);
           
           // Only set usePlatformBranding from data if user has custom branding feature
           // Otherwise, it's already forced to true above
-          if (data.usePlatformBranding !== undefined && customBranding) {
-            setToggleDayWiseBranding(data.usePlatformBranding);
+          if (brandingData.usePlatformBranding !== undefined && customBranding) {
+            setToggleDayWiseBranding(brandingData.usePlatformBranding);
           }
         } else {
           console.error('Failed to fetch branding:', brandingResponse.status);
+        }
+
+        // Process user data
+        let user = null;
+        if (userResponse.ok) {
+          const userDataResponse = await userResponse.json();
+          user = userDataResponse.user || userDataResponse;
+          setUserData(user);
+          
+          // Get user's timezone and convert to display label
+          if (user.timezone) {
+            const mappedTimezone = mapToSupportedTimezone(user.timezone);
+            const timezoneLabel = getTimezoneLabel(mappedTimezone);
+            setUserTimezone(timezoneLabel);
+          }
+        } else {
+          console.error('Failed to fetch user data:', userResponse.status);
+        }
+        
+        // Get timezone options for the dropdown
+        const tzOptions = getTimezoneOptions();
+        setTimezoneOptions(tzOptions.map(([label]) => label));
+
+        // Preload images to ensure they're ready for preview
+        // Note: Only preload branding images, not user.picture (that's only for preview modal)
+        const imagePromises = [];
+        if (brandingData?.logoUrl) {
+          const logoImg = new Image();
+          logoImg.src = brandingData.logoUrl;
+          imagePromises.push(new Promise((resolve, reject) => {
+            logoImg.onload = resolve;
+            logoImg.onerror = reject;
+          }));
+        }
+        if (brandingData?.profilePictureUrl) {
+          const profileImg = new Image();
+          profileImg.src = brandingData.profilePictureUrl;
+          imagePromises.push(new Promise((resolve, reject) => {
+            profileImg.onload = resolve;
+            profileImg.onerror = reject;
+          }));
+        }
+        // Also preload user.picture for preview modal fallback
+        if (user?.picture) {
+          const userPictureImg = new Image();
+          userPictureImg.src = user.picture;
+          imagePromises.push(new Promise((resolve, reject) => {
+            userPictureImg.onload = resolve;
+            userPictureImg.onerror = reject;
+          }));
+        }
+        
+        // Wait for images to load (but don't block if they fail)
+        if (imagePromises.length > 0) {
+          await Promise.allSettled(imagePromises);
+        }
+
+        // Process appointment types
+        if (appointmentTypesResponse.ok) {
+          const types = await appointmentTypesResponse.json();
+          setAppointmentTypes(types.filter(type => type.isActive !== false));
+        } else {
+          console.error('Failed to fetch appointment types:', appointmentTypesResponse.status);
         }
       } catch (error) {
         console.error('Error fetching branding or features:', error);
@@ -975,6 +1050,21 @@ const Branding = () => {
       <PreviewBookingModal
         showPreviewBooking={showPreviewBooking}
         setShowPreviewBooking={setShowPreviewBooking}
+        logoUrl={logoUrl}
+        profileUrl={profileUrl}
+        userPicture={userData?.picture}
+        displayName={displayName}
+        isShownName={isShownName}
+        isShownProfilePic={isShownProfilePic}
+        toggleDaywiseBranding={toggleDaywiseBranding}
+        logoCropData={logoCropData}
+        profileCropData={profileCropData}
+        businessName={userData?.businessName || userData?.name || "Business Name Here"}
+        welcomeMessage={userData?.welcomeMessage || "Your business welcome message appears here."}
+        appointmentTypes={appointmentTypes.length > 0 ? appointmentTypes.map(t => t.name) : ["30 Minute Appointment", "60 Minute Appointment", "90 Minute Appointment"]}
+        selectedAppointmentTypeName={appointmentTypes.length > 0 ? appointmentTypes[0]?.name : "30 Minute Appointment"}
+        currentTimezone={userTimezone}
+        timezoneOptions={timezoneOptions}
       />
       
       {/* Image Crop Editor */}

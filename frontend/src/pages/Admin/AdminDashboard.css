@@ -48,6 +48,8 @@
   max-width: 1400px;
   margin: 0 auto;
   padding: 32px 40px;
+  overflow: visible;
+  position: relative;
 }
 
 /* Stats Cards */
@@ -228,6 +230,7 @@
   margin-bottom: 175px;
   overflow: visible !important;
   position: relative;
+  z-index: 1;
 }
 
 .section-header {
@@ -283,17 +286,18 @@
 .users-table {
   overflow-x: auto;
   overflow-y: visible !important;
+  overflow: visible !important;
   position: relative;
 }
 
 .users-table table {
   width: 100%;
   border-collapse: collapse;
-  overflow: visible;
+  overflow: visible !important;
 }
 
 .users-table tbody {
-  overflow: visible;
+  overflow: visible !important;
 }
 
 .users-table thead {
@@ -314,7 +318,12 @@
 .users-table tbody tr {
   border-bottom: 1px solid #E5E7EB;
   position: relative;
-  z-index: 1;
+  z-index: 0;
+}
+
+.users-table tbody tr:has(.menu-open) {
+  z-index: 10000 !important;
+  position: relative;
 }
 
 
@@ -408,6 +417,19 @@
   position: relative;
 }
 
+.action-menu-wrapper.menu-open .action-menu-btn {
+  z-index: 0 !important;
+  position: relative;
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.action-menu-wrapper.menu-open .action-menu-btn::before,
+.action-menu-wrapper.menu-open .action-menu-btn::after {
+  display: none !important;
+}
+
 .action-menu-btn {
   background: none;
   border: none;
@@ -416,10 +438,18 @@
   padding: 4px 8px;
   border-radius: 4px;
   transition: background-color 0.2s;
+  outline: none;
 }
 
 .action-menu-btn:hover {
   background-color: #F3F4F6;
+}
+
+.action-menu-btn:focus,
+.action-menu-btn:active {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .action-menu-dropdown {
@@ -435,18 +465,39 @@
   background: #FFFFFF !important;
   border: 1px solid rgba(100, 116, 139, 0.2);
   border-radius: 12px;
-  z-index: 9999999 !important;
+  z-index: 10001 !important;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   top: 100%;
   right: 0;
   margin-top: 4px;
   pointer-events: auto !important;
+  transform: translateZ(0);
+  will-change: transform;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* Prevent interaction with table rows when dropdown is open */
 body:has(.action-menu-dropdown) .users-table tbody tr:not(:has(.menu-open)) {
   pointer-events: none;
   z-index: 0;
+}
+
+/* Ensure action buttons stay behind dropdown but remain visible */
+body:has(.action-menu-dropdown) .users-table tbody tr:not(:has(.menu-open)) .action-menu-btn {
+  pointer-events: none;
+  z-index: 0 !important;
+}
+
+/* Ensure action buttons in rows below stay behind dropdown */
+body:has(.action-menu-dropdown) .users-table tbody tr:not(:has(.menu-open)) .action-menu-wrapper {
+  z-index: 0 !important;
+}
+
+/* Ensure table cells with action buttons stay behind */
+body:has(.action-menu-dropdown) .users-table tbody tr:not(:has(.menu-open)) td:has(.action-menu-wrapper) {
+  z-index: 0 !important;
 }
 
 
@@ -1326,5 +1377,1312 @@ body:has(.action-menu-dropdown) .users-table tbody tr:not(:has(.menu-open)) {
   .create-plan-cancel-btn,
   .create-plan-submit-btn {
     width: 100%;
+  }
+}
+
+/* Edit User Modal */
+.edit-user-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100000;
+  padding: 20px;
+}
+
+.edit-user-modal {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 30px;
+  gap: 28px;
+  width: 638px;
+  max-width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #FFFFFF;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.edit-user-modal-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 28px;
+  width: 100%;
+  height: 36px;
+}
+
+.edit-user-modal-header h2 {
+  width: 97px;
+  height: 36px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 36px;
+  display: flex;
+  align-items: center;
+  color: #121212;
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.edit-user-close-btn {
+  width: 18px;
+  height: 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.edit-user-close-btn:hover {
+  color: #121212;
+}
+
+.edit-user-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 28px;
+  width: 100%;
+}
+
+.edit-user-form-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 28px;
+  width: 100%;
+}
+
+/* Ensure Name and Email fields take full width */
+.edit-user-form-content > .input-group-comp {
+  width: 100%;
+}
+
+.edit-user-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 28px;
+  width: 100%;
+}
+
+.edit-user-field-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 5px;
+  flex: 1;
+  width: 100%;
+}
+
+.edit-user-label {
+  width: 100%;
+  height: 20px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  color: #121212;
+}
+
+.edit-user-display-field {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 12px;
+  gap: 4px;
+  width: 100%;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.edit-user-display-field span {
+  width: auto;
+  height: 20px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  color: #121212;
+  flex: 0 0 auto;
+}
+
+.edit-user-calendar-icon {
+  width: 15px;
+  height: 15px;
+  color: #121212;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+.edit-user-actions {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 0px;
+  gap: 12px;
+  width: 207px;
+  height: 40px;
+  margin-left: auto;
+}
+
+.edit-user-cancel-btn {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 13px;
+  gap: 6px;
+  width: 73px;
+  height: 40px;
+  background: #FFFFFF;
+  border: 1px solid #E0E9FE;
+  border-radius: 50px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.edit-user-cancel-btn:hover:not(:disabled) {
+  background: #F9FAFB;
+}
+
+.edit-user-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.edit-user-save-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 10px 12px;
+  gap: 6px;
+  width: 122px;
+  height: 40px;
+  background: #0053F1;
+  border: none;
+  border-radius: 50px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.edit-user-save-btn:hover:not(:disabled) {
+  background: #0041C1;
+}
+
+.edit-user-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Ensure input fields take full width in rows */
+.edit-user-row .input-group-comp {
+  width: 100%;
+}
+
+/* Ensure all input fields in form content take full width */
+.edit-user-form-content .input-group-comp {
+  width: 100%;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .edit-user-modal {
+    width: 100%;
+    padding: 20px;
+    gap: 20px;
+    max-height: 95vh;
+  }
+
+  .edit-user-modal-header {
+    height: auto;
+  }
+
+  .edit-user-modal-header h2 {
+    font-size: 20px;
+    line-height: 28px;
+    height: auto;
+  }
+
+  .edit-user-form-content {
+    gap: 20px;
+  }
+
+  .edit-user-row {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .edit-user-field-group {
+    width: 100%;
+  }
+
+  .edit-user-actions {
+    width: 100%;
+    justify-content: flex-end;
+    flex-direction: row;
+  }
+
+  .edit-user-cancel-btn,
+  .edit-user-save-btn {
+    flex: 1;
+    min-width: 100px;
+  }
+}
+
+@media (max-width: 480px) {
+  .edit-user-modal {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .edit-user-form-content {
+    gap: 16px;
+  }
+
+  .edit-user-row {
+    gap: 16px;
+  }
+
+  .edit-user-actions {
+    flex-direction: column;
+    width: 100%;
+    height: auto;
+  }
+
+  .edit-user-cancel-btn,
+  .edit-user-save-btn {
+    width: 100%;
+  }
+}
+
+/* View User Modal - Same styles as Edit User Modal but read-only */
+.view-user-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100000;
+  padding: 20px;
+}
+
+.view-user-modal {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 30px;
+  gap: 28px;
+  width: 638px;
+  max-width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #FFFFFF;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.view-user-modal-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 28px;
+  width: 100%;
+  height: 36px;
+}
+
+.view-user-modal-header h2 {
+  width: auto;
+  min-width: 97px;
+  height: 36px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 36px;
+  display: flex;
+  align-items: center;
+  color: #121212;
+  margin: 0;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.view-user-close-btn {
+  width: 18px;
+  height: 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.view-user-close-btn:hover {
+  color: #121212;
+}
+
+.view-user-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 28px;
+  width: 100%;
+}
+
+.view-user-form-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 28px;
+  width: 100%;
+}
+
+/* Ensure Name and Email fields take full width */
+.view-user-form-content > .view-user-field-group:first-child,
+.view-user-form-content > .view-user-field-group:nth-child(2) {
+  width: 100%;
+}
+
+.view-user-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 28px;
+  width: 100%;
+}
+
+.view-user-field-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 5px;
+  flex: 1;
+  width: 100%;
+}
+
+.view-user-label {
+  width: 100%;
+  height: 20px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  color: #121212;
+}
+
+.view-user-display-field {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0;
+  gap: 4px;
+  width: 100%;
+  min-height: 20px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+.view-user-display-field span {
+  width: auto;
+  height: 20px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  color: #121212;
+  flex: 0 0 auto;
+}
+
+.view-user-calendar-icon {
+  width: 15px;
+  height: 15px;
+  color: #121212;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+/* Responsive styles for View User Modal */
+@media (max-width: 768px) {
+  .view-user-modal {
+    width: 100%;
+    padding: 20px;
+    gap: 20px;
+    max-height: 95vh;
+  }
+
+  .view-user-modal-header {
+    height: auto;
+  }
+
+  .view-user-modal-header h2 {
+    font-size: 20px;
+    line-height: 28px;
+    height: auto;
+  }
+
+  .view-user-content {
+    gap: 20px;
+  }
+
+  .view-user-form-content {
+    gap: 20px;
+  }
+
+  .view-user-row {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .view-user-field-group {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .view-user-modal {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .view-user-content {
+    gap: 16px;
+  }
+
+  .view-user-form-content {
+    gap: 16px;
+  }
+
+  .view-user-row {
+    gap: 16px;
+  }
+}
+
+/* Manage Subscription Modal */
+.manage-subscription-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100000;
+  padding: 20px;
+}
+
+.manage-subscription-modal {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 30px;
+  gap: 28px;
+  width: 638px;
+  max-width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #FFFFFF;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.manage-subscription-loading {
+  padding: 40px;
+  text-align: center;
+  color: #64748B;
+}
+
+.manage-subscription-modal-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 28px;
+  width: 100%;
+  height: 36px;
+}
+
+.manage-subscription-modal-header h2 {
+  width: 227px;
+  height: 36px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 36px;
+  display: flex;
+  align-items: center;
+  color: #121212;
+  margin: 0;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.manage-subscription-close-btn {
+  width: 18px;
+  height: 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.manage-subscription-close-btn:hover {
+  color: #121212;
+}
+
+.manage-subscription-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 28px;
+  width: 100%;
+}
+
+.manage-subscription-form-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 8px;
+  width: 100%;
+}
+
+.manage-subscription-field-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 5px;
+  width: 100%;
+}
+
+.manage-subscription-label {
+  width: 100%;
+  height: 20px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  color: #121212;
+}
+
+.manage-subscription-display-field {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 12px 0px;
+  gap: 12px;
+  width: 100%;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.manage-subscription-display-field span {
+  width: auto;
+  height: 20px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  color: #121212;
+}
+
+.manage-subscription-radio-group {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 12px 0px;
+  gap: 3px;
+  width: 100%;
+  min-height: 67px;
+  border-radius: 12px;
+}
+
+.manage-subscription-radio-option {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0px;
+  gap: 5px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.manage-subscription-radio-option input[type="radio"] {
+  display: none;
+}
+
+.manage-subscription-radio-custom {
+  width: 14px;
+  height: 14px;
+  border-radius: 50px;
+  background: #E0E9FE;
+  position: relative;
+  flex-shrink: 0;
+  transition: background-color 0.2s;
+}
+
+.manage-subscription-radio-option input[type="radio"]:checked + .manage-subscription-radio-custom {
+  background: #0053F1;
+}
+
+.manage-subscription-radio-option input[type="radio"]:checked + .manage-subscription-radio-custom::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  left: calc(50% - 3px);
+  top: calc(50% - 3px);
+  background: #FFFFFF;
+  border-radius: 50%;
+}
+
+.manage-subscription-radio-label {
+  width: auto;
+  height: 20px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  color: #121212;
+}
+
+.manage-subscription-actions {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 0px;
+  gap: 12px;
+  width: 207px;
+  height: 40px;
+  margin-left: auto;
+}
+
+.manage-subscription-cancel-btn {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 13px;
+  gap: 6px;
+  width: 73px;
+  height: 40px;
+  background: #FFFFFF;
+  border: 1px solid #E0E9FE;
+  border-radius: 50px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.manage-subscription-cancel-btn:hover:not(:disabled) {
+  background: #F9FAFB;
+}
+
+.manage-subscription-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.manage-subscription-save-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 10px 12px;
+  gap: 6px;
+  width: 122px;
+  height: 40px;
+  background: #0053F1;
+  border: none;
+  border-radius: 50px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.manage-subscription-save-btn:hover:not(:disabled) {
+  background: #0041C1;
+}
+
+.manage-subscription-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive styles for Manage Subscription Modal */
+@media (max-width: 768px) {
+  .manage-subscription-modal {
+    width: 100%;
+    padding: 20px;
+    gap: 20px;
+    max-height: 95vh;
+  }
+
+  .manage-subscription-modal-header {
+    height: auto;
+  }
+
+  .manage-subscription-modal-header h2 {
+    font-size: 20px;
+    line-height: 28px;
+    height: auto;
+    width: auto;
+  }
+
+  .manage-subscription-form-content {
+    gap: 20px;
+  }
+
+  .manage-subscription-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .manage-subscription-cancel-btn,
+  .manage-subscription-save-btn {
+    flex: 1;
+    min-width: 100px;
+  }
+}
+
+@media (max-width: 480px) {
+  .manage-subscription-modal {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .manage-subscription-form-content {
+    gap: 16px;
+  }
+
+  .manage-subscription-actions {
+    flex-direction: column;
+    width: 100%;
+    height: auto;
+  }
+
+  .manage-subscription-cancel-btn,
+  .manage-subscription-save-btn {
+    width: 100%;
+  }
+}
+
+/* Suspend/Deactivate Account Modal */
+.suspend-account-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100000;
+  padding: 20px;
+}
+
+.suspend-account-modal {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 30px;
+  gap: 28px;
+  width: 638px;
+  max-width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #FFFFFF;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.suspend-account-modal-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 28px;
+  width: 100%;
+  height: 36px;
+}
+
+.suspend-account-modal-header h2 {
+  width: 312px;
+  height: 36px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 36px;
+  display: flex;
+  align-items: center;
+  color: #121212;
+  margin: 0;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.suspend-account-close-btn {
+  width: 18px;
+  height: 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.suspend-account-close-btn:hover {
+  color: #121212;
+}
+
+.suspend-account-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 28px;
+  width: 100%;
+}
+
+.suspend-account-form-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 28px;
+  width: 100%;
+}
+
+.suspend-account-info-text {
+  width: 100%;
+  min-height: 40px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  color: #121212;
+  margin: 0;
+}
+
+.suspend-account-field-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 5px;
+  width: 100%;
+}
+
+.suspend-account-label {
+  width: 100%;
+  height: 20px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  color: #121212;
+}
+
+.suspend-account-field-group .input-group-comp {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.suspend-account-checkbox-group {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 12px 0px;
+  gap: 3px;
+  width: 100%;
+  min-height: 44px;
+  border-radius: 12px;
+}
+
+.suspend-account-checkbox-option {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0px;
+  gap: 5px;
+  cursor: pointer;
+  user-select: none;
+  width: 100%;
+}
+
+.suspend-account-checkbox-option input[type="checkbox"] {
+  display: none;
+}
+
+.suspend-account-checkbox-custom {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background: #E0E9FE;
+  position: relative;
+  flex-shrink: 0;
+  transition: background-color 0.2s;
+}
+
+.suspend-account-checkbox-option input[type="checkbox"]:checked + .suspend-account-checkbox-custom {
+  background: #0053F1;
+}
+
+.suspend-account-checkbox-option input[type="checkbox"]:checked + .suspend-account-checkbox-custom::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  left: calc(50% - 3px);
+  top: calc(50% - 3px);
+  background: #FFFFFF;
+  border-radius: 2px;
+}
+
+.suspend-account-checkbox-label {
+  width: auto;
+  min-width: 137px;
+  height: 20px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  color: #121212;
+  white-space: nowrap;
+}
+
+.suspend-account-actions {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0px;
+  gap: 12px;
+  width: 100%;
+  height: 40px;
+}
+
+.suspend-account-deactivate-btn {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 12px;
+  gap: 6px;
+  width: 156px;
+  height: 40px;
+  background: #DF0404;
+  border: none;
+  border-radius: 50px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.suspend-account-deactivate-btn:hover:not(:disabled) {
+  background: #C00404;
+}
+
+.suspend-account-deactivate-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.suspend-account-actions-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0px;
+  gap: 12px;
+  width: 207px;
+  height: 40px;
+}
+
+.suspend-account-cancel-btn {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 13px;
+  gap: 6px;
+  width: 73px;
+  height: 40px;
+  background: #FFFFFF;
+  border: 1px solid #E0E9FE;
+  border-radius: 50px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.suspend-account-cancel-btn:hover:not(:disabled) {
+  background: #F9FAFB;
+}
+
+.suspend-account-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.suspend-account-save-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 10px 12px;
+  gap: 6px;
+  width: 122px;
+  height: 40px;
+  background: #0053F1;
+  border: none;
+  border-radius: 50px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.suspend-account-save-btn:hover:not(:disabled) {
+  background: #0041C1;
+}
+
+.suspend-account-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive styles for Suspend Account Modal */
+@media (max-width: 768px) {
+  .suspend-account-modal {
+    width: 100%;
+    padding: 20px;
+    gap: 30px;
+    max-height: 95vh;
+  }
+
+  .suspend-account-modal-header {
+    height: auto;
+  }
+
+  .suspend-account-modal-header h2 {
+    font-size: 20px;
+    line-height: 28px;
+    height: auto;
+    width: auto;
+  }
+
+  .suspend-account-form-content {
+    gap: 20px;
+  }
+
+  .suspend-account-info-text {
+    height: auto;
+    min-height: 40px;
+  }
+
+  .suspend-account-actions {
+    flex-direction: column;
+    height: auto;
+    gap: 12px;
+  }
+
+  .suspend-account-deactivate-btn {
+    width: 100%;
+  }
+
+  .suspend-account-actions-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .suspend-account-cancel-btn,
+  .suspend-account-save-btn {
+    flex: 1;
+    min-width: 100px;
+  }
+}
+
+@media (max-width: 480px) {
+  .suspend-account-modal {
+    padding: 16px;
+    gap: 20px;
+  }
+
+  .suspend-account-form-content {
+    gap: 16px;
+  }
+
+  .suspend-account-actions {
+    flex-direction: column;
+  }
+
+  .suspend-account-deactivate-btn,
+  .suspend-account-cancel-btn,
+  .suspend-account-save-btn {
+    width: 100%;
+  }
+
+  .suspend-account-actions-right {
+    width: 100%;
+    flex-direction: column;
   }
 }

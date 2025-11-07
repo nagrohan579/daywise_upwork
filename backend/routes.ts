@@ -1637,6 +1637,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }
 
+  // Onboarding completion endpoint
+  app.post("/api/onboarding/complete", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { industry, otherIndustry, weeklyAvailability, timezone, services, businessName, bookingSlug } = req.body;
+
+      // Step 1: Save industry (otherIndustry takes priority)
+      if (otherIndustry) {
+        await storage.updateUser(userId, { industry: otherIndustry });
+      } else if (industry) {
+        await storage.updateUser(userId, { industry });
+      }
+
+      // Step 2: Save weekly availability + timezone
+      if (weeklyAvailability && Object.keys(weeklyAvailability).length > 0) {
+        await storage.updateUser(userId, {
+          weeklyHours: weeklyAvailability,
+          timezone: timezone || 'UTC'
+        });
+      } else if (timezone) {
+        await storage.updateUser(userId, { timezone });
+      }
+
+      // Step 3: Create services (appointment types)
+      if (services && services.length > 0) {
+        for (const service of services) {
+          await storage.createAppointmentType({
+            userId,
+            name: service.name,
+            description: service.description || '',
+            duration: service.duration,
+            bufferTimeBefore: 0,
+            bufferTime: service.bufferTime || 0,
+            price: service.price || 0,
+            color: service.color,
+            isActive: service.isActive !== false,
+            sortOrder: 0
+          });
+        }
+      }
+
+      // Step 4: Save business info (name + slug)
+      const businessUpdates: any = {};
+      if (businessName) businessUpdates.businessName = businessName;
+      if (bookingSlug) businessUpdates.slug = bookingSlug;
+
+      if (Object.keys(businessUpdates).length > 0) {
+        await storage.updateUser(userId, businessUpdates);
+      }
+
+      // Mark onboarding as completed
+      await storage.updateUser(userId, { onboardingCompleted: true });
+
+      res.json({ success: true, message: "Onboarding completed successfully" });
+    } catch (error) {
+      console.error('Onboarding error:', error);
+      res.status(500).json({
+        message: "Failed to complete onboarding",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Booking routes (with feature enforcement)
   // Internal booking endpoint - simplified for booking page use (authenticated users only)
   app.post("/api/bookings", async (req, res) => {
@@ -3668,7 +3735,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Blocked dates routes
   app.get("/api/blocked-dates", async (req, res) => {
     try {
-      const userId = "demo-user-id"; // In production, get from session
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
       const blockedDates = await storage.getBlockedDatesByUser(userId);
       res.json(blockedDates);
     } catch (error) {
@@ -3678,14 +3748,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/blocked-dates", async (req, res) => {
     try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
       const blockedDateData = insertBlockedDateSchema.parse({
         ...req.body,
-        userId: "demo-user-id" // In production, get from session
+        userId
       });
       const blockedDate = await storage.createBlockedDate(blockedDateData);
       res.json({ message: "Blocked date created successfully", blockedDate });
     } catch (error) {
       res.status(400).json({ message: "Invalid blocked date data", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  // Closed months endpoint
+  app.post("/api/closed-months", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { closedMonths } = req.body;
+
+      // Validate that closedMonths is an array of numbers 0-11
+      if (!Array.isArray(closedMonths) || !closedMonths.every(m => typeof m === 'number' && m >= 0 && m <= 11)) {
+        return res.status(400).json({ message: "closedMonths must be an array of numbers between 0 and 11" });
+      }
+
+      await storage.updateUser(userId, { closedMonths });
+      res.json({ message: "Closed months updated successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update closed months", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 

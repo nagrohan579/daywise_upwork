@@ -401,6 +401,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isAdmin: user.isAdmin
       };
 
+      // Determine redirect URL based on onboarding status
+      const redirectPage = user.onboardingCompleted ? '/booking' : '/onboarding';
+
       // For popup window, close the popup and redirect parent
       res.send(`
         <script>
@@ -408,12 +411,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Notify parent window and close popup
             window.opener.postMessage({
               type: 'GOOGLE_AUTH_SUCCESS',
-              user: ${JSON.stringify(userData)}
+              user: ${JSON.stringify(userData)},
+              redirectTo: '${redirectPage}'
             }, '*');
             window.close();
           } else {
             // Fallback: redirect to frontend
-            window.location.href = '${frontendUrl}/booking';
+            window.location.href = '${frontendUrl}${redirectPage}';
           }
         </script>
       `);

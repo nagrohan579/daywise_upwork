@@ -18,7 +18,7 @@
 
 /* Variants */
 .btn-primary {
-  background: var(--main-color);
+  background: #0053F1;
   color: #fff;
 }
 

@@ -110,9 +110,16 @@
 
 .mylink-page .link-info {
   font-size: 12px;
-  color: #64748b;
+  color: #64748B !important;
   margin-top: 8px;
   line-height: 1.5;
+  transition: none !important;
+  animation: none !important;
+}
+
+.mylink-page .link-info:hover {
+  color: #64748B !important;
+  transition: none !important;
 }
 
 

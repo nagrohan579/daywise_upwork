@@ -1,8 +1,9 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "sonner";
 import { ImageCropProvider } from "./providers/ImageCropProvider";
+import { useEffect } from "react";
 
 // Pages - will be created/ported from UI code
 import HomePage from "./pages/Home";
@@ -33,12 +34,21 @@ import Onboarding from "./pages/Onboard/Onboarding";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
-function App() {
+function AppContent() {
+  const location = useLocation();
+
+  // Reset CSS variables to hardcoded values for internal pages
+  // Public pages (PublicBookingPage, RescheduleBookingPage, CancelledEventPage) will override these
+  useEffect(() => {
+    const root = document.documentElement;
+    // Always reset to hardcoded values - public pages will set their own colors in their useEffect
+    root.style.setProperty('--main-color', '#0053F1');
+    root.style.setProperty('--secondary-color', '#64748B');
+    root.style.setProperty('--text-color', '#121212');
+  }, [location.pathname]);
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <ImageCropProvider>
-        <Toaster position="bottom-right" richColors />
-        <Routes>
+    <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
@@ -63,9 +73,18 @@ function App() {
         <Route path="/reschedule_event/:token" element={<RescheduleBookingPage />} />
         <Route path="/event/:token" element={<EventPage />} />
         <Route path="/cancelled_event/:slug" element={<CancelledEventPage />} />
-        {/* Public booking page - must be last to catch slug routes */}
-        <Route path="/:slug" element={<PublicBookingPage />} />
-      </Routes>
+      {/* Public booking page - must be last to catch slug routes */}
+      <Route path="/:slug" element={<PublicBookingPage />} />
+    </Routes>
+  );
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ImageCropProvider>
+        <Toaster position="bottom-right" richColors />
+        <AppContent />
       </ImageCropProvider>
     </QueryClientProvider>
   );

@@ -139,7 +139,7 @@ export const insertAvailabilityExceptionSchema = z.object({
   date: z.coerce.date(),
   startTime: z.string().optional(),
   endTime: z.string().optional(),
-  type: z.enum(["unavailable", "custom_hours", "special_availability"]),
+  type: z.enum(["unavailable", "custom_hours", "special_availability", "closed_months"]),
   reason: z.string().optional(),
   customSchedule: z.string().optional(),
 });

@@ -4,7 +4,7 @@ import "./modal.css";
 import Select from "../Input/Select";
 import SingleCalendar from "../../Calendar/SingleCalendar";
 import CroppedImage from "../CroppedImage/CroppedImage";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const PreviewBookingModal = ({ 
   showPreviewBooking, 
@@ -23,7 +23,10 @@ const PreviewBookingModal = ({
   appointmentTypes = ["30 Minute Appointment", "60 Minute Appointment", "90 Minute Appointment"],
   selectedAppointmentTypeName = "30 Minute Appointment",
   currentTimezone = null,
-  timezoneOptions = []
+  timezoneOptions = [],
+  primaryColor = "#0053F1",
+  secondaryColor = "#64748B",
+  accentColor = "#121212"
 }) => {
   // Dummy service for preview (not using actual appointment types)
   const dummyService = {
@@ -48,6 +51,16 @@ const PreviewBookingModal = ({
   // Pre-select the third time slot (10:00 AM) to show the split view
   const [selectedTime] = useState("10:00");
 
+  // Set CSS variables when colors change
+  useEffect(() => {
+    if (showPreviewBooking) {
+      const root = document.documentElement;
+      root.style.setProperty('--main-color', primaryColor);
+      root.style.setProperty('--secondary-color', secondaryColor);
+      root.style.setProperty('--text-color', accentColor);
+    }
+  }, [showPreviewBooking, primaryColor, secondaryColor, accentColor]);
+
   return (
     <Modal
       show={showPreviewBooking}
@@ -61,7 +74,7 @@ const PreviewBookingModal = ({
           className="close-btn"
           onClick={() => setShowPreviewBooking(false)}
         >
-          <IoClose size={20} color="#64748B" />
+          <IoClose size={20} color="var(--secondary-color)" />
         </button>
       </Modal.Header>
       <Modal.Body>

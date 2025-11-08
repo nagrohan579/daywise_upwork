@@ -142,40 +142,6 @@ export async function getAvailableSlots({
     }
   }
 
-  // CHECK 3 & 4: Custom Hours and Special Availability - filter slots to specific time ranges
-  const customHoursException = exceptions.find((ex: any) => {
-    const exceptionDate = dayjs(ex.date).format('YYYY-MM-DD');
-    return exceptionDate === dateStr && ex.type === 'custom_hours' && !ex.appointmentTypeId;
-  });
-
-  const specialAvailabilityException = exceptions.find((ex: any) => {
-    const exceptionDate = dayjs(ex.date).format('YYYY-MM-DD');
-    return exceptionDate === dateStr && ex.type === 'special_availability' && ex.appointmentTypeId === appointmentTypeId;
-  });
-
-  // Apply custom hours (affects all services) or special availability (affects specific service)
-  const applicableException = specialAvailabilityException || customHoursException;
-
-  if (applicableException && applicableException.startTime && applicableException.endTime) {
-    // Filter slots to only those within the exception's time range
-    const filteredSlots = slots.filter(slotIso => {
-      const slotTime = dayjs.utc(slotIso).tz(userTimezone);
-      const slotHour = slotTime.hour();
-      const slotMin = slotTime.minute();
-      const slotTimeMinutes = slotHour * 60 + slotMin;
-
-      const [startHour, startMin] = applicableException.startTime.split(':').map(Number);
-      const [endHour, endMin] = applicableException.endTime.split(':').map(Number);
-      const startTimeMinutes = startHour * 60 + startMin;
-      const endTimeMinutes = endHour * 60 + endMin;
-
-      // Check if slot starts within the allowed time range
-      return slotTimeMinutes >= startTimeMinutes && slotTimeMinutes < endTimeMinutes;
-    });
-
-    return filteredSlots;
-  }
-
   return slots;
 }
 

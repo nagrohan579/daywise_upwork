@@ -429,6 +429,10 @@
   justify-content: center;
   gap: 5px;
 }
+.branding-page .brand-color-con .selection-color-con .color-box .color-group {
+  margin-bottom: 0;
+  align-items: center;
+}
 .branding-page .brand-color-con .selection-color-con .color-box span {
   width: 32px;
   height: 32px;

@@ -1,5 +1,6 @@
 import { Modal } from "react-bootstrap";
 import { IoClose } from "react-icons/io5";
+import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 import "./modal.css";
 import Input from "../Input/Input";
 import Select from "../Input/Select";
@@ -27,6 +28,14 @@ const DateSpecificHourModal = ({
   const [submitting, setSubmitting] = useState(false);
   
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  
+  // Year selection state for closed months
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [showYearDropdown, setShowYearDropdown] = useState(false);
+  
+  // Generate year options (2026-2036, excluding current year)
+  const yearOptions = Array.from({ length: 11 }, (_, i) => currentYear + 1 + i);
 
   // Services state
   const [services, setServices] = useState([]);
@@ -52,10 +61,10 @@ const DateSpecificHourModal = ({
   // Check if we should show services field (only for Unavailable and Special Availability)
   const showServices = selectedType === "Unavailable" || selectedType === "Special Availability";
 
-  // Helper to check if a month is in the past
+  // Helper to check if a month is in the past (only for current year)
   const isMonthPast = (monthName) => {
+    if (selectedYear !== currentYear) return false; // Future years don't have past months
     const now = new Date();
-    const currentYear = now.getFullYear();
     const currentMonth = now.getMonth(); // 0-11
     const monthIndex = months.indexOf(monthName); // 0-11
     return monthIndex < currentMonth;
@@ -67,6 +76,20 @@ const DateSpecificHourModal = ({
       fetchServices();
     }
   }, [showDateSpecificHour]);
+
+  // Close year dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showYearDropdown && !event.target.closest('[data-year-selector]')) {
+        setShowYearDropdown(false);
+      }
+    };
+    
+    if (showYearDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showYearDropdown]);
 
   const fetchServices = async () => {
     setLoadingServices(true);
@@ -138,18 +161,71 @@ const DateSpecificHourModal = ({
       if (selectedType === "Closed Months") {
         // Map month names to numbers (0-11)
         const monthMap = { "Jan": 0, "Feb": 1, "Mar": 2, "Apr": 3, "May": 4, "Jun": 5, "Jul": 6, "Aug": 7, "Sep": 8, "Oct": 9, "Nov": 10, "Dec": 11 };
-        const closedMonthsNumbers = selectedMonths.map(month => monthMap[month]);
-
-        const response = await fetch(`${apiUrl}/api/closed-months`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        
+        // Get current user ID
+        const meResponse = await fetch(`${apiUrl}/api/auth/me`, {
           credentials: 'include',
-          body: JSON.stringify({ closedMonths: closedMonthsNumbers }),
         });
+        
+        if (meResponse.status === 401) {
+          throw new Error('Please log in to set closed months');
+        }
+        
+        const meData = await meResponse.json();
+        const currentUserId = meData.user.id;
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to set closed months');
+        // Delete existing closed_months exceptions for the selected year
+        const existingExceptionsResponse = await fetch(`${apiUrl}/api/availability-exceptions`, {
+          credentials: 'include',
+        });
+        
+        if (existingExceptionsResponse.ok) {
+          const allExceptions = await existingExceptionsResponse.json();
+          const closedMonthsExceptions = allExceptions.filter(ex => 
+            ex.type === 'closed_months' && 
+            ex.customSchedule && 
+            (() => {
+              try {
+                const schedule = JSON.parse(ex.customSchedule);
+                return schedule.year === selectedYear;
+              } catch {
+                return false;
+              }
+            })()
+          );
+          
+          // Delete existing closed months for this year
+          for (const exception of closedMonthsExceptions) {
+            await fetch(`${apiUrl}/api/availability-exceptions/${exception._id}`, {
+              method: 'DELETE',
+              credentials: 'include',
+            });
+          }
+        }
+
+        // Create a new exception for each selected month
+        for (const monthName of selectedMonths) {
+          const monthNumber = monthMap[monthName];
+          // Use first day of the month as the date (for storage/querying purposes)
+          const firstDayOfMonth = new Date(selectedYear, monthNumber, 1);
+          
+          const exceptionData = {
+            date: firstDayOfMonth.toISOString(),
+            type: "closed_months",
+            customSchedule: JSON.stringify({ month: monthNumber, year: selectedYear }),
+          };
+
+          const response = await fetch(`${apiUrl}/api/availability-exceptions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(exceptionData),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to create closed months exception');
+          }
         }
 
         toast.success('Closed months updated successfully!');
@@ -225,6 +301,8 @@ const DateSpecificHourModal = ({
       setStartDate("");
       setEndDate("");
       setSelectedMonths([]);
+      setSelectedYear(currentYear);
+      setShowYearDropdown(false);
 
       // Call success callback to refresh data
       if (onSuccess) {
@@ -330,6 +408,116 @@ const DateSpecificHourModal = ({
             <div className="closed-months-con">
               <h4 className="closed-months-title">Closed Months</h4>
               <p className="closed-months-subtitle">Block entire months from bookings</p>
+              
+              {/* Year Selection */}
+              <div style={{ 
+                display: 'flex', 
+                gap: '10px', 
+                marginBottom: '20px',
+                alignItems: 'center'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedYear(currentYear);
+                    setShowYearDropdown(false);
+                    setSelectedMonths([]); // Clear selection when switching years
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: selectedYear === currentYear ? '1px solid #0053F1' : '1px solid #E0E9FE',
+                    backgroundColor: selectedYear === currentYear ? '#0053F1' : '#FFFFFF',
+                    color: selectedYear === currentYear ? '#FFFFFF' : '#64748B',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  Current Year ({currentYear})
+                </button>
+                
+                <div style={{ position: 'relative' }} data-year-selector>
+                  <button
+                    type="button"
+                    onClick={() => setShowYearDropdown(!showYearDropdown)}
+                    data-year-selector
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      border: selectedYear !== currentYear ? '1px solid #0053F1' : '1px solid #E0E9FE',
+                      backgroundColor: selectedYear !== currentYear ? '#0053F1' : '#FFFFFF',
+                      color: selectedYear !== currentYear ? '#FFFFFF' : '#64748B',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    {selectedYear !== currentYear ? selectedYear : 'Future Year'}
+                    <span style={{ display: 'flex', alignItems: 'center' }}>
+                      {showYearDropdown ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                    </span>
+                  </button>
+                  
+                    {showYearDropdown && (
+                    <div data-year-selector style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      marginTop: '4px',
+                      backgroundColor: '#FFFFFF',
+                      border: '1px solid #E0E9FE',
+                      borderRadius: '8px',
+                      boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)',
+                      zIndex: 1000,
+                      minWidth: '150px',
+                      maxHeight: '200px',
+                      overflowY: 'auto'
+                    }}>
+                      {yearOptions.map((year) => (
+                        <button
+                          key={year}
+                          type="button"
+                          onClick={() => {
+                            setSelectedYear(year);
+                            setShowYearDropdown(false);
+                            setSelectedMonths([]); // Clear selection when switching years
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '10px 16px',
+                            textAlign: 'left',
+                            border: 'none',
+                            backgroundColor: selectedYear === year ? '#F0F9FF' : '#FFFFFF',
+                            color: selectedYear === year ? '#0053F1' : '#1F2937',
+                            fontSize: '14px',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (selectedYear !== year) {
+                              e.target.style.backgroundColor = '#F9FAFB';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (selectedYear !== year) {
+                              e.target.style.backgroundColor = '#FFFFFF';
+                            }
+                          }}
+                        >
+                          {year}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              
               <div className="closed-months-grid">
                 {months.map((month) => {
                   const isPast = isMonthPast(month);

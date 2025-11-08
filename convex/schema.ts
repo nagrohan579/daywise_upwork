@@ -178,7 +178,7 @@ export default defineSchema({
     userId: v.id("users"),
     primary: v.string(),
     secondary: v.string(),
-    accent: v.string(),
+    accent: v.string(), // Text color maps to accent
     logoUrl: v.optional(v.string()), // Original logo URL (cropped on display using logoCropData)
     profilePictureUrl: v.optional(v.string()), // Original profile picture URL (cropped on display using profileCropData)
     displayName: v.optional(v.string()),

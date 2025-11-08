@@ -29,10 +29,13 @@ const Availability = () => {
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState(null);
   const [dateExceptions, setDateExceptions] = useState([]);
+  const [blockedDates, setBlockedDates] = useState([]);
   const [services, setServices] = useState([]);
   const [userData, setUserData] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [exceptionToDelete, setExceptionToDelete] = useState(null);
+  const [blockedDateToDelete, setBlockedDateToDelete] = useState(null);
+  const [closedMonthsToDelete, setClosedMonthsToDelete] = useState(null); // { year, items }
 
   // State for weekly availability - key is day name, value is array of time ranges
   const [weeklyAvailability, setWeeklyAvailability] = useState({
@@ -49,6 +52,7 @@ const Availability = () => {
   useEffect(() => {
     fetchAvailability();
     fetchDateExceptions();
+    fetchBlockedDates();
     fetchServices();
   }, []);
 
@@ -149,11 +153,46 @@ const Availability = () => {
       const exceptions = await response.json();
       console.log('Fetched date exceptions:', exceptions);
       
-      // Filter only unavailable exceptions
-      const unavailableExceptions = exceptions.filter(exception => exception.type === 'unavailable');
-      setDateExceptions(unavailableExceptions);
+      // Filter unavailable, custom_hours, special_availability, and closed_months exceptions
+      const dateExceptions = exceptions.filter(exception => 
+        exception.type === 'unavailable' || 
+        exception.type === 'custom_hours' || 
+        exception.type === 'special_availability' ||
+        exception.type === 'closed_months'
+      );
+      setDateExceptions(dateExceptions);
     } catch (error) {
       console.error('Error fetching date exceptions:', error);
+    }
+  };
+
+  const fetchBlockedDates = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+      // Get current user
+      const meResponse = await fetch(`${apiUrl}/api/auth/me`, {
+        credentials: 'include',
+      });
+
+      if (meResponse.status === 401) {
+        return;
+      }
+
+      // Fetch blocked dates (booking windows)
+      const response = await fetch(`${apiUrl}/api/blocked-dates`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch blocked dates');
+      }
+
+      const blocked = await response.json();
+      console.log('Fetched blocked dates:', blocked);
+      setBlockedDates(blocked);
+    } catch (error) {
+      console.error('Error fetching blocked dates:', error);
     }
   };
 
@@ -234,24 +273,71 @@ const Availability = () => {
 
   const handleDeleteClick = (exceptionId) => {
     setExceptionToDelete(exceptionId);
+    setBlockedDateToDelete(null);
+    setClosedMonthsToDelete(null);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteBlockedDateClick = (blockedDateId) => {
+    setBlockedDateToDelete(blockedDateId);
+    setExceptionToDelete(null);
+    setClosedMonthsToDelete(null);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteClosedMonthsClick = (year, items) => {
+    setClosedMonthsToDelete({ year, items });
+    setExceptionToDelete(null);
+    setBlockedDateToDelete(null);
     setShowDeleteModal(true);
   };
 
   const handleDeleteConfirm = async () => {
-    if (!exceptionToDelete) return;
-    
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-    const response = await fetch(`${apiUrl}/api/availability-exceptions/${exceptionToDelete}`, {
-      method: 'DELETE',
-      credentials: 'include',
-    });
+    if (closedMonthsToDelete) {
+      // Delete all closed months exceptions for the selected year
+      try {
+        for (const item of closedMonthsToDelete.items) {
+          const response = await fetch(`${apiUrl}/api/availability-exceptions/${item.exception._id}`, {
+            method: 'DELETE',
+            credentials: 'include',
+          });
+          if (!response.ok) {
+            throw new Error('Failed to delete closed month exception');
+          }
+        }
+        await fetchDateExceptions();
+        setClosedMonthsToDelete(null);
+        return { ok: true };
+      } catch (error) {
+        throw new Error('Failed to delete closed months');
+      }
+    } else if (exceptionToDelete) {
+      const response = await fetch(`${apiUrl}/api/availability-exceptions/${exceptionToDelete}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
 
-    if (!response.ok) {
-      throw new Error('Failed to delete exception');
+      if (!response.ok) {
+        throw new Error('Failed to delete exception');
+      }
+
+      await fetchDateExceptions();
+      return response;
+    } else if (blockedDateToDelete) {
+      const response = await fetch(`${apiUrl}/api/blocked-dates/${blockedDateToDelete}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete blocked date');
+      }
+
+      await fetchBlockedDates();
+      return response;
     }
-
-    return response; // Promise resolves on success
   };
 
   const handleEditException = (exception) => {
@@ -339,43 +425,168 @@ const Availability = () => {
                 </div>
 
                 <div className="show-date-specific-hour">
-                  {dateExceptions.length === 0 ? (
+                  {dateExceptions.length === 0 && blockedDates.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '20px', color: '#64748B' }}>
-                      No unavailable dates set
+                      No date-specific hours set
                     </div>
                   ) : (
-                    dateExceptions.map((exception) => (
-                      <div key={exception._id} className="wrapper">
-                        <div className="box">
-                          <div className="top">
-                            <h4>{new Date(exception.date).toLocaleDateString('en-US', { 
-                              month: 'short', 
-                              day: 'numeric', 
-                              year: 'numeric' 
-                            })}</h4>
-                            <RxCross2 
-                              color="#64748B" 
-                              style={{ cursor: 'pointer' }}
-                              onClick={() => handleDeleteClick(exception._id)}
-                            />
+                    <>
+                      {/* Group closed_months by year */}
+                      {(() => {
+                        const closedMonthsExceptions = dateExceptions.filter(ex => ex.type === 'closed_months');
+                        const otherExceptions = dateExceptions.filter(ex => ex.type !== 'closed_months');
+                        
+                        // Group closed months by year
+                        const closedMonthsByYear = {};
+                        closedMonthsExceptions.forEach(exception => {
+                          try {
+                            const schedule = JSON.parse(exception.customSchedule || '{}');
+                            const year = schedule.year;
+                            const month = schedule.month;
+                            if (!closedMonthsByYear[year]) {
+                              closedMonthsByYear[year] = [];
+                            }
+                            closedMonthsByYear[year].push({ exception, month });
+                          } catch (e) {
+                            console.error('Error parsing closed months schedule:', e);
+                          }
+                        });
+                        
+                        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                        
+                        return (
+                          <>
+                            {/* Closed Months grouped by year */}
+                            {Object.entries(closedMonthsByYear).map(([year, items]) => {
+                              const sortedMonths = items.sort((a, b) => a.month - b.month);
+                              const monthNamesList = sortedMonths.map(item => monthNames[item.month]).join(', ');
+                              
+                              return (
+                                <div key={`closed-months-${year}`} className="wrapper">
+                                  <div className="box">
+                                    <div className="top">
+                                      <h4>Closed Months ({year})</h4>
+                                      <RxCross2 
+                                        color="#64748B" 
+                                        style={{ cursor: 'pointer' }}
+                                        onClick={() => handleDeleteClosedMonthsClick(year, items)}
+                                      />
+                                    </div>
+                                    <div className="bottom">
+                                      <button>
+                                        <InfoIcon width={20} height={20} />
+                                        {monthNamesList}
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <PlusIcon />
+                                </div>
+                              );
+                            })}
+                            
+                            {/* Other Date Exceptions */}
+                            {otherExceptions.map((exception) => (
+                              <div key={exception._id} className="wrapper">
+                                <div className="box">
+                                  <div className="top">
+                                    <h4>{new Date(exception.date).toLocaleDateString('en-US', { 
+                                      month: 'short', 
+                                      day: 'numeric', 
+                                      year: 'numeric' 
+                                    })}</h4>
+                                    <RxCross2 
+                                      color="#64748B" 
+                                      style={{ cursor: 'pointer' }}
+                                      onClick={() => handleDeleteClick(exception._id)}
+                                    />
+                                  </div>
+                                  <div className="bottom">
+                                    <button>
+                                      <InfoIcon width={20} height={20} />
+                                      {exception.type === 'unavailable' ? (
+                                        'Unavailable'
+                                      ) : exception.type === 'custom_hours' ? (
+                                        exception.startTime && exception.endTime 
+                                          ? `${exception.startTime} - ${exception.endTime}`
+                                          : 'Custom Hours'
+                                      ) : exception.type === 'special_availability' ? (
+                                        (() => {
+                                          const timeRange = exception.startTime && exception.endTime 
+                                            ? `${exception.startTime} - ${exception.endTime}`
+                                            : 'Special Availability';
+                                          const serviceName = exception.appointmentTypeId 
+                                            ? (() => {
+                                                const service = services.find(s => s._id === exception.appointmentTypeId);
+                                                return service ? service.name : 'Unknown Service';
+                                              })()
+                                            : 'All Services';
+                                          return `${timeRange} (${serviceName})`;
+                                        })()
+                                      ) : (
+                                        exception.appointmentTypeId ? 
+                                          (() => {
+                                            const service = services.find(s => s._id === exception.appointmentTypeId);
+                                            return service ? service.name : 'Unknown Service';
+                                          })() : 
+                                          'All Services'
+                                      )}
+                                    </button>
+                                    <EditIcon onClick={() => handleEditException(exception)} />
+                                  </div>
+                                </div>
+                                <PlusIcon />
+                              </div>
+                            ))}
+                          </>
+                        );
+                      })()}
+                      
+                      {/* Booking Windows */}
+                      {blockedDates.map((blocked) => {
+                        const startDate = new Date(blocked.startDate);
+                        const endDate = new Date(blocked.endDate);
+                        const isSameDay = startDate.toDateString() === endDate.toDateString();
+                        
+                        return (
+                          <div key={blocked._id} className="wrapper">
+                            <div className="box">
+                              <div className="top">
+                                <h4>
+                                  {isSameDay 
+                                    ? startDate.toLocaleDateString('en-US', { 
+                                        month: 'short', 
+                                        day: 'numeric', 
+                                        year: 'numeric' 
+                                      })
+                                    : `${startDate.toLocaleDateString('en-US', { 
+                                        month: 'short', 
+                                        day: 'numeric', 
+                                        year: 'numeric' 
+                                      })} - ${endDate.toLocaleDateString('en-US', { 
+                                        month: 'short', 
+                                        day: 'numeric', 
+                                        year: 'numeric' 
+                                      })}`
+                                  }
+                                </h4>
+                                <RxCross2 
+                                  color="#64748B" 
+                                  style={{ cursor: 'pointer' }}
+                                  onClick={() => handleDeleteBlockedDateClick(blocked._id)}
+                                />
+                              </div>
+                              <div className="bottom">
+                                <button>
+                                  <InfoIcon width={20} height={20} />
+                                  Booking Window
+                                </button>
+                              </div>
+                            </div>
+                            <PlusIcon />
                           </div>
-                          <div className="bottom">
-                            <button>
-                              <InfoIcon width={20} height={20} />
-                              {exception.appointmentTypeId ? 
-                                (() => {
-                                  const service = services.find(s => s._id === exception.appointmentTypeId);
-                                  return service ? service.name : 'Unknown Service';
-                                })() : 
-                                'All Services'
-                              }
-                            </button>
-                            <EditIcon onClick={() => handleEditException(exception)} />
-                          </div>
-                        </div>
-                        <PlusIcon />
-                      </div>
-                    ))
+                        );
+                      })}
+                    </>
                   )}
                 </div>
               </div>
@@ -388,13 +599,22 @@ const Availability = () => {
         showDateSpecificHour={showDateSpecificHour}
         setShowDateSpecificHour={setShowDateSpecificHour}
         mode={modalMode}
-        onSuccess={fetchDateExceptions}
+        onSuccess={() => {
+          fetchDateExceptions();
+          fetchBlockedDates();
+        }}
       />
       <DeleteConfirmationModal
         show={showDeleteModal}
         setShow={setShowDeleteModal}
         onConfirm={handleDeleteConfirm}
-        itemName="Date-specific hour"
+        itemName={
+          closedMonthsToDelete 
+            ? `Closed months for ${closedMonthsToDelete.year}` 
+            : blockedDateToDelete 
+            ? "Booking window" 
+            : "Date-specific hour"
+        }
       />
     </AppLayout>
   );

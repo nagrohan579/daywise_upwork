@@ -14,7 +14,7 @@
 .input-group-comp .input-label {
   font-size: 14px;
   font-weight: 500;
-  color: #121212;
+  color: var(--text-color);
   font-family: Inter;
   font-weight: 600;
   font-style: Semi Bold;
@@ -33,14 +33,14 @@
   font-size: 14px;
   font-weight: 400;
   line-height: 20px; /* Match font size for proper vertical centering */
-  color: #121212;
+  color: var(--text-color);
   background-color: #f9faff;
   transition: border-color 0.2s ease-in-out;
   box-sizing: border-box;
 }
 
 .input-group-comp .input-field::placeholder {
-  color: #64748b;
+  color: var(--secondary-color);
 }
 
 .input-group-comp .input-field:focus {
@@ -70,7 +70,7 @@
 .textarea-label {
   font-size: 14px;
   font-weight: 500;
-  color: #121212;
+  color: var(--text-color);
 }
 
 .textarea-field {
@@ -79,14 +79,14 @@
   border-radius: 6px;
   outline: none;
   font-size: 14px;
-  color: #121212;
+  color: var(--text-color);
   transition: border-color 0.2s ease-in-out;
   resize: none;
   background-color: #f9faff;
 }
 
 .textarea-field::placeholder {
-  color: #64748b;
+  color: var(--secondary-color);
 }
 
 .textarea-field:focus {
@@ -118,7 +118,7 @@
 }
 .select-group .wrap .timezone-text {
   margin: 0px;
-  color: #121212;
+  color: var(--text-color);
   font-family: Inter;
   font-weight: 400;
   font-style: Regular;
@@ -130,7 +130,7 @@
 .select-label {
   font-size: 14px;
   font-weight: 600;
-  color: #121212;
+  color: var(--text-color);
 }
 
 .select-box {
@@ -156,16 +156,16 @@
 }
 
 .select-text {
-  color: #121212;
+  color: var(--text-color);
 }
 
 .select-placeholder {
-  color: #64748b;
+  color: var(--secondary-color);
 }
 
 .select-icon {
   font-size: 12px;
-  color: #64748b;
+  color: var(--secondary-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -193,7 +193,7 @@
   list-style: none;
   font-size: 14px;
   cursor: pointer;
-  color: #121212;
+  color: var(--text-color);
   transition: background 0.2s ease-in-out;
 }
 
@@ -202,7 +202,7 @@
 }
 
 .select-option.disabled {
-  color: #64748b;
+  color: var(--secondary-color);
   cursor: not-allowed;
 }
 
@@ -267,7 +267,7 @@
 }
 
 .checkbox-label {
-  color: #121212;
+  color: var(--text-color);
   font-weight: 500;
 }
 

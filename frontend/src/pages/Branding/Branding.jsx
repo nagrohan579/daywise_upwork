@@ -7,6 +7,7 @@ import {
   PreviewBookingModal,
   ToggleSwitch,
   ImageCropEditor,
+  ColorPicker,
 } from "../../components";
 import { RiDeleteBin5Line } from "react-icons/ri";
 import { toast } from "sonner";
@@ -41,6 +42,12 @@ const Branding = () => {
   const [appointmentTypes, setAppointmentTypes] = useState([]);
   const [userTimezone, setUserTimezone] = useState(null);
   const [timezoneOptions, setTimezoneOptions] = useState([]);
+  const [mainColor, setMainColor] = useState("#0053F1");
+  const [secondaryColor, setSecondaryColor] = useState("#64748B");
+  const [textColor, setTextColor] = useState("#121212"); // Maps to accent in backend
+  const [savingColors, setSavingColors] = useState(false);
+  const saveTimeoutRef = useRef(null);
+  const isSavingRef = useRef(false);
 
   // Crop editor state
   const [showCropEditor, setShowCropEditor] = useState(false);
@@ -100,7 +107,7 @@ const Branding = () => {
         let brandingData = null;
         if (brandingResponse.ok) {
           brandingData = await brandingResponse.json();
-          console.log('Fetched branding data:', brandingData);
+          console.log('Fetched branding data from Convex:', brandingData);
           if (brandingData.logoUrl) {
             console.log('Setting logo URL:', brandingData.logoUrl);
             setLogoUrl(brandingData.logoUrl);
@@ -124,6 +131,12 @@ const Branding = () => {
           }
           if (brandingData.showDisplayName !== undefined) setIsShownName(brandingData.showDisplayName);
           if (brandingData.showProfilePicture !== undefined) setIsShownProfilePic(brandingData.showProfilePicture);
+          
+          // Load brand colors (use defaults if not present)
+          // Text color maps to accent
+          setMainColor(brandingData.primary || "#0053F1");
+          setSecondaryColor(brandingData.secondary || "#64748B");
+          setTextColor(brandingData.accent || "#121212");
           
           // Only set usePlatformBranding from data if user has custom branding feature
           // Otherwise, it's already forced to true above
@@ -207,6 +220,13 @@ const Branding = () => {
     };
 
     fetchAllData();
+    
+    // Cleanup timeout on unmount
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
   }, []);
 
   // Auto-save function for branding settings
@@ -219,9 +239,9 @@ const Branding = () => {
         credentials: 'include',
       });
       
-      let primary = '#ef4444';
-      let secondary = '#f97316';
-      let accent = '#3b82f6';
+      let primary = mainColor || '#0053F1';
+      let secondary = secondaryColor || '#64748B';
+      let accent = textColor || '#121212'; // Text color maps to accent
       
       if (currentBrandingResponse.ok) {
         const currentBranding = await currentBrandingResponse.json();
@@ -239,7 +259,7 @@ const Branding = () => {
         body: JSON.stringify({
           primary,
           secondary,
-          accent,
+          accent, // Text color is saved as accent
           ...updates,
         }),
       });
@@ -980,29 +1000,149 @@ const Branding = () => {
             <div 
               className="selection-color-con"
               style={{
-                opacity: !hasCustomBranding ? 0.6 : 1,
-                pointerEvents: !hasCustomBranding ? "none" : "auto",
-                cursor: !hasCustomBranding ? "not-allowed" : "pointer",
-              }}
-              onClick={() => {
-                if (!hasCustomBranding) {
-                  toast.error("Brand colors customization is available in Pro plan.");
-                }
+                opacity: !hasCustomBranding ? 0.6 : savingColors ? 0.1 : 1,
+                pointerEvents: (!hasCustomBranding || savingColors) ? "none" : "auto",
+                cursor: (!hasCustomBranding || savingColors) ? "not-allowed" : "auto",
+                backgroundColor: savingColors ? "#FFFFFF" : "transparent",
+                transition: savingColors ? "opacity 0.2s ease, background-color 0.2s ease" : "opacity 0.2s ease",
               }}
             >
               <div className="color-box">
-                <span
-                  style={{ backgroundColor: "#CC0B0B" }}
-                  className="active"
+                <ColorPicker
+                  label=""
+                  name="mainColor"
+                  value={mainColor}
+                  onChange={async (color) => {
+                    if (!hasCustomBranding) {
+                      toast.error("Brand colors customization is available in Pro plan.");
+                      return;
+                    }
+                    if (isSavingRef.current) return; // Prevent multiple simultaneous saves
+                    
+                    setMainColor(color);
+                    
+                    // Clear any existing timeout
+                    if (saveTimeoutRef.current) {
+                      clearTimeout(saveTimeoutRef.current);
+                    }
+                    
+                    // Debounce the save - wait 500ms after user stops changing color
+                    saveTimeoutRef.current = setTimeout(async () => {
+                      if (isSavingRef.current) return;
+                      isSavingRef.current = true;
+                      setSavingColors(true);
+                      try {
+                        await saveBrandingSettings({ primary: color });
+                        toast.success("Main color updated");
+                      } catch (error) {
+                        toast.error(error.message || 'Failed to save main color');
+                        // Revert on error
+                        const currentBrandingResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/branding`, {
+                          credentials: 'include',
+                        });
+                        if (currentBrandingResponse.ok) {
+                          const currentBranding = await currentBrandingResponse.json();
+                          setMainColor(currentBranding.primary || "#0053F1");
+                        }
+                      } finally {
+                        setSavingColors(false);
+                        isSavingRef.current = false;
+                      }
+                    }, 500);
+                  }}
                 />
                 <h4>Main color</h4>
               </div>
               <div className="color-box">
-                <span style={{ backgroundColor: "#611212" }} />
+                <ColorPicker
+                  label=""
+                  name="secondaryColor"
+                  value={secondaryColor}
+                  onChange={async (color) => {
+                    if (!hasCustomBranding) {
+                      toast.error("Brand colors customization is available in Pro plan.");
+                      return;
+                    }
+                    if (isSavingRef.current) return; // Prevent multiple simultaneous saves
+                    
+                    setSecondaryColor(color);
+                    
+                    // Clear any existing timeout
+                    if (saveTimeoutRef.current) {
+                      clearTimeout(saveTimeoutRef.current);
+                    }
+                    
+                    // Debounce the save - wait 500ms after user stops changing color
+                    saveTimeoutRef.current = setTimeout(async () => {
+                      if (isSavingRef.current) return;
+                      isSavingRef.current = true;
+                      setSavingColors(true);
+                      try {
+                        await saveBrandingSettings({ secondary: color });
+                        toast.success("Secondary color updated");
+                      } catch (error) {
+                        toast.error(error.message || 'Failed to save secondary color');
+                        // Revert on error
+                        const currentBrandingResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/branding`, {
+                          credentials: 'include',
+                        });
+                        if (currentBrandingResponse.ok) {
+                          const currentBranding = await currentBrandingResponse.json();
+                          setSecondaryColor(currentBranding.secondary || "#64748B");
+                        }
+                      } finally {
+                        setSavingColors(false);
+                        isSavingRef.current = false;
+                      }
+                    }, 500);
+                  }}
+                />
                 <h4>Secondary Color</h4>
               </div>
               <div className="color-box">
-                <span style={{ backgroundColor: "#000000" }} />
+                <ColorPicker
+                  label=""
+                  name="textColor"
+                  value={textColor}
+                  onChange={async (color) => {
+                    if (!hasCustomBranding) {
+                      toast.error("Brand colors customization is available in Pro plan.");
+                      return;
+                    }
+                    if (isSavingRef.current) return; // Prevent multiple simultaneous saves
+                    
+                    setTextColor(color);
+                    
+                    // Clear any existing timeout
+                    if (saveTimeoutRef.current) {
+                      clearTimeout(saveTimeoutRef.current);
+                    }
+                    
+                    // Debounce the save - wait 500ms after user stops changing color
+                    saveTimeoutRef.current = setTimeout(async () => {
+                      if (isSavingRef.current) return;
+                      isSavingRef.current = true;
+                      setSavingColors(true);
+                      try {
+                        await saveBrandingSettings({ accent: color }); // Text color maps to accent
+                        toast.success("Text color updated");
+                      } catch (error) {
+                        toast.error(error.message || 'Failed to save text color');
+                        // Revert on error
+                        const currentBrandingResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/branding`, {
+                          credentials: 'include',
+                        });
+                        if (currentBrandingResponse.ok) {
+                          const currentBranding = await currentBrandingResponse.json();
+                          setTextColor(currentBranding.accent || "#121212");
+                        }
+                      } finally {
+                        setSavingColors(false);
+                        isSavingRef.current = false;
+                      }
+                    }, 500);
+                  }}
+                />
                 <h4>Text Color</h4>
               </div>
             </div>
@@ -1065,6 +1205,9 @@ const Branding = () => {
         selectedAppointmentTypeName={appointmentTypes.length > 0 ? appointmentTypes[0]?.name : "30 Minute Appointment"}
         currentTimezone={userTimezone}
         timezoneOptions={timezoneOptions}
+        primaryColor={mainColor}
+        secondaryColor={secondaryColor}
+        accentColor={textColor}
       />
       
       {/* Image Crop Editor */}

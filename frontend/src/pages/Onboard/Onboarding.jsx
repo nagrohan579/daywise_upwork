@@ -289,14 +289,43 @@ const Onboarding = () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+      // Step 2: Save weekly availability using the same endpoint as Availability page
+      if (!step2Skipped && weeklyAvailability && Object.keys(weeklyAvailability).length > 0) {
+        try {
+          console.log('Saving weekly availability:', weeklyAvailability);
+          const availabilityResponse = await fetch(`${apiUrl}/api/availability/weekly`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              weeklySchedule: weeklyAvailability,
+            }),
+          });
+
+          if (!availabilityResponse.ok) {
+            const errorData = await availabilityResponse.json();
+            throw new Error(errorData.message || 'Failed to save weekly availability');
+          }
+
+          const availabilityResult = await availabilityResponse.json();
+          console.log('Weekly availability saved:', availabilityResult);
+        } catch (error) {
+          console.error('Error saving weekly availability:', error);
+          toast.error('Failed to save weekly availability. Please try again.');
+          setIsSavingOnboarding(false);
+          return;
+        }
+      }
+
       // Prepare data to send - handle skipped steps
       const onboardingData = {
         // Step 1 - Industry (if not skipped)
         industry: !step1Skipped && selectedIndustry !== "Other" ? selectedIndustry : undefined,
         otherIndustry: !step1Skipped && selectedIndustry === "Other" ? otherIndustry : undefined,
 
-        // Step 2 - Weekly availability (if not skipped)
-        weeklyAvailability: !step2Skipped ? weeklyAvailability : undefined,
+        // Step 2 - Timezone (weekly availability already saved above)
         timezone: selectedTimezone,
 
         // Step 3 - Services (if not skipped)
@@ -436,23 +465,9 @@ const Onboarding = () => {
     <div className={`onboarding-page ${currentStep === "step3" && showServiceForm ? "onboarding-page-scrollable" : ""}`}>
       {/* Full-screen loader while saving onboarding data */}
       {isSavingOnboarding && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'white',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-          }}
-        >
-          <div className="spinner-border" role="status" style={{ width: '3rem', height: '3rem', color: '#4E98FF' }}>
-            <span className="sr-only">Loading...</span>
-          </div>
+        <div className="onboarding-saving-loader">
+          <div className="onboarding-saving-spinner"></div>
+          <p className="onboarding-saving-text">Getting things ready...</p>
         </div>
       )}
 

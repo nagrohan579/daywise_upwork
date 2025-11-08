@@ -25,7 +25,7 @@
   width: 48px;
   height: 48px;
   border: 4px solid #e2e8f0;
-  border-top-color: #3b82f6;
+  border-top-color: var(--main-color);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: 20px;
@@ -37,7 +37,7 @@
 
 .booking-steps-container .loading-container p {
   font-size: 16px;
-  color: #64748b;
+  color: var(--secondary-color);
   margin: 0;
 }
 
@@ -50,7 +50,7 @@
 
 .booking-steps-container .error-container p {
   font-size: 16px;
-  color: #64748b;
+  color: var(--secondary-color);
   margin: 0;
 }
 
@@ -87,7 +87,7 @@
   height: auto;
   min-width: 140px;
   font-weight: 500;
-  background-color: #0053F1;
+  background-color: var(--main-color);
   color: white;
   border: none;
   border-radius: 50px;
@@ -154,7 +154,7 @@
 
 .steps-one .left .profile-con .profile-wrapper h5 {
   margin: 0;
-  color: #121212;
+  color: var(--text-color);
   font-family: Inter, sans-serif;
   font-weight: 600;
   font-style: Semi Bold;
@@ -172,7 +172,7 @@
   font-size: 22px;
   line-height: 36px;
   vertical-align: middle;
-  color: #121212;
+  color: var(--text-color);
   margin-bottom: 6px;
 }
 .steps-one .left .business-wrapper p {
@@ -182,7 +182,7 @@
   font-size: 14px;
   line-height: 20px;
   vertical-align: middle;
-  color: #64748b;
+  color: var(--secondary-color);
   margin: 0;
 }
 .steps-one .left .select-con {
@@ -195,10 +195,10 @@
   font-size: 18px;
   line-height: 28px;
   vertical-align: middle;
-  color: #121212;
+  color: var(--text-color);
 }
 .steps-one .left .description {
-  color: #64748b;
+  color: var(--secondary-color);
   font-family: Inter, sans-serif;
   font-weight: 400;
   font-style: Regular;
@@ -261,7 +261,7 @@
   line-height: 36px;
   letter-spacing: 0%;
   vertical-align: middle;
-  color: #121212;
+  color: var(--text-color);
 }
 .booking-steps-container .step-two .left .appointment-wrapper p {
   font-family: Inter, sans-serif;
@@ -272,7 +272,7 @@
   letter-spacing: 0%;
   vertical-align: middle;
   margin: 0;
-  color: #64748b;
+  color: var(--secondary-color);
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -297,7 +297,7 @@
   letter-spacing: 0%;
   vertical-align: middle;
   margin: 0px;
-  color: #64748b;
+  color: var(--secondary-color);
 }
 .booking-steps-container .step-two .right {
   flex: 1;
@@ -307,7 +307,7 @@
 }
 
 .booking-steps-container .step-two .right h1 {
-  color: #121212;
+  color: var(--text-color);
   font-family: Inter, sans-serif;
   font-weight: 600;
   font-style: Semi Bold;
@@ -330,11 +330,11 @@
   line-height: 20px;
   letter-spacing: 0%;
   vertical-align: middle;
-  color: #64748b;
+  color: var(--secondary-color);
   margin-bottom: 46px;
 }
 .booking-steps-container .step-two .right .terms-con-desc a {
-  color: #64748b;
+  color: var(--secondary-color);
 }
 
 .booking-steps-container .step-three {
@@ -371,11 +371,11 @@
   line-height: 36px;
   letter-spacing: 0%;
   vertical-align: middle;
-  color: #121212;
+  color: var(--text-color);
   margin: 0;
 }
 .booking-steps-container .step-three .containerr .heading-container p {
-  color: #64748b;
+  color: var(--secondary-color);
   font-family: Inter, sans-serif;
   font-weight: 400;
   font-style: Regular;
@@ -404,7 +404,7 @@
   gap: 20px;
 }
 .step-three .containerr .appointment-container .booking-details h1 {
-  color: #121212;
+  color: var(--text-color);
   font-family: Inter, sans-serif;
   font-weight: 600;
   font-style: Semi Bold;
@@ -420,7 +420,7 @@
 }
 .step-three .containerr .appointment-container .booking-details .wrap h4 {
   margin: 0;
-  color: #64748b;
+  color: var(--secondary-color);
 
   font-family: Inter, sans-serif;
   font-weight: 500;
@@ -481,11 +481,11 @@
   line-height: 23.17px;
   text-align: center;
   vertical-align: middle;
-  color: #121212;
+  color: var(--text-color);
 }
 .step-two-mobile .containerr .heading-con p {
   margin: 0px;
-  color: #121212;
+  color: var(--text-color);
   font-family: Inter, sans-serif;
   font-weight: 400;
   font-style: Regular;
@@ -589,7 +589,7 @@
 }
 
 .no-slots-message p {
-  color: #64748B;
+  color: var(--secondary-color);
   font-family: 'Inter', sans-serif;
   font-size: 14px;
   font-weight: 500;
@@ -620,7 +620,7 @@
 
 .time-slots-spinner {
   border: 3px solid #f3f3f3;
-  border-top: 3px solid #3b82f6;
+  border-top: 3px solid var(--main-color);
   border-radius: 50%;
   width: 24px;
   height: 24px;
@@ -629,7 +629,7 @@
 }
 
 .time-slots-loading-text {
-  color: #64748b;
+  color: var(--secondary-color);
   font-size: 12px;
   font-family: Inter, sans-serif;
   margin: 0;
@@ -736,7 +736,7 @@
   border: none;
   font-size: 16px;
   font-weight: 600;
-  color: #121212;
+  color: var(--text-color);
   cursor: pointer;
 }
 
@@ -749,7 +749,7 @@
 .booking-steps-container .react-calendar__navigation__label__labelText {
   font-size: 16px;
   font-weight: 600;
-  color: #121212;
+  color: var(--text-color);
 }
 
 .booking-steps-container .react-calendar__month-view__weekdays {
@@ -757,7 +757,7 @@
   text-transform: uppercase;
   font-weight: 500;
   font-size: 12px;
-  color: #64748B;
+  color: var(--secondary-color);
   padding-bottom: 10px;
   display: grid !important;
   grid-template-columns: repeat(7, 1fr) !important;
@@ -794,7 +794,7 @@
   text-align: center;
   line-height: 20px;
   font-size: 14px;
-  color: #121212;
+  color: var(--text-color);
   border: none;
   cursor: pointer;
   border-radius: 8px;
@@ -814,14 +814,14 @@
 .booking-steps-container .react-calendar__tile--active,
 .booking-steps-container .react-calendar__tile--active:enabled:hover,
 .booking-steps-container .react-calendar__tile--active:enabled:focus {
-  background: #0053F1 !important;
+  background: var(--main-color) !important;
   color: white;
   font-weight: 600;
 }
 
 .booking-steps-container .react-calendar__tile--rangeStart,
 .booking-steps-container .react-calendar__tile--rangeEnd {
-  background: #0053F1;
+  background: var(--main-color);
   color: white;
 }
 
@@ -843,7 +843,7 @@
   height: auto;
   min-width: 140px;
   font-weight: 500;
-  background-color: #0053F1;
+  background-color: var(--main-color);
   color: white;
   border: none;
   border-radius: 50px;
@@ -864,7 +864,7 @@
 
 /* Time Slot Mobile Styling */
 .step-two-mobile .time-slot-wrapper {
-  border: 1px solid #64748b33;
+  border: 1px solid color-mix(in srgb, var(--secondary-color) 20%, transparent);
   padding: 20px;
   border-radius: 20px;
 }
@@ -955,7 +955,7 @@
 .booking-steps-container .step-two .left {
   flex: 0.5;
   padding: 30px;
-  border-right: 1px solid #64748b33;
+  border-right: 1px solid color-mix(in srgb, var(--secondary-color) 20%, transparent);
   overflow-y: auto;
   max-height: 95vh;
 }
@@ -966,6 +966,15 @@
 
 .booking-steps-container .step-two .left .back-arrow svg {
   cursor: pointer;
+}
+
+.booking-steps-container .step-two .left .back-arrow svg path {
+  stroke: var(--secondary-color) !important;
+}
+
+.booking-steps-container .step-two .left .booking-details .wrap svg path {
+  stroke: var(--secondary-color) !important;
+  fill: var(--secondary-color) !important;
 }
 
 .booking-steps-container .step-two .left .daywise-branding {
@@ -985,7 +994,7 @@
   line-height: 36px;
   letter-spacing: 0%;
   vertical-align: middle;
-  color: #121212;
+  color: var(--text-color);
 }
 
 .booking-steps-container .step-two .left .appointment-wrapper p {
@@ -997,7 +1006,7 @@
   letter-spacing: 0%;
   vertical-align: middle;
   margin: 0;
-  color: #64748b;
+  color: var(--secondary-color);
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -1025,7 +1034,7 @@
   letter-spacing: 0%;
   vertical-align: middle;
   margin: 0px;
-  color: #64748b;
+  color: var(--secondary-color);
 }
 
 .booking-steps-container .step-two .right {
@@ -1036,7 +1045,7 @@
 }
 
 .booking-steps-container .step-two .right h1 {
-  color: #121212;
+  color: var(--text-color);
   font-family: Inter, sans-serif;
   font-weight: 600;
   font-style: Semi Bold;
@@ -1060,12 +1069,12 @@
   line-height: 20px;
   letter-spacing: 0%;
   vertical-align: middle;
-  color: #64748b;
+  color: var(--secondary-color);
   margin-bottom: 46px;
 }
 
 .booking-steps-container .step-two .right .terms-con-desc a {
-  color: #64748b;
+  color: var(--secondary-color);
 }
 
 /* Responsive adjustments */

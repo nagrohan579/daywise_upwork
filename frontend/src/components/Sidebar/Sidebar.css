@@ -106,7 +106,7 @@
   gap: 7px;
   padding: 12px 16px;
   margin: 4px 0;
-  color: var(--text-color);
+  color: #64748B;
   text-decoration: none;
   border-radius: 6px;
   transition: background-color 0.2s, color 0.2s;
@@ -173,7 +173,7 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  color: var(--text-color);
+  color: #64748B;
   text-decoration: none;
   border-radius: 6px;
   transition: background-color 0.2s;

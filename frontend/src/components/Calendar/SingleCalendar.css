@@ -17,7 +17,7 @@
 }
 .single-calendar-container .calendar-date-wrapper h2 {
   margin-bottom: 42px;
-  color: #121212;
+  color: var(--text-color);
   font-family: Inter;
   font-weight: 600;
   font-style: Semi Bold;
@@ -55,7 +55,7 @@
 }
 .single-calendar-container .time-slot-wrapper .selected-date h3 {
   margin: 0;
-  color: #121212;
+  color: var(--text-color);
   font-family: Inter, sans-serif;
   font-weight: 400;
   font-style: Regular;
@@ -67,7 +67,7 @@
 
 /* ===== Time Slots ===== */
 .time-slot-container .time-slot-btn.selected {
-  background-color: #0053f1;
+  background-color: var(--main-color);
   color: #fff;
   transform: scale(0.98);
   transition: all 0.25s ease;
@@ -115,7 +115,7 @@
   animation: slideInRightBounce 0.28s cubic-bezier(0.45, 0, 0.55, 1.4) forwards;
 }
 .time-slot-container .time-slot-selected .selected-time-text {
-  background-color: #64748b;
+  background-color: var(--secondary-color);
   border-radius: 4px;
   padding: 12px;
   height: 100%;
@@ -133,7 +133,7 @@
   transition: background-color 0.25s ease;
 }
 .time-slot-container .time-slot-selected .next-btn {
-  background-color: #0053f1;
+  background-color: var(--main-color);
   border-radius: 4px;
   padding: 12px;
   height: 100%;
@@ -152,11 +152,11 @@
   .time-slot-wrapper
   .time-slot-container
   .time-slot-btn {
-  border: 1px solid #0053f1;
+  border: 1px solid var(--main-color);
   outline: none;
   cursor: pointer;
   background-color: transparent;
-  color: #0053f1;
+  color: var(--main-color);
   border-radius: 4px;
   padding: 12px 20px;
   text-align: center;
@@ -169,7 +169,7 @@
   .time-slot-container
   .time-slot-btn:hover {
   color: #fff;
-  background-color: #0053f1;
+  background-color: var(--main-color);
 }
 
 
@@ -183,7 +183,7 @@
 }
 
 .no-slots-message p {
-  color: #64748B;
+  color: var(--secondary-color);
   font-family: 'Inter', sans-serif;
   font-size: 14px;
   font-weight: 500;
@@ -214,7 +214,7 @@
 
 .time-slots-spinner {
   border: 3px solid #f3f3f3;
-  border-top: 3px solid #3b82f6;
+  border-top: 3px solid var(--main-color);
   border-radius: 50%;
   width: 24px;
   height: 24px;
@@ -223,7 +223,7 @@
 }
 
 .time-slots-loading-text {
-  color: #64748b;
+  color: var(--secondary-color);
   font-size: 12px;
   font-family: Inter, sans-serif;
   margin: 0;
@@ -265,7 +265,7 @@
   text-transform: uppercase;
   font-weight: 500;
   font-size: 12px;
-  color: #64748B;
+  color: var(--secondary-color);
   padding-bottom: 10px;
   display: grid !important;
   grid-template-columns: repeat(7, 1fr) !important;
@@ -380,7 +380,7 @@
   background-color: transparent !important;
 }
 .react-calendar__navigation__label__labelText--from {
-  color: #121212;
+  color: var(--text-color);
   font-family: Inter;
   font-weight: 400;
   font-style: Regular;
@@ -399,7 +399,7 @@ abbr[title] {
   text-align: center;
   vertical-align: middle;
   text-transform: uppercase !important;
-  color: #121212 !important;
+  color: var(--text-color) !important;
 }
 
 /* NAVIGATION ARRAOW */
@@ -413,21 +413,21 @@ abbr[title] {
   height: 38px;
   transition: all 0.2s ease;
   background-color: transparent;
-  color: #121212;
+  color: var(--text-color);
   cursor: pointer;
 }
 
 /* Hover only when NOT disabled */
 .react-calendar__navigation__arrow:not(:disabled):hover {
-  background-color: #0053f11a !important;
-  color: #0053f1 !important;
+  background-color: color-mix(in srgb, var(--main-color) 10%, transparent) !important;
+  color: var(--main-color) !important;
 }
 
 /* Disabled arrows — no hover, no pointer */
 .react-calendar__navigation__arrow:disabled {
   cursor: not-allowed;
   background-color: transparent !important;
-  color: #64748b !important;
+  color: var(--secondary-color) !important;
 }
 .react-calendar__navigation button {
   min-width: 0 !important;
@@ -435,19 +435,19 @@ abbr[title] {
 /* Optional: give active arrows a subtle background (like your Figma) */
 .react-calendar__navigation__next-button,
 .react-calendar__navigation__prev-button {
-  background-color: #0053f11a !important;
-  color: #0053f1 !important;
+  background-color: color-mix(in srgb, var(--main-color) 10%, transparent) !important;
+  color: var(--main-color) !important;
 }
 
 /* CALENDAR CUSTOMIZATION */
 /* WEEKEND COLOR */
 .react-calendar__month-view__days__day--weekend {
-  color: #0053f1 !important;
+  color: var(--main-color) !important;
 }
 
 /* DEFAULT DAY STYLE */
 .react-calendar__tile {
-  color: #0053f1 !important;
+  color: var(--main-color) !important;
   background: transparent !important;
   font-family: Inter, sans-serif !important;
   font-weight: 600 !important;
@@ -464,7 +464,7 @@ abbr[title] {
 
 /* SELECTED DAY */
 .react-calendar__tile--active {
-  background-color: #0053f1 !important;
+  background-color: var(--main-color) !important;
   color: #fff !important;
   font-weight: 600 !important;
   border-radius: 50% !important;
@@ -472,7 +472,7 @@ abbr[title] {
 
 /* DISABLED (PAST) DAYS */
 .react-calendar__tile:disabled {
-  color: #64748b !important;
+  color: var(--secondary-color) !important;
   background-color: transparent !important;
   opacity: 1 !important; /* prevent React Calendar's default dimming */
   cursor: not-allowed;
@@ -481,13 +481,13 @@ abbr[title] {
 
 /* OPTIONAL — hover for active (non-disabled) tiles, but not for selected dates */
 .react-calendar__tile:not(:disabled):not(.react-calendar__tile--active):hover {
-  background-color: #0053f11a !important;
-  color: #0053f1 !important;
+  background-color: color-mix(in srgb, var(--main-color) 10%, transparent) !important;
+  color: var(--main-color) !important;
 }
 
 /* Remove hover effect for selected dates */
 .react-calendar__tile--active:hover {
-  background-color: #0053f1 !important;
+  background-color: var(--main-color) !important;
   color: #fff !important;
 }
 
@@ -522,15 +522,15 @@ abbr[title] {
 /* HIGHLIGHT CALENDAR DATES AVAILABLE */
 /* Highlight available days */
 .available-day {
-  background-color: #0053f11a !important;
-  color: #0053F1 !important;
+  background-color: color-mix(in srgb, var(--main-color) 10%, transparent) !important;
+  color: var(--main-color) !important;
   border-radius: 50px;
   font-weight: 500;
 }
 
 /* Optional hover style */
 .available-day:hover {
-  background-color: #0053f133 !important;
+  background-color: color-mix(in srgb, var(--main-color) 20%, transparent) !important;
 }
 
 

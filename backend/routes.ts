@@ -338,6 +338,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // (Convex validators reject explicit null)
           // stripeCustomerId / stripeSubscriptionId / renewsAt / cancelAt intentionally omitted when null
           await storage.createUserSubscription(subscriptionPayload);
+
+          // Create default branding with new default colors
+          await storage.createBranding({
+            userId: user._id,
+            primary: '#0053F1',
+            secondary: '#64748B',
+            accent: '#121212', // Text color maps to accent
+            logoUrl: undefined,
+            profilePictureUrl: undefined,
+            displayName: undefined,
+            showDisplayName: true,
+            showProfilePicture: true,
+            usePlatformBranding: true,
+          });
         }
       } else if (!user.googleId) {
         // Link existing email account to Google
@@ -1023,9 +1037,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timezone: timezone || 'UTC',
         country: country || 'US',
         isAdmin: false,
-        primaryColor: '#ef4444',
-        secondaryColor: '#f97316',
-        accentColor: '#3b82f6',
+        primaryColor: '#0053F1',
+        secondaryColor: '#64748B',
+        accentColor: '#121212',
         bookingWindow: 60,
       };
 
@@ -1049,6 +1063,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isAnnual: false,
       };
       await storage.createUserSubscription(subscriptionPayload);
+
+      // Create default branding with new default colors
+      // Text color maps to accent
+      await storage.createBranding({
+        userId: user._id,
+        primary: '#0053F1',
+        secondary: '#64748B',
+        accent: '#121212', // Text color is stored as accent
+        logoUrl: undefined,
+        profilePictureUrl: undefined,
+        displayName: undefined,
+        showDisplayName: true,
+        showProfilePicture: true,
+        usePlatformBranding: true,
+      });
 
       // Create default availability for new user (Mon-Fri 9am-5pm, Sat-Sun unavailable)
       const defaultWeeklySchedule = {
@@ -1988,9 +2017,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Use default branding values if none exists
           branding = {
             userId: businessUser._id,
-            primary: '#ef4444',
-            secondary: '#f97316',
-            accent: '#3b82f6',
+            primary: '#0053F1',
+            secondary: '#64748B',
+            accent: '#121212',
             logoUrl: undefined,
             usePlatformBranding: true,
             createdAt: Date.now(),
@@ -2136,9 +2165,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // notes intentionally omitted - may contain sensitive info
         business: {
           name: user.businessName || user.name,
-          primaryColor: branding?.primary || '#ef4444',
-          secondaryColor: branding?.secondary || '#f97316',
-          accentColor: branding?.accent || '#3b82f6',
+          primaryColor: branding?.primary || '#0053F1',
+          secondaryColor: branding?.secondary || '#64748B',
+          accentColor: branding?.accent || '#121212',
           logo: branding?.logoUrl,
           timezone: user.timezone,
         }
@@ -2442,9 +2471,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Fetch branding for emails
       const branding = await storage.getBranding(existingBooking.userId);
       const businessColors = branding ? {
-        primary: branding.primary || '#3b82f6',
-        secondary: branding.secondary || '#8b5cf6',
-        accent: branding.accent || '#3b82f6',
+        primary: branding.primary || '#0053F1',
+        secondary: branding.secondary || '#64748B',
+        accent: branding.accent || '#121212',
       } : undefined;
 
       // Delete Google Calendar event if it exists
@@ -3004,30 +3033,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`No availability for ${dayName}, returning empty slots (not checking adjacent days - customer's day doesn't span different calendar days in business timezone)`);
       }
       
-      if (dayAvailability.length === 0) {
-        console.log(`No availability for ${dayName}, returning empty slots`);
-        return res.json({ slots: [] }); // No availability for this day
-      }
-      
-      // Check for exceptions on this specific date
-      const exceptions = await storage.getAvailabilityExceptionsByUser(userId as string);
       // Use the date in user's timezone for exception matching (not UTC)
       const dateStrInUserTz = dateInUserTz.format('YYYY-MM-DD');
 
-      const dateException = exceptions.find(exception => {
+      // CHECK: Closed Months - entire month unavailable
+      const exceptions = await storage.getAvailabilityExceptionsByUser(userId as string);
+      const closedMonthsExceptions = exceptions.filter(ex => ex.type === 'closed_months');
+      const isMonthClosed = closedMonthsExceptions.some((exception: any) => {
+        if (!exception.customSchedule) return false;
+        try {
+          const schedule = JSON.parse(exception.customSchedule);
+          const exceptionMonth = schedule.month; // 0-11
+          const exceptionYear = schedule.year;
+          const requestMonth = dateInUserTz.month(); // 0-11
+          const requestYear = dateInUserTz.year();
+          return exceptionMonth === requestMonth && exceptionYear === requestYear;
+        } catch {
+          return false;
+        }
+      });
+      
+      if (isMonthClosed) {
+        console.log(`Month ${dateInUserTz.format('MMMM YYYY')} is closed, returning no slots`);
+        return res.json({ slots: [] });
+      }
+
+      // CHECK: Booking Window (blocked dates) - entire date range unavailable
+      // Check in user's timezone to ensure proper date matching
+      const blockedDates = await storage.getBlockedDatesByUser(userId as string);
+      const isBlocked = blockedDates.some((blocked: any) => {
+        // Convert blocked dates to user's timezone for comparison
+        const blockStart = dayjs(blocked.startDate).tz(userTimezone).startOf('day');
+        const blockEnd = dayjs(blocked.endDate).tz(userTimezone).endOf('day');
+        const dateStart = dateInUserTz.startOf('day');
+        const dateEnd = dateInUserTz.endOf('day');
+        
+        // Check if the requested date overlaps with the blocked date range
+        return dateStart.isBefore(blockEnd) && dateEnd.isAfter(blockStart);
+      });
+      
+      if (isBlocked) {
+        console.log(`Date ${dateStrInUserTz} is blocked by booking window, returning no slots`);
+        return res.json({ slots: [] });
+      }
+
+      // Check for exceptions on this specific date (before checking dayAvailability)
+      // Note: exceptions already fetched above for closed months check
+
+      // Find all exceptions for this date
+      const dateExceptions = exceptions.filter(exception => {
         const exceptionDateInUserTz = dayjs.tz(exception.date, userTimezone).format('YYYY-MM-DD');
         return exceptionDateInUserTz === dateStrInUserTz;
       });
 
-      // If there's an "unavailable" exception for this date, return no slots
-      if (dateException && dateException.type === 'unavailable') {
-        return res.json({ slots: [] });
+      // Check for unavailable exception (applies to all services)
+      const unavailableException = dateExceptions.find(exception => exception.type === 'unavailable');
+      if (unavailableException) {
+        // Check if it's service-specific
+        if (!unavailableException.appointmentTypeId || unavailableException.appointmentTypeId === appointmentTypeId) {
+          return res.json({ slots: [] });
+        }
       }
 
-      // If there's an "available" exception, use that instead of regular availability
-      if (dateException && dateException.type === 'available') {
-        // For now, use the regular weekly hours when there's an available exception
-        // In the future, this could override with custom hours from the exception
+      // Check for special_availability exception (service-specific)
+      // Priority: special_availability for this service > custom_hours (all services) > week hours
+      const specialAvailabilityException = dateExceptions.find(exception => {
+        if (exception.type !== 'special_availability') return false;
+        // Applies if: no appointmentTypeId (all services) OR matches requested appointmentTypeId
+        const applies = !exception.appointmentTypeId || exception.appointmentTypeId === appointmentTypeId;
+        if (applies) {
+          console.log(`Found special_availability exception for ${dateStrInUserTz}:`, {
+            appointmentTypeId: exception.appointmentTypeId,
+            requestedAppointmentTypeId: appointmentTypeId,
+            startTime: exception.startTime,
+            endTime: exception.endTime
+          });
+        }
+        return applies;
+      });
+
+      // Check for custom_hours exception (applies to all services, no appointmentTypeId)
+      const customHoursException = dateExceptions.find(exception => 
+        exception.type === 'custom_hours' && !exception.appointmentTypeId
+      );
+
+      // Determine which exception to use (priority: special_availability > custom_hours > week hours)
+      const applicableException = specialAvailabilityException || customHoursException;
+      
+      console.log(`Exception check results:`, {
+        hasSpecialAvailability: !!specialAvailabilityException,
+        hasCustomHours: !!customHoursException,
+        hasApplicableException: !!applicableException,
+        applicableExceptionType: applicableException?.type,
+        applicableExceptionStartTime: applicableException?.startTime,
+        applicableExceptionEndTime: applicableException?.endTime
+      });
+
+      // Only check dayAvailability if we don't have an applicable exception
+      // Exceptions override week hours, so we skip the dayAvailability check
+      if (!applicableException && dayAvailability.length === 0) {
+        console.log(`No availability for ${dayName}, returning empty slots`);
+        return res.json({ slots: [] }); // No availability for this day
       }
 
       // Get existing bookings for this date to check for conflicts
@@ -3067,10 +3173,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         requestDateStr: dateStrInUserTz
       });
       
+      // If exception exists, ignore week hours and use custom time range
+      let timeRangesToUse = [];
+      if (applicableException && applicableException.startTime && applicableException.endTime) {
+        // Use exception time range instead of week hours
+        timeRangesToUse = [{
+          startTime: applicableException.startTime,
+          endTime: applicableException.endTime
+        }];
+        const exceptionType = applicableException.type === 'special_availability' ? 'special_availability' : 'custom_hours';
+        const serviceInfo = applicableException.type === 'special_availability' && applicableException.appointmentTypeId 
+          ? ` for service ${appointmentTypeId}` 
+          : ' (all services)';
+        console.log(`✅ Using ${exceptionType} for ${dateStrInUserTz}${serviceInfo}: ${applicableException.startTime} - ${applicableException.endTime}`);
+        console.log(`Time ranges to use:`, timeRangesToUse);
+      } else {
+        // Use regular week hours
+        timeRangesToUse = dayAvailability;
+        console.log(`Using regular week hours for ${dateStrInUserTz}, dayAvailability count: ${dayAvailability.length}`);
+        if (applicableException) {
+          console.log(`⚠️ Warning: Exception found but missing startTime/endTime:`, {
+            type: applicableException.type,
+            hasStartTime: !!applicableException.startTime,
+            hasEndTime: !!applicableException.endTime
+          });
+        }
+      }
+
       // Sort availability by start time
-      dayAvailability.sort((a, b) => a.startTime.localeCompare(b.startTime));
+      timeRangesToUse.sort((a, b) => a.startTime.localeCompare(b.startTime));
       
-      for (const availSlot of dayAvailability) {
+      for (const availSlot of timeRangesToUse) {
         console.log(`Processing availability slot: ${availSlot.startTime} - ${availSlot.endTime}`);
         const [startHour, startMin] = availSlot.startTime.split(':').map(Number);
         const [endHour, endMin] = availSlot.endTime.split(':').map(Number);
@@ -4232,9 +4365,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!queryUserId) {
           branding = await storage.createBranding({
             userId,
-            primary: '#ef4444',
-            secondary: '#f97316',
-            accent: '#3b82f6',
+            primary: '#0053F1',
+            secondary: '#64748B',
+            accent: '#121212', // Text color maps to accent
             logoUrl: undefined,
             profilePictureUrl: undefined,
             displayName: undefined,
@@ -4246,9 +4379,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // For public requests, return default branding values without saving
           return res.json({
             userId,
-            primary: '#ef4444',
-            secondary: '#f97316',
-            accent: '#3b82f6',
+            primary: '#0053F1',
+            secondary: '#64748B',
+            accent: '#121212', // Text color maps to accent
             logoUrl: undefined,
             profilePictureUrl: undefined,
             displayName: undefined,
@@ -4347,9 +4480,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!existingBranding) {
         existingBranding = await storage.createBranding({
           userId,
-          primary: '#ef4444',
-          secondary: '#f97316',
-          accent: '#3b82f6',
+          primary: '#0053F1',
+          secondary: '#64748B',
+          accent: '#121212', // Text color maps to accent
           logoUrl: undefined,
           profilePictureUrl: undefined,
           displayName: undefined,
@@ -4457,9 +4590,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!existingBranding) {
         existingBranding = await storage.createBranding({
           userId,
-          primary: '#ef4444',
-          secondary: '#f97316',
-          accent: '#3b82f6',
+          primary: '#0053F1',
+          secondary: '#64748B',
+          accent: '#121212', // Text color maps to accent
           logoUrl: undefined,
           profilePictureUrl: undefined,
           displayName: undefined,

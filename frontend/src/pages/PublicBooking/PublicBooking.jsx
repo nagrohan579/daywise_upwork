@@ -131,11 +131,27 @@ const PublicBooking = () => {
           console.log('PublicBooking - usePlatformBranding type:', typeof brandingData?.usePlatformBranding);
           console.log('PublicBooking - Will show badge?', brandingData?.usePlatformBranding !== false);
           setBranding(brandingData);
+          
+          // Set CSS variables for colors
+          const root = document.documentElement;
+          root.style.setProperty('--main-color', brandingData?.primary || '#0053F1');
+          root.style.setProperty('--secondary-color', brandingData?.secondary || '#64748B');
+          root.style.setProperty('--text-color', brandingData?.accent || '#121212');
         } else {
           console.warn('PublicBooking - Branding fetch failed with status', brandingResponse.status);
+          // Set default CSS variables
+          const root = document.documentElement;
+          root.style.setProperty('--main-color', '#0053F1');
+          root.style.setProperty('--secondary-color', '#64748B');
+          root.style.setProperty('--text-color', '#121212');
         }
       } catch (e) {
         console.warn('PublicBooking - Error fetching branding:', e);
+        // Set default CSS variables
+        const root = document.documentElement;
+        root.style.setProperty('--main-color', '#0053F1');
+        root.style.setProperty('--secondary-color', '#64748B');
+        root.style.setProperty('--text-color', '#121212');
       }
 
       const typesResponse = await fetch(`${apiUrl}/api/appointment-types?userId=${user.id}`);
@@ -773,7 +789,7 @@ const PublicBooking = () => {
                   style={{
                     width: '186px',
                     height: '40px',
-                    backgroundColor: '#0053F1',
+                    backgroundColor: 'var(--main-color)',
                     borderRadius: '50px',
                     padding: '10px 12px',
                     color: '#FFFFFF',
@@ -786,7 +802,7 @@ const PublicBooking = () => {
                   style={{
                     width: '186px',
                     height: '40px',
-                    backgroundColor: '#64748B',
+                    backgroundColor: 'var(--secondary-color)',
                     borderRadius: '50px',
                     padding: '10px 12px',
                     color: '#FFFFFF',

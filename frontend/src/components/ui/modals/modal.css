@@ -19,7 +19,7 @@
   line-height: 36px;
   letter-spacing: 0%;
   vertical-align: middle;
-  color: #121212;
+  color: var(--text-color);
 }
 .serviceModal .content-wrap p {
   font-family: Inter;
@@ -29,7 +29,7 @@
   line-height: 20px;
   letter-spacing: 0%;
   vertical-align: middle;
-  color: #64748b;
+  color: var(--secondary-color);
 }
 
 .serviceModal .close-btn {
@@ -73,7 +73,7 @@
   line-height: 36px;
   letter-spacing: 0%;
   vertical-align: middle;
-  color: #121212;
+  color: var(--text-color);
   margin: 0 0 8px 0;
 }
 .changeEmailModal .content-wrap p {
@@ -84,7 +84,7 @@
   line-height: 20px;
   letter-spacing: 0%;
   vertical-align: middle;
-  color: #64748b;
+  color: var(--secondary-color);
   margin: 0;
 }
 
@@ -145,7 +145,7 @@
   line-height: 36px;
   letter-spacing: 0%;
   vertical-align: middle;
-  color: #121212;
+  color: var(--text-color);
   margin: 0 0 8px 0;
 }
 .changePasswordModal .content-wrap p {
@@ -156,7 +156,7 @@
   line-height: 20px;
   letter-spacing: 0%;
   vertical-align: middle;
-  color: #64748b;
+  color: var(--secondary-color);
   margin: 0;
 }
 
@@ -311,7 +311,7 @@
   font-size: 22px;
   line-height: 36px;
   letter-spacing: 0%;
-  color: #121212;
+  color: var(--text-color);
 }
 .dateSpecificHour .modal-header .content-wrap p {
   font-family: Inter;
@@ -319,7 +319,7 @@
   font-size: 14px;
   line-height: 20px;
   letter-spacing: 0%;
-  color: #64748b;
+  color: var(--secondary-color);
 }
 .dateSpecificHour .modal-header .close-btn {
   border: none;
@@ -357,7 +357,7 @@
   font-weight: 600;
   font-size: 16px;
   line-height: 24px;
-  color: #121212;
+  color: var(--text-color);
   margin: 0 0 4px 0;
 }
 
@@ -366,7 +366,7 @@
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
-  color: #64748B;
+  color: var(--secondary-color);
   margin: 0 0 16px 0;
 }
 
@@ -385,7 +385,7 @@
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
-  color: #121212;
+  color: var(--text-color);
   cursor: pointer;
   transition: all 0.2s ease-in-out;
   text-align: center;
@@ -393,12 +393,12 @@
 
 .dateSpecificHour .closed-month-btn:hover {
   background-color: #F9FAFF;
-  border-color: #0053F1;
+  border-color: var(--main-color);
 }
 
 .dateSpecificHour .closed-month-btn.selected {
-  background-color: #0053F1;
-  border-color: #0053F1;
+  background-color: var(--main-color);
+  border-color: var(--main-color);
   color: #FFFFFF;
 }
 
@@ -440,7 +440,7 @@
   line-height: 36px;
   letter-spacing: 0%;
   vertical-align: middle;
-  color: #121212;
+  color: var(--text-color);
 }
 .addAppointmentModal .content-wrap p {
   font-family: Inter;
@@ -450,7 +450,7 @@
   line-height: 20px;
   letter-spacing: 0%;
   vertical-align: middle;
-  color: #64748b;
+  color: var(--secondary-color);
 }
 
 .addAppointmentModal .close-btn {
@@ -490,7 +490,7 @@
   margin: 0; /* Remove any margin that might affect alignment */
 }
 .addAppointmentModal .input-wrap .input-group-comp input::placeholder {
-  color: #121212;
+  color: var(--text-color);
 }
 .addAppointmentModal .input-wrap .select-group {
   width: 100%;
@@ -517,7 +517,7 @@
   min-height: auto;
   resize: none;
   cursor: default;
-  color: #121212;
+  color: var(--text-color);
   font-size: 14px;
   line-height: 20px;
   font-family: Inter, sans-serif;
@@ -546,7 +546,7 @@
   font-size: 14px;
   line-height: 1; /* Reset line-height */
   letter-spacing: 0%;
-  color: #121212;
+  color: var(--text-color);
   min-width: 45px;
   margin: 0; /* Remove any default margins */
   height: 44px; /* Match input field height exactly */
@@ -578,7 +578,7 @@
   border-bottom: none;
 }
 .previewBookingModal .main-wrapper {
-  border: 1px solid #64748b33;
+  border: 1px solid color-mix(in srgb, var(--secondary-color) 20%, transparent);
   border-radius: 20px;
   pointer-events: none;
 }
@@ -668,7 +668,7 @@
   height: auto;
   min-width: 140px;
   font-weight: 500;
-  background-color: #0053F1;
+  background-color: var(--main-color);
   color: white;
   border: none;
   border-radius: 50px;
@@ -693,7 +693,7 @@
 
 .previewBookingModal .preview-left .profile-con .profile-wrapper h5 {
   margin: 0;
-  color: #121212;
+  color: var(--text-color);
   font-family: Inter, sans-serif;
   font-weight: 600;
   font-style: Semi Bold;
@@ -714,7 +714,7 @@
   font-size: 22px;
   line-height: 36px;
   vertical-align: middle;
-  color: #121212;
+  color: var(--text-color);
   margin-bottom: 6px;
 }
 
@@ -725,7 +725,7 @@
   font-size: 14px;
   line-height: 20px;
   vertical-align: middle;
-  color: #64748b;
+  color: var(--secondary-color);
   margin: 0;
 }
 
@@ -741,13 +741,13 @@
   font-size: 18px;
   line-height: 28px;
   vertical-align: middle;
-  color: #121212;
+  color: var(--text-color);
   margin-bottom: 8px;
 }
 
 /* Description styles */
 .previewBookingModal .preview-left .profile-con .description {
-  color: #64748b;
+  color: var(--secondary-color);
   font-family: Inter, sans-serif;
   font-weight: 400;
   font-style: Regular;
@@ -809,7 +809,7 @@
 }
 .previewBookingModal .main-wrapper .containerr .left .profile-wrapper h5 {
   margin: 0;
-  color: #121212;
+  color: var(--text-color);
   font-family: Inter, sans-serif;
   font-weight: 600;
   font-style: Semi Bold;
@@ -827,7 +827,7 @@
   font-size: 22px;
   line-height: 36px;
   vertical-align: middle;
-  color: #121212;
+  color: var(--text-color);
   margin-bottom: 6px;
 }
 .previewBookingModal .main-wrapper .containerr .left .business-wrapper p {
@@ -837,7 +837,7 @@
   font-size: 14px;
   line-height: 20px;
   vertical-align: middle;
-  color: #64748b;
+  color: var(--secondary-color);
   margin: 0;
 }
 .previewBookingModal .main-wrapper .containerr .left .select-con {
@@ -850,10 +850,10 @@
   font-size: 18px;
   line-height: 28px;
   vertical-align: middle;
-  color: #121212;
+  color: var(--text-color);
 }
 .previewBookingModal .main-wrapper .containerr .left .description {
-  color: #64748b;
+  color: var(--secondary-color);
   font-family: Inter, sans-serif;
   font-weight: 400;
   font-style: Regular;
@@ -985,7 +985,7 @@
   display: flex;
   align-items: center;
   text-align: center;
-  color: #121212;
+  color: var(--text-color);
   width: 100%;
   margin: 0;
   justify-content: center;
@@ -1000,7 +1000,7 @@
   display: flex;
   align-items: center;
   text-align: center;
-  color: #121212;
+  color: var(--text-color);
   width: 100%;
   margin: 0;
   justify-content: center;
@@ -1060,7 +1060,7 @@
   background: #FFFFFF;
   border: 1px solid #E0E9FE;
   border-radius: 50px;
-  color: #64748B;
+  color: var(--secondary-color);
   font-family: 'Inter';
   font-style: normal;
   font-weight: 500;
@@ -1142,7 +1142,7 @@
   font-weight: 600;
   font-size: 22px;
   line-height: 36px;
-  color: #121212;
+  color: var(--text-color);
 }
 
 .notifications-modal-header p {
@@ -1151,7 +1151,7 @@
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
-  color: #64748B;
+  color: var(--secondary-color);
 }
 
 .modal-close-button {
@@ -1184,7 +1184,7 @@
   font-family: Inter, sans-serif;
   font-size: 14px;
   font-weight: 400;
-  color: #64748B;
+  color: var(--secondary-color);
 }
 
 /* Reschedule Confirmation Modal */
@@ -1254,7 +1254,7 @@
   font-weight: 600;
   font-size: 22px;
   line-height: 36px;
-  color: #121212;
+  color: var(--text-color);
   margin: 0;
   text-align: center;
   align-self: center;
@@ -1268,7 +1268,7 @@
   font-size: 12px;
   line-height: 18px;
   text-align: center;
-  color: #121212;
+  color: var(--text-color);
   margin: 0;
   align-self: center;
 }
@@ -1282,7 +1282,7 @@
   font-size: 12px;
   line-height: 18px;
   text-align: center;
-  color: #121212;
+  color: var(--text-color);
   margin: 0;
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -1312,7 +1312,7 @@
   gap: 6px;
   width: 143px;
   height: 40px;
-  background: #0053F1;
+  background: var(--main-color);
   border-radius: 50px;
   border: none;
   color: #FFFFFF;
@@ -1343,7 +1343,7 @@
   background: #FFFFFF;
   border: 1px solid #E0E9FE;
   border-radius: 50px;
-  color: #64748B;
+  color: var(--secondary-color);
   font-family: 'Inter';
   font-style: normal;
   font-weight: 500;
@@ -1430,7 +1430,7 @@
   line-height: 36px;
   display: flex;
   align-items: center;
-  color: #121212;
+  color: var(--text-color);
   margin: 0;
   align-self: center;
   white-space: nowrap;
@@ -1445,7 +1445,7 @@
   font-size: 12px;
   line-height: 18px;
   text-align: center;
-  color: #121212;
+  color: var(--text-color);
   margin: 0;
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -1464,7 +1464,7 @@
   font-size: 12px;
   line-height: 18px;
   text-align: center;
-  color: #121212;
+  color: var(--text-color);
   margin: 0;
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -1523,7 +1523,7 @@
   background: #FFFFFF;
   border: 1px solid #E0E9FE;
   border-radius: 50px;
-  color: #64748B;
+  color: var(--secondary-color);
   font-family: 'Inter';
   font-style: normal;
   font-weight: 500;

@@ -48,11 +48,50 @@ const CancelledEvent = () => {
     }
   }, [location.state]);
 
-  // Once we have eventData, resolve appointment type (for price, duration, name)
+  // Once we have eventData, resolve appointment type (for price, duration, name) and set CSS variables
   useEffect(() => {
     const resolveApptType = async () => {
       if (!eventData) return;
-      const { appointmentType, booking, user } = eventData;
+      const { appointmentType, booking, user, branding } = eventData;
+      
+      // Set CSS variables for colors from branding
+      const root = document.documentElement;
+      if (branding) {
+        root.style.setProperty('--main-color', branding?.primary || '#0053F1');
+        root.style.setProperty('--secondary-color', branding?.secondary || '#64748B');
+        root.style.setProperty('--text-color', branding?.accent || '#121212');
+      } else {
+        // If branding not in eventData, try to fetch it
+        if (user?._id || user?.id) {
+          try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+            const userId = user?._id || user?.id;
+            const brandingResp = await fetch(`${apiUrl}/api/branding?userId=${encodeURIComponent(userId)}`);
+            if (brandingResp.ok) {
+              const brandingData = await brandingResp.json();
+              root.style.setProperty('--main-color', brandingData?.primary || '#0053F1');
+              root.style.setProperty('--secondary-color', brandingData?.secondary || '#64748B');
+              root.style.setProperty('--text-color', brandingData?.accent || '#121212');
+            } else {
+              // Set defaults if fetch fails
+              root.style.setProperty('--main-color', '#0053F1');
+              root.style.setProperty('--secondary-color', '#64748B');
+              root.style.setProperty('--text-color', '#121212');
+            }
+          } catch (e) {
+            // Set defaults on error
+            root.style.setProperty('--main-color', '#0053F1');
+            root.style.setProperty('--secondary-color', '#64748B');
+            root.style.setProperty('--text-color', '#121212');
+          }
+        } else {
+          // Set defaults if no user
+          root.style.setProperty('--main-color', '#0053F1');
+          root.style.setProperty('--secondary-color', '#64748B');
+          root.style.setProperty('--text-color', '#121212');
+        }
+      }
+      
       if (appointmentType && typeof appointmentType.price !== 'undefined') {
         setResolvedAppointmentType(appointmentType);
         return;

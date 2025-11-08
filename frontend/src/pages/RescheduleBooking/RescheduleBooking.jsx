@@ -118,6 +118,12 @@ const RescheduleBooking = () => {
       setOriginalBooking(booking);
       setUserData(user);
       setBranding(brandingData);
+      
+      // Set CSS variables for colors
+      const root = document.documentElement;
+      root.style.setProperty('--main-color', brandingData?.primary || '#0053F1');
+      root.style.setProperty('--secondary-color', brandingData?.secondary || '#64748B');
+      root.style.setProperty('--text-color', brandingData?.accent || '#121212');
 
       // Pre-fill customer details (these will be disabled)
       setCustomerName(booking.customerName || "");
@@ -488,7 +494,7 @@ const RescheduleBooking = () => {
 
                 <div className="business-wrapper">
                   <h2>{userData.businessName || "Business Name Here"}</h2>
-                  <p style={{ marginTop: '8px', color: '#0053F1', fontWeight: '500' }}>
+                  <p style={{ marginTop: '8px', color: 'var(--main-color)', fontWeight: '500' }}>
                     Rescheduling your appointment
                   </p>
                 </div>
@@ -649,7 +655,7 @@ const RescheduleBooking = () => {
             </div>
             <div className="right">
               <h1>Confirm Details</h1>
-              <p style={{ marginBottom: '20px', color: '#64748B' }}>
+              <p style={{ marginBottom: '20px', color: 'var(--secondary-color)' }}>
                 Your contact information cannot be changed when rescheduling.
               </p>
               <form className="booking-detail" onSubmit={handleCompleteReschedule}>
@@ -736,7 +742,7 @@ const RescheduleBooking = () => {
                   style={{
                     width: '186px',
                     height: '40px',
-                    backgroundColor: '#0053F1',
+                    backgroundColor: 'var(--main-color)',
                     borderRadius: '50px',
                     padding: '10px 12px',
                     color: '#FFFFFF',

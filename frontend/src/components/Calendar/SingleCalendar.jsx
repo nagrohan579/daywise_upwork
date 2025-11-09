@@ -95,7 +95,7 @@ const SingleCalendar = ({
             placeholder="Select timezone"
             value={currentTimezone || ""}
             onChange={onTimezoneChange}
-            style={{ backgroundColor: "#F9FAFF", borderRadius: "50px" }}
+            style={{ borderRadius: "50px" }}
             options={timezoneOptions}
           />
         </div>

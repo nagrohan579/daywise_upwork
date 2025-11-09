@@ -195,6 +195,13 @@ const CancelledEvent = () => {
 
               <div className="cancelled-event-card-wrapper">
                 <div className="cancelled-booking-details">
+                  {branding?.usePlatformBranding !== false && (
+                    <div className="daywise-branding">
+                      <div className="powered-by-daywise">
+                        Powered by Daywise
+                      </div>
+                    </div>
+                  )}
                   <h2>{apptType?.name || appointmentType?.name || 'Appointment'}</h2>
 
               <div className="details-list">

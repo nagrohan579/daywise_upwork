@@ -24,6 +24,7 @@ import { RESERVED_SLUGS } from "./constants";
 import { toSlug, ensureUniqueSlug, generateBusinessIdentifiers } from "./lib/slug";
 import { googleCalendarService } from "./lib/google-calendar";
 import { z } from "zod";
+import sharp from 'sharp';
 import { sendCustomerConfirmation, sendBusinessNotification, sendRescheduleConfirmation, sendRescheduleBusinessNotification, sendCancellationConfirmation, sendCancellationBusinessNotification, sendFeedbackEmail, sendEmailChangeOtp, sendPasswordChangeOtp } from "./email";
 import { FeatureGate } from "./featureGating";
 import { uploadFile, deleteFile, isSpacesUrl } from "./services/spaces";
@@ -4392,11 +4393,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-      
+
+      console.log('BACKEND - GET /api/branding returning:', {
+        logoUrl: branding.logoUrl,
+        logoCropData: branding.logoCropData,
+        profilePictureUrl: branding.profilePictureUrl,
+        profileCropData: branding.profileCropData
+      });
       res.json(branding);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch branding", error: error instanceof Error ? error.message : "Unknown error" });
     }
+  });
+
+  // Get cropped image - applies crop server-side to avoid CORS issues
+  app.get("/api/branding/cropped-image", async (req, res) => {
+    try {
+      console.log('BACKEND - Cropped image request received');
+      const { imageUrl, cropData } = req.query;
+      
+      if (!imageUrl || typeof imageUrl !== 'string') {
+        return res.status(400).json({ message: 'imageUrl is required' });
+      }
+      
+      if (!cropData) {
+        // No crop data, return original image URL
+        return res.redirect(imageUrl);
+      }
+      
+      let parsedCropData;
+      try {
+        parsedCropData = typeof cropData === 'string' ? JSON.parse(cropData) : cropData;
+      } catch (e) {
+        return res.status(400).json({ message: 'Invalid cropData format' });
+      }
+      
+      if (!parsedCropData.croppedAreaPixels) {
+        return res.redirect(imageUrl);
+      }
+      
+      const pixels = parsedCropData.croppedAreaPixels;
+      const rotation = parsedCropData.rotation || 0;
+      
+      console.log('BACKEND - Processing crop:', { pixels, rotation });
+      
+      // Fetch the image
+      const imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) {
+        return res.status(404).json({ message: 'Image not found' });
+      }
+      
+      const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+      console.log('BACKEND - Image fetched, size:', imageBuffer.length);
+      
+      // Apply crop using sharp
+      // Note: croppedAreaPixels coordinates are in the original image's coordinate system
+      // So we extract first, then rotate the cropped result if needed
+      let sharpImage = sharp(imageBuffer);
+      
+      // Extract the crop area from the original image
+      let croppedImage = sharpImage.extract({
+        left: Math.max(0, Math.round(pixels.x)),
+        top: Math.max(0, Math.round(pixels.y)),
+        width: Math.round(pixels.width),
+        height: Math.round(pixels.height),
+      });
+      
+      // Apply rotation to the cropped result if needed
+      if (rotation !== 0) {
+        croppedImage = croppedImage.rotate(rotation);
+      }
+      
+      // Convert to PNG buffer
+      const croppedBuffer = await croppedImage.png().toBuffer();
+      console.log('BACKEND - Cropped image created, size:', croppedBuffer.length);
+      
+      // Set CORS headers BEFORE sending response
+      const origin = req.headers.origin || req.headers.referer?.split('/').slice(0, 3).join('/');
+      const allowedOrigins = process.env.NODE_ENV === 'production'
+        ? (process.env.FRONTEND_URL || '').split(',').filter(Boolean)
+        : ['http://localhost:5173', 'http://localhost:5174'];
+      
+      console.log('BACKEND - Request origin:', origin);
+      console.log('BACKEND - Allowed origins:', allowedOrigins);
+      
+      // Always set CORS headers for localhost in development
+      if (process.env.NODE_ENV !== 'production') {
+        res.setHeader('Access-Control-Allow-Origin', origin || 'http://localhost:5173');
+      } else if (origin && allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+      } else if (allowedOrigins.length > 0) {
+        res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]);
+      } else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+      }
+      
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+      
+      console.log('BACKEND - CORS headers set:', {
+        'Access-Control-Allow-Origin': res.getHeader('Access-Control-Allow-Origin'),
+        'Content-Type': res.getHeader('Content-Type')
+      });
+      console.log('BACKEND - Sending cropped image, size:', croppedBuffer.length);
+      res.send(croppedBuffer);
+    } catch (error: any) {
+      console.error('Error creating cropped image:', error);
+      res.status(500).json({ message: 'Failed to create cropped image', error: error.message });
+    }
+  });
+  
+  // Handle OPTIONS preflight for cropped-image endpoint
+  app.options("/api/branding/cropped-image", (req, res) => {
+    const origin = req.headers.origin;
+    const allowedOrigins = process.env.NODE_ENV === 'production'
+      ? (process.env.FRONTEND_URL || '').split(',').filter(Boolean)
+      : ['http://localhost:5173', 'http://localhost:5174'];
+    
+    if (origin && (allowedOrigins.includes(origin) || allowedOrigins.includes('*'))) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else if (process.env.NODE_ENV !== 'production') {
+      res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
+    }
+    
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
+    res.status(204).send();
   });
 
   app.post("/api/branding", requireAuth, async (req, res) => {
@@ -4519,18 +4646,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Parse crop data if provided
       let logoCropData = null;
+      console.log('BACKEND - Logo crop data received:', req.body.cropData);
       if (req.body.cropData) {
         try {
           logoCropData = JSON.parse(req.body.cropData);
+          console.log('BACKEND - Parsed logo crop data:', JSON.stringify(logoCropData));
         } catch (e) {
           console.error('Error parsing logo crop data:', e);
         }
+      } else {
+        console.log('BACKEND - No crop data in request body for logo');
       }
 
-      await storage.updateBranding(userId, { 
+      await storage.updateBranding(userId, {
         logoUrl: logoUrl || undefined,
         logoCropData: logoCropData || undefined,
-        updatedAt: Date.now() 
+        updatedAt: Date.now()
+      });
+
+      console.log('BACKEND - Returning logo response:', { 
+        logoUrl, 
+        logoCropData: logoCropData ? 'present' : 'null',
+        logoCropDataDetails: logoCropData 
       });
       return res.json({ logoUrl, logoCropData });
     } catch (e: any) {
@@ -4547,18 +4684,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const existing = await storage.getBranding(userId);
       const currentUrl = existing?.logoUrl;
 
+      console.log('BACKEND - Delete logo - currentUrl:', currentUrl);
+      console.log('BACKEND - Delete logo - isSpacesUrl:', currentUrl ? isSpacesUrl(currentUrl) : 'N/A');
+
       if (currentUrl && isSpacesUrl(currentUrl)) {
-        await deleteFile(currentUrl);
+        console.log('BACKEND - Deleting file from Digital Ocean:', currentUrl);
+        const deleted = await deleteFile(currentUrl);
+        console.log('BACKEND - File deletion result:', deleted);
+      } else {
+        console.log('BACKEND - Skipping file deletion (not a Spaces URL or no URL)');
       }
 
-      // Clear optional fields at the DB layer to ensure they are removed
-      await storage.updateBranding(userId, {
-        logoUrl: undefined,
-        logoCropData: undefined,
-        updatedAt: Date.now()
-      });
+      // Use clearBrandingField to properly clear logoUrl and logoCropData from database
+      console.log('BACKEND - Clearing logoUrl and logoCropData from database...');
+      await storage.clearBrandingField(userId, 'logoUrl');
+      console.log('BACKEND - Database updated, logo and crop data cleared');
       return res.json({ success: true });
     } catch (e: any) {
+      console.error('BACKEND - Delete logo error:', e);
       return res.status(500).json({ message: e?.message ?? "Delete failed" });
     }
   });
@@ -4629,18 +4772,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Parse crop data if provided
       let profileCropData = null;
+      console.log('BACKEND - Profile crop data received:', req.body.cropData);
       if (req.body.cropData) {
         try {
           profileCropData = JSON.parse(req.body.cropData);
+          console.log('BACKEND - Parsed profile crop data:', JSON.stringify(profileCropData));
         } catch (e) {
           console.error('Error parsing profile crop data:', e);
         }
+      } else {
+        console.log('BACKEND - No crop data in request body');
       }
 
       await storage.updateBranding(userId, { 
         profilePictureUrl: profilePictureUrl || undefined,
         profileCropData: profileCropData || undefined,
         updatedAt: Date.now() 
+      });
+      
+      console.log('BACKEND - Returning profile response:', { 
+        profilePictureUrl, 
+        profileCropData: profileCropData ? 'present' : 'null',
+        profileCropDataDetails: profileCropData 
       });
       return res.json({ profilePictureUrl, profileCropData });
     } catch (e: any) {
@@ -4657,18 +4810,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const existing = await storage.getBranding(userId);
       const currentUrl = existing?.profilePictureUrl;
 
+      console.log('BACKEND - Delete profile - currentUrl:', currentUrl);
+      console.log('BACKEND - Delete profile - isSpacesUrl:', currentUrl ? isSpacesUrl(currentUrl) : 'N/A');
+
       if (currentUrl && isSpacesUrl(currentUrl)) {
-        await deleteFile(currentUrl);
+        console.log('BACKEND - Deleting file from Digital Ocean:', currentUrl);
+        const deleted = await deleteFile(currentUrl);
+        console.log('BACKEND - File deletion result:', deleted);
+      } else {
+        console.log('BACKEND - Skipping file deletion (not a Spaces URL or no URL)');
       }
 
-      // Clear optional fields at the DB layer to ensure they are removed
-      await storage.updateBranding(userId, {
-        profilePictureUrl: undefined,
-        profileCropData: undefined,
-        updatedAt: Date.now()
-      });
+      // Use clearBrandingField to properly clear profilePictureUrl and profileCropData from database
+      console.log('BACKEND - Clearing profilePictureUrl and profileCropData from database...');
+      await storage.clearBrandingField(userId, 'profilePictureUrl');
+      console.log('BACKEND - Database updated, profile picture and crop data cleared');
       return res.json({ success: true });
     } catch (e: any) {
+      console.error('BACKEND - Delete profile error:', e);
       return res.status(500).json({ message: e?.message ?? "Delete failed" });
     }
   });

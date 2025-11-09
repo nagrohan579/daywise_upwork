@@ -9,6 +9,7 @@ import {
   BellIcon,
   CalendarIcon,
   ServiceIcon,
+  FormsIcon,
   BrandingIcon,
   LinkIcon,
   SettingIcon,
@@ -29,6 +30,7 @@ const Icon = ({ children }) => (
 const navItems = [
   { name: "Bookings", path: "/booking", icon: <CalendarIcon /> },
   { name: "Services", path: "/service", icon: <ServiceIcon /> },
+  { name: "Forms", path: "/forms", icon: <FormsIcon /> },
   { name: "Availability", path: "/availability", icon: <AvailabilityIcon /> },
   { name: "Branding", path: "/branding", icon: <BrandingIcon /> },
   { name: "My Link", path: "/my-link", icon: <LinkIcon /> },

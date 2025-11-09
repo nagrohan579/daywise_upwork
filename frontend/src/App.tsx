@@ -12,6 +12,7 @@ import SignupPage from "./pages/Signup";
 import VerifyPage from "./pages/Verify";
 import BookingsPage from "./pages/Booking";
 import ServicePage from "./pages/Service";
+import FormsPage from "./pages/Forms/Forms";
 import AvailabilityPage from "./pages/Availability";
 import BrandingPage from "./pages/Branding";
 import MyLinkPage from "./pages/MyLink";
@@ -56,6 +57,7 @@ function AppContent() {
         <Route path="/verify-error" element={<VerifyPage />} />
         <Route path="/booking" element={<BookingsPage />} />
         <Route path="/service" element={<ServicePage />} />
+        <Route path="/forms" element={<FormsPage />} />
         <Route path="/availability" element={<AvailabilityPage />} />
         <Route path="/branding" element={<BrandingPage />} />
         <Route path="/my-link" element={<MyLinkPage />} />

@@ -30,10 +30,11 @@ const ImageCropEditor = ({
 
   const handleSave = async () => {
     if (!croppedAreaPixels) {
-      console.warn('No crop area selected');
+      console.warn('ImageCropEditor - No crop area selected');
       return;
     }
 
+    console.log('ImageCropEditor - Starting save, croppedAreaPixels:', croppedAreaPixels);
     setIsProcessing(true);
     try {
       const croppedFile = await getProcessedImage();
@@ -51,10 +52,13 @@ const ImageCropEditor = ({
         croppedAreaPixels,
       };
 
+      console.log('ImageCropEditor - Crop data to save:', cropData);
       await onSave(cropData, croppedFile);
+      console.log('ImageCropEditor - Save completed successfully');
       onClose();
     } catch (error) {
-      console.error('Error processing crop:', error);
+      console.error('ImageCropEditor - Error processing crop:', error);
+      // Don't close on error - let user try again
     } finally {
       setIsProcessing(false);
     }

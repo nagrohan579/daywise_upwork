@@ -46,6 +46,20 @@ const Event = () => {
       const data = await response.json();
       console.log('Event data:', data);
       setEventData(data);
+      
+      // Set CSS variables for colors from branding data
+      if (data.branding) {
+        const root = document.documentElement;
+        root.style.setProperty('--main-color', data.branding?.primary || '#0053F1');
+        root.style.setProperty('--secondary-color', data.branding?.secondary || '#64748B');
+        root.style.setProperty('--text-color', data.branding?.accent || '#121212');
+      } else {
+        // Set default CSS variables if no branding data
+        const root = document.documentElement;
+        root.style.setProperty('--main-color', '#0053F1');
+        root.style.setProperty('--secondary-color', '#64748B');
+        root.style.setProperty('--text-color', '#121212');
+      }
     } catch (err) {
       console.error('Error fetching event:', err);
       setError(err.message || 'Failed to load event details');
@@ -142,11 +156,13 @@ const Event = () => {
 
         <div className="event-card-wrapper">
           <div className="event-card">
-            <div className="daywise-branding">
-              <div className="powered-by-daywise">
-                Powered by Daywise
+            {branding?.usePlatformBranding !== false && (
+              <div className="daywise-branding">
+                <div className="powered-by-daywise">
+                  Powered by Daywise
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="booking-details">
               <h2>{appointmentType?.name || 'Appointment'}</h2>
@@ -188,9 +204,8 @@ const Event = () => {
                   onClick={copyEventLink}
                   className="event-link-copy-btn"
                   title="Copy link"
-                  style={{ color: copied ? '#22c55e' : '#64748B' }}
                 >
-                  {copied ? <FaCheck /> : <CopyIcon />}
+                  {copied ? <FaCheck className="copy-tick-icon" /> : <CopyIcon />}
                 </button>
                 </div>
               </div>

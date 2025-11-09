@@ -76,9 +76,16 @@ export const clearField = mutation({
       throw new Error("Unsupported field to clear");
     }
 
-    // Build a patch with field explicitly undefined
+    // Clear both the URL and associated crop data
     const patch: any = { updatedAt: Date.now() };
-    patch[field] = undefined;
+    if (field === "logoUrl") {
+      patch.logoUrl = undefined;
+      patch.logoCropData = undefined;
+    } else if (field === "profilePictureUrl") {
+      patch.profilePictureUrl = undefined;
+      patch.profileCropData = undefined;
+    }
+
     await ctx.db.patch(existing._id, patch);
     return await ctx.db.get(existing._id);
   },

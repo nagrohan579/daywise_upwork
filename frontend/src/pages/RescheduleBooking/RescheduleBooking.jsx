@@ -440,9 +440,11 @@ const RescheduleBooking = () => {
         {step === 1 && (
           <div className="steps-one">
             <div className="left">
-              <div className="daywise-branding">
-                <button className="powered-by-button">Powered by Daywise</button>
-              </div>
+              {branding?.usePlatformBranding !== false && (
+                <div className="daywise-branding">
+                  <button className="powered-by-button">Powered by Daywise</button>
+                </div>
+              )}
 
               <div className="profile-con">
                 {branding?.logoUrl && (
@@ -549,9 +551,11 @@ const RescheduleBooking = () => {
                   />
                 </div>
                 <div className="heading-con">
-                  <div className="daywise-branding">
-                    <button className="powered-by-button">Powered by Daywise</button>
-                  </div>
+                  {branding?.usePlatformBranding !== false && (
+                    <div className="daywise-branding">
+                      <button className="powered-by-button">Powered by Daywise</button>
+                    </div>
+                  )}
                   <h1 className="appoint-name">{selectedAppointmentType?.name || "30 Minute Appointment"}</h1>
                   <p>{formatDate(selectedDate)}</p>
                   <div style={{ marginTop: '10px' }}>
@@ -623,9 +627,11 @@ const RescheduleBooking = () => {
                   style={{ cursor: 'pointer' }}
                 />
               </div>
-              <div className="daywise-branding">
-                <button className="powered-by-button">Powered by Daywise</button>
-              </div>
+              {branding?.usePlatformBranding !== false && (
+                <div className="daywise-branding">
+                  <button className="powered-by-button">Powered by Daywise</button>
+                </div>
+              )}
               <div className="appointment-wrapper">
                 <h2>{selectedAppointmentType?.name || "Appointment Name Here"}</h2>
                 {selectedAppointmentType?.description && (
@@ -707,9 +713,11 @@ const RescheduleBooking = () => {
                 <p>A confirmation with updated details has been sent to your email.</p>
               </div>
               <div className="appointment-container">
-                <div className="daywise-branding">
-                  <button className="powered-by-button">Powered by Daywise</button>
-                </div>
+                {branding?.usePlatformBranding !== false && (
+                  <div className="daywise-branding">
+                    <button className="powered-by-button">Powered by Daywise</button>
+                  </div>
+                )}
                 <div className="booking-details">
                   <h1>{selectedAppointmentType?.name || "Appointment Name Here"}</h1>
                   <div className="wrap">

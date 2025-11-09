@@ -348,6 +348,10 @@
   padding-bottom: 40px;
 }
 
+.booking-steps-container .step-three .containerr {
+  padding-top: 80px;
+}
+
 .booking-steps-container .step-three .containerr .heading-container {
   margin-bottom: 25px;
 }
@@ -357,6 +361,11 @@
   justify-content: center;
   gap: 7px;
   margin-bottom: 8px;
+}
+
+/* Ensure TickIcon uses main color */
+.booking-steps-container .step-three .containerr .heading-container .wrap svg path {
+  fill: var(--main-color) !important;
 }
 .booking-steps-container .step-three .containerr .heading-container .wrap img {
   width: 19px;
@@ -972,9 +981,23 @@
   stroke: var(--secondary-color) !important;
 }
 
+/* SVG icons in booking details - only apply stroke to paths that should have stroke, fill to paths that should have fill */
 .booking-steps-container .step-two .left .booking-details .wrap svg path {
+  /* Remove any forced fill on stroke-based icons */
+  fill: none !important;
+}
+
+/* Only apply stroke to paths that actually use stroke (like ClockIcon) */
+.booking-steps-container .step-two .left .booking-details .wrap svg path[stroke],
+.booking-steps-container .step-two .left .booking-details .wrap svg[viewBox*="18"] path:not([fill="none"]) {
   stroke: var(--secondary-color) !important;
+  fill: none !important;
+}
+
+/* Only apply fill to paths that actually use fill (like CalendarIcon2, GlobeIcon) */
+.booking-steps-container .step-two .left .booking-details .wrap svg path[fill]:not([fill="none"]) {
   fill: var(--secondary-color) !important;
+  stroke: none !important;
 }
 
 .booking-steps-container .step-two .left .daywise-branding {
@@ -1075,6 +1098,59 @@
 
 .booking-steps-container .step-two .right .terms-con-desc a {
   color: var(--secondary-color);
+}
+
+/* Dropdown styling specific to public bookings page */
+.booking-steps-container .select-group .select-box {
+  background-color: color-mix(in srgb, var(--main-color) 2%, transparent) !important;
+}
+
+/* Timezone dropdown in SingleCalendar component - specifically for public bookings page */
+.booking-steps-container .single-calendar-container .select-con .select-group .select-box {
+  background-color: color-mix(in srgb, var(--main-color) 2%, transparent) !important;
+}
+
+.booking-steps-container .select-group .select-box:focus,
+.booking-steps-container .select-group .select-box:focus-visible {
+  border-color: var(--main-color);
+  outline: none;
+}
+
+/* When dropdown is open, the select-box should have the main color border */
+.booking-steps-container .select-group:has(.select-dropdown) .select-box {
+  border-color: var(--main-color);
+}
+
+/* Input fields styling specific to public bookings page step 2 */
+.booking-steps-container .step-two .right .input-group-comp .input-field {
+  background-color: color-mix(in srgb, var(--main-color) 2%, transparent);
+}
+
+.booking-steps-container .step-two .right .input-group-comp .input-field:focus,
+.booking-steps-container .step-two .right .input-group-comp .input-field:focus-visible {
+  border-color: var(--main-color);
+  outline: none;
+}
+
+/* Textarea styling specific to public bookings page step 2 */
+.booking-steps-container .step-two .right .textarea-group .textarea-field {
+  background-color: color-mix(in srgb, var(--main-color) 2%, transparent);
+}
+
+.booking-steps-container .step-two .right .textarea-group .textarea-field:focus,
+.booking-steps-container .step-two .right .textarea-group .textarea-field:focus-visible {
+  border-color: var(--main-color);
+  outline: none;
+}
+
+/* Complete Booking button styling specific to public bookings page step 2 */
+.booking-steps-container .step-two .right .btn-comp.btn-primary {
+  background-color: var(--main-color);
+  color: #fff;
+}
+
+.booking-steps-container .step-two .right .btn-comp.btn-primary:hover {
+  background-color: color-mix(in srgb, var(--main-color) 90%, black);
 }
 
 /* Responsive adjustments */

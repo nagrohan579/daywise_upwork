@@ -61,14 +61,19 @@ export async function uploadFile(options: UploadFileOptions): Promise<string> {
  */
 export async function deleteFile(fileUrl: string): Promise<boolean> {
   try {
+    console.log('DELETE FILE - Starting deletion for URL:', fileUrl);
+
     // Extract the key from the CDN URL
     // Example: https://daywisebookingsspace.tor1.cdn.digitaloceanspaces.com/profile_pictures/file.jpg
     // Key should be: profile_pictures/file.jpg
     const url = new URL(fileUrl);
     const key = url.pathname.substring(1); // Remove leading slash
 
+    console.log('DELETE FILE - Extracted key:', key);
+    console.log('DELETE FILE - Bucket:', BUCKET_NAME);
+
     if (!key) {
-      console.warn('Invalid file URL, no key found:', fileUrl);
+      console.warn('DELETE FILE - Invalid file URL, no key found:', fileUrl);
       return false;
     }
 
@@ -77,11 +82,14 @@ export async function deleteFile(fileUrl: string): Promise<boolean> {
       Key: key,
     });
 
-    await s3Client.send(command);
-    console.log(`Successfully deleted file: ${key}`);
+    console.log('DELETE FILE - Sending delete command to Digital Ocean...');
+    const response = await s3Client.send(command);
+    console.log('DELETE FILE - Digital Ocean response:', response);
+    console.log(`DELETE FILE - Successfully deleted file: ${key}`);
     return true;
   } catch (error) {
-    console.error('Error deleting file from DO Spaces:', error);
+    console.error('DELETE FILE - Error deleting file from DO Spaces:', error);
+    console.error('DELETE FILE - Error details:', JSON.stringify(error, null, 2));
     // Don't throw error, just log it - deletion failure shouldn't break upload
     return false;
   }

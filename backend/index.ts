@@ -78,13 +78,14 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://accounts.google.com"], // Allow Google OAuth scripts
       styleSrc: ["'self'", "'unsafe-inline'", "https://accounts.google.com", "https://fonts.googleapis.com"], // Allow Google OAuth and fonts
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "ws:", "wss:", "https://accounts.google.com"], // Allow Google OAuth connections
+      imgSrc: ["'self'", "data:", "https:", "http://localhost:3000", "http://localhost:5173"], // Allow images from localhost
+      connectSrc: ["'self'", "ws:", "wss:", "https://accounts.google.com", "http://localhost:3000", "http://localhost:5173"], // Allow connections to localhost
       frameSrc: ["'self'", "https://accounts.google.com"], // Allow Google OAuth frames
       fontSrc: ["'self'", "https://fonts.gstatic.com"], // Allow Google Fonts
       frameAncestors: ["'self'", "https://www.canva.com", "https://*.canva.com"], // Allow embedding by Canva
     },
   },
+  crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow cross-origin image loading
 }));
 
 // Admin routes are protected by session-based auth in requireAdmin middleware

@@ -1327,7 +1327,7 @@
 }
 
 .reschedule-modal-confirm-btn:hover {
-  background: #0043d1;
+  background: color-mix(in srgb, var(--main-color) 90%, black);
 }
 
 .reschedule-modal-cancel-btn {

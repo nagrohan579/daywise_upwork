@@ -62,6 +62,19 @@ const Branding = () => {
 
   // Track if displayName has been initialized from API
   const displayNameInitialized = useRef(false);
+  // Track the last saved display name to prevent unnecessary saves
+  const lastSavedDisplayName = useRef(null);
+
+  // Debug: Log when crop data changes
+  useEffect(() => {
+    console.log('BRANDING - profileCropData state changed:', profileCropData);
+    console.log('BRANDING - profileCropData has croppedAreaPixels:', profileCropData?.croppedAreaPixels);
+  }, [profileCropData]);
+
+  useEffect(() => {
+    console.log('BRANDING - logoCropData state changed:', logoCropData);
+    console.log('BRANDING - logoCropData has croppedAreaPixels:', logoCropData?.croppedAreaPixels);
+  }, [logoCropData]);
 
   // Fetch existing branding data and user features on mount
   useEffect(() => {
@@ -107,7 +120,8 @@ const Branding = () => {
         let brandingData = null;
         if (brandingResponse.ok) {
           brandingData = await brandingResponse.json();
-          console.log('Fetched branding data from Convex:', brandingData);
+          console.log('FRONTEND - Fetched branding data from API:', brandingData);
+          console.log('FRONTEND - Full branding response:', JSON.stringify(brandingData, null, 2));
           if (brandingData.logoUrl) {
             console.log('Setting logo URL:', brandingData.logoUrl);
             setLogoUrl(brandingData.logoUrl);
@@ -116,14 +130,33 @@ const Branding = () => {
             console.log('Setting profile URL:', brandingData.profilePictureUrl);
             setProfileUrl(brandingData.profilePictureUrl);
           }
+          // Set crop data - always set it, even if null/undefined
+          // Deep clone to ensure React detects changes
+          console.log('FRONTEND - Logo crop data from API:', brandingData.logoCropData);
+          console.log('FRONTEND - Logo crop data type:', typeof brandingData.logoCropData);
           if (brandingData.logoCropData) {
-            setLogoCropData(brandingData.logoCropData);
+            const clonedLogoCropData = JSON.parse(JSON.stringify(brandingData.logoCropData));
+            console.log('FRONTEND - Logo crop data has croppedAreaPixels:', !!clonedLogoCropData.croppedAreaPixels);
+            console.log('FRONTEND - Logo croppedAreaPixels:', clonedLogoCropData.croppedAreaPixels);
+            setLogoCropData(clonedLogoCropData);
+          } else {
+            setLogoCropData(null);
           }
+          
+          console.log('FRONTEND - Profile crop data from API:', brandingData.profileCropData);
+          console.log('FRONTEND - Profile crop data type:', typeof brandingData.profileCropData);
           if (brandingData.profileCropData) {
-            setProfileCropData(brandingData.profileCropData);
+            const clonedProfileCropData = JSON.parse(JSON.stringify(brandingData.profileCropData));
+            console.log('FRONTEND - Profile crop data has croppedAreaPixels:', !!clonedProfileCropData.croppedAreaPixels);
+            console.log('FRONTEND - Profile croppedAreaPixels:', clonedProfileCropData.croppedAreaPixels);
+            setProfileCropData(clonedProfileCropData);
+          } else {
+            setProfileCropData(null);
           }
           if (brandingData.displayName !== undefined) {
-            setDisplayName(brandingData.displayName || "");
+            const initialDisplayName = brandingData.displayName || "";
+            setDisplayName(initialDisplayName);
+            lastSavedDisplayName.current = initialDisplayName;
             // Mark as initialized so subsequent changes will show toast
             setTimeout(() => {
               displayNameInitialized.current = true;
@@ -354,22 +387,31 @@ const Branding = () => {
     }
   };
 
-  // Debounced auto-save for display name
+  // Debounced auto-save for display name - ONLY when displayName actually changes
   useEffect(() => {
     if (loading) return; // Don't save on initial load
     if (!displayNameInitialized.current) return; // Don't save if not initialized yet
+    if (displayName === undefined || displayName === null) return; // Don't save if not initialized
+    
+    // Check if displayName actually changed from last saved value
+    const currentDisplayName = displayName || "";
+    if (lastSavedDisplayName.current === currentDisplayName) {
+      return; // No change, don't save
+    }
 
     const timeoutId = setTimeout(async () => {
-      if (displayName === undefined || displayName === null) return; // Don't save if not initialized
+      // Double-check it still changed (in case user typed and then deleted)
+      const finalDisplayName = displayName || "";
+      if (lastSavedDisplayName.current === finalDisplayName) {
+        return; // No change, don't save
+      }
 
       setSavingDisplayName(true);
       try {
         await saveBrandingSettings({
-          displayName: displayName,
-          showDisplayName: isShownName,
-          showProfilePicture: isShownProfilePic,
-          usePlatformBranding: toggleDaywiseBranding,
+          displayName: finalDisplayName,
         });
+        lastSavedDisplayName.current = finalDisplayName; // Update last saved value
         toast.success("Display name saved");
       } catch (error) {
         toast.error(error.message || 'Failed to save display name');
@@ -379,8 +421,7 @@ const Branding = () => {
     }, 1000); // 1 second debounce
 
     return () => clearTimeout(timeoutId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [displayName]);
+  }, [displayName, loading]);
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -488,23 +529,27 @@ const Branding = () => {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       const formData = new FormData();
       
-      // Upload the original file (not the cropped blob)
+      // Check if we have a file to upload or an existing logo to edit
       if (!selectedLogoFile && !logoUrl) {
         toast.error('No file selected');
+        setLogoUploading(false);
         return;
       }
 
       // If we have a new file selected, upload it
       if (selectedLogoFile) {
         formData.append('file', selectedLogoFile);
-      } else {
+      } else if (logoUrl) {
         // If editing existing, we don't need to upload file again, just update crop data
         // But we need to tell backend it's an edit, not a new upload
         formData.append('isEdit', 'true');
       }
       
       if (cropData) {
+        console.log('FRONTEND - Sending logo crop data:', cropData);
         formData.append('cropData', JSON.stringify(cropData));
+      } else {
+        console.log('FRONTEND - No crop data to send for logo');
       }
 
       const response = await fetch(`${apiUrl}/api/branding/logo`, {
@@ -519,9 +564,44 @@ const Branding = () => {
       }
 
       const data = await response.json();
-      setLogoUrl(data.logoUrl || logoUrl); // Keep existing URL if editing
-      setLogoCropData(data.logoCropData || cropData);
+      console.log('FRONTEND - Logo save response:', data);
+      console.log('FRONTEND - Logo cropData sent:', cropData);
+      console.log('FRONTEND - Logo cropData received:', data.logoCropData);
+      console.log('FRONTEND - Logo cropData type:', typeof data.logoCropData);
+      console.log('FRONTEND - Logo cropData is object?', typeof data.logoCropData === 'object' && data.logoCropData !== null);
+      
+      // Update state with response data
+      if (data.logoUrl) {
+        setLogoUrl(data.logoUrl);
+      }
+      
+      // Always update crop data - use response data if available, otherwise use what we sent
+      // Deep clone to ensure React detects the change
+      let finalLogoCropData = null;
+      if (data.logoCropData !== undefined && data.logoCropData !== null) {
+        // If it's a string, parse it; if it's already an object, use it
+        if (typeof data.logoCropData === 'string') {
+          try {
+            finalLogoCropData = JSON.parse(data.logoCropData);
+          } catch (e) {
+            console.error('FRONTEND - Error parsing logoCropData string:', e);
+            finalLogoCropData = cropData;
+          }
+        } else {
+          // Deep clone to ensure React detects the change
+          finalLogoCropData = JSON.parse(JSON.stringify(data.logoCropData));
+        }
+      } else if (cropData) {
+        finalLogoCropData = JSON.parse(JSON.stringify(cropData));
+      }
+      
+      console.log('FRONTEND - Setting logoCropData to:', finalLogoCropData);
+      console.log('FRONTEND - logoCropData has croppedAreaPixels:', finalLogoCropData?.croppedAreaPixels);
+      console.log('FRONTEND - logoCropData croppedAreaPixels details:', finalLogoCropData?.croppedAreaPixels);
+      setLogoCropData(finalLogoCropData);
       setSelectedLogoFile(null); // Clear selected file
+      setShowCropEditor(false); // Close crop editor
+      setCropEditorType(null); // Reset crop editor type
       toast.success('Logo saved successfully!');
       resetStates(); // Reset context state
     } catch (error) {
@@ -599,23 +679,27 @@ const Branding = () => {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       const formData = new FormData();
       
-      // Upload the original file (not the cropped blob)
+      // Check if we have a file to upload or an existing profile to edit
       if (!selectedProfileFile && !profileUrl) {
         toast.error('No file selected');
+        setProfileUploading(false);
         return;
       }
 
       // If we have a new file selected, upload it
       if (selectedProfileFile) {
         formData.append('file', selectedProfileFile);
-      } else {
+      } else if (profileUrl) {
         // If editing existing, we don't need to upload file again, just update crop data
         // But we need to tell backend it's an edit, not a new upload
         formData.append('isEdit', 'true');
       }
       
       if (cropData) {
+        console.log('FRONTEND - Sending profile crop data:', cropData);
         formData.append('cropData', JSON.stringify(cropData));
+      } else {
+        console.log('FRONTEND - No crop data to send for profile');
       }
 
       const response = await fetch(`${apiUrl}/api/branding/profile`, {
@@ -630,9 +714,44 @@ const Branding = () => {
       }
 
       const data = await response.json();
-      setProfileUrl(data.profilePictureUrl || profileUrl); // Keep existing URL if editing
-      setProfileCropData(data.profileCropData || cropData);
+      console.log('FRONTEND - Profile save response:', data);
+      console.log('FRONTEND - Profile cropData sent:', cropData);
+      console.log('FRONTEND - Profile cropData received:', data.profileCropData);
+      console.log('FRONTEND - Profile cropData type:', typeof data.profileCropData);
+      console.log('FRONTEND - Profile cropData is object?', typeof data.profileCropData === 'object' && data.profileCropData !== null);
+      
+      // Update state with response data
+      if (data.profilePictureUrl) {
+        setProfileUrl(data.profilePictureUrl);
+      }
+      
+      // Always update crop data - use response data if available, otherwise use what we sent
+      // Deep clone to ensure React detects the change
+      let finalProfileCropData = null;
+      if (data.profileCropData !== undefined && data.profileCropData !== null) {
+        // If it's a string, parse it; if it's already an object, use it
+        if (typeof data.profileCropData === 'string') {
+          try {
+            finalProfileCropData = JSON.parse(data.profileCropData);
+          } catch (e) {
+            console.error('FRONTEND - Error parsing profileCropData string:', e);
+            finalProfileCropData = cropData;
+          }
+        } else {
+          // Deep clone to ensure React detects the change
+          finalProfileCropData = JSON.parse(JSON.stringify(data.profileCropData));
+        }
+      } else if (cropData) {
+        finalProfileCropData = JSON.parse(JSON.stringify(cropData));
+      }
+      
+      console.log('FRONTEND - Setting profileCropData to:', finalProfileCropData);
+      console.log('FRONTEND - profileCropData has croppedAreaPixels:', finalProfileCropData?.croppedAreaPixels);
+      console.log('FRONTEND - profileCropData croppedAreaPixels details:', finalProfileCropData?.croppedAreaPixels);
+      setProfileCropData(finalProfileCropData);
       setSelectedProfileFile(null); // Clear selected file
+      setShowCropEditor(false); // Close crop editor
+      setCropEditorType(null); // Reset crop editor type
       toast.success('Profile picture saved successfully!');
       resetStates(); // Reset context state
     } catch (error) {
@@ -739,12 +858,23 @@ const Branding = () => {
               <div className={`logo-display-box ${!hasCustomBranding ? "grayed-out" : ""}`}>
                 {logoUrl ? (
                   // State: Logo uploaded - show cropped version
-                  <CroppedImage
-                    src={logoUrl}
-                    cropData={logoCropData}
-                    alt="Uploaded Logo"
-                    className="uploaded-logo"
-                  />
+                  (() => {
+                    console.log('BRANDING RENDER - Logo CroppedImage props:', {
+                      src: logoUrl,
+                      hasCropData: !!logoCropData,
+                      cropData: logoCropData,
+                      croppedAreaPixels: logoCropData?.croppedAreaPixels
+                    });
+                    return (
+                      <CroppedImage
+                        src={logoUrl}
+                        cropData={logoCropData}
+                        alt="Uploaded Logo"
+                        className="uploaded-logo"
+                        key={`logo-${logoUrl}-${logoCropData ? JSON.stringify(logoCropData.croppedAreaPixels) : 'no-crop'}`}
+                      />
+                    );
+                  })()
                 ) : (
                   // State: No logo
                   <div className={`no-logo-placeholder ${!hasCustomBranding ? "grayed-out" : ""}`}>No Logo</div>
@@ -876,24 +1006,35 @@ const Branding = () => {
             <div className="upload-picture-con">
               <div className="left">
                 {profileUrl ? (
-                  <CroppedImage
-                    src={profileUrl}
-                    cropData={profileCropData}
-                    alt="Profile Picture"
-                    style={{
-                      width: "90px",
-                      height: "90px",
-                      borderRadius: "50%",
-                      objectFit: "cover",
-                      objectPosition: "center",
-                      flexShrink: 0,
-                      display: "block",
-                      minWidth: "90px",
-                      minHeight: "90px",
-                      maxWidth: "90px",
-                      maxHeight: "90px",
-                    }}
-                  />
+                  (() => {
+                    console.log('BRANDING RENDER - Profile CroppedImage props:', {
+                      src: profileUrl,
+                      hasCropData: !!profileCropData,
+                      cropData: profileCropData,
+                      croppedAreaPixels: profileCropData?.croppedAreaPixels
+                    });
+                    return (
+                      <CroppedImage
+                        src={profileUrl}
+                        cropData={profileCropData}
+                        alt="Profile Picture"
+                        style={{
+                          width: "90px",
+                          height: "90px",
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                          objectPosition: "center",
+                          flexShrink: 0,
+                          display: "block",
+                          minWidth: "90px",
+                          minHeight: "90px",
+                          maxWidth: "90px",
+                          maxHeight: "90px",
+                        }}
+                        key={`profile-${profileUrl}-${profileCropData ? JSON.stringify(profileCropData.croppedAreaPixels) : 'no-crop'}`}
+                      />
+                    );
+                  })()
                 ) : (
                   <img src="/assets/images/avatar.png" alt="avatar" />
                 )}

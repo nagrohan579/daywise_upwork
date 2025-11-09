@@ -32,6 +32,18 @@
   color: var(--secondary-color);
 }
 
+.serviceModal .intake-form-help-text {
+  font-family: Inter;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  color: var(--secondary-color);
+  margin-top: 2px;
+  margin-bottom: 16px;
+}
+
 .serviceModal .close-btn {
   border: none;
   outline: none;
@@ -1006,6 +1018,10 @@
   justify-content: center;
 }
 
+.delete-modal-text p strong {
+  margin-left: 4px;
+}
+
 .delete-modal-buttons {
   display: flex;
   flex-direction: row;
@@ -1537,4 +1553,88 @@
 
 .cancel-modal-cancel-btn:hover {
   background: #F9FAFF;
+}
+
+/* Preview Form Modal */
+.previewFormModal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  border-bottom: none;
+  padding: 24px 24px 16px 24px;
+}
+
+.previewFormModal .modal-dialog {
+  max-width: 600px;
+  font-family: Inter, sans-serif;
+}
+
+.previewFormModal .content-wrap {
+  flex: 1;
+  padding-right: 16px;
+}
+
+.previewFormModal .content-wrap .modal-title {
+  font-family: Inter;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 22px;
+  line-height: 36px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: var(--text-color);
+  margin: 0;
+}
+
+.previewFormModal .close-btn {
+  border: none;
+  outline: none;
+  background-color: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.previewFormModal .modal-body {
+  padding: 0 24px 24px 24px;
+}
+
+.previewFormModal .modal-body .preview-title {
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 28px;
+  color: #121212;
+  margin: 0 0 24px 0;
+}
+
+.previewFormModal .modal-body .preview-placeholder {
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #64748B;
+  margin: 0;
+  text-align: center;
+  padding: 40px 0;
+}
+
+.previewFormModal .modal-body .preview-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.previewFormModal .modal-body .preview-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.previewFormModal .modal-body .preview-question {
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #121212;
+  margin: 0;
 }

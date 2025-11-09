@@ -557,6 +557,44 @@ export const storage = {
     });
   },
 
+  // Intake Forms operations
+  async getIntakeFormsByUser(userId: string) {
+    return await convex.query(api.intakeForms.getByUser, {
+      userId: userId as Id<"users">,
+    });
+  },
+
+  async getIntakeFormById(formId: string) {
+    return await convex.query(api.intakeForms.getById, {
+      formId: formId as Id<"intakeForms">,
+    });
+  },
+
+  async createIntakeForm(form: any) {
+    const id = await convex.mutation(api.intakeForms.create, {
+      userId: form.userId as Id<"users">,
+      name: form.name,
+      description: form.description,
+      fields: form.fields,
+      isActive: form.isActive,
+      sortOrder: form.sortOrder,
+    });
+    return await convex.query(api.intakeForms.getById, { formId: id });
+  },
+
+  async updateIntakeForm(formId: string, updates: any) {
+    return await convex.mutation(api.intakeForms.update, {
+      formId: formId as Id<"intakeForms">,
+      updates,
+    });
+  },
+
+  async deleteIntakeForm(formId: string) {
+    return await convex.mutation(api.intakeForms.deleteForm, {
+      formId: formId as Id<"intakeForms">,
+    });
+  },
+
   // Placeholder operations that might be needed
   async getAppointmentTypeAvailabilities(appointmentTypeId: string) {
     // TODO: Implement if needed

@@ -112,6 +112,7 @@ export const insertAppointmentTypeSchema = z.object({
   color: z.string().optional(),
   isActive: z.boolean().optional(),
   sortOrder: z.number().optional(),
+  intakeFormId: z.union([z.string(), z.null()]).optional(),
 });
 
 // Availability pattern schemas

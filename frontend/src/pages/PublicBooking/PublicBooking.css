@@ -302,8 +302,8 @@
 .booking-steps-container .step-two .right {
   flex: 1;
   padding: 30px;
-  overflow: hidden;
-  height: 100%;
+  overflow-y: auto;
+  max-height: 95vh;
 }
 
 .booking-steps-container .step-two .right h1 {
@@ -1063,8 +1063,8 @@
 .booking-steps-container .step-two .right {
   flex: 1;
   padding: 30px;
-  overflow: hidden;
-  height: 100%;
+  overflow-y: auto;
+  max-height: 95vh;
 }
 
 .booking-steps-container .step-two .right h1 {
@@ -1167,4 +1167,211 @@
     margin-top: 0px;
     margin-bottom: 20px;
   }
+}
+
+/* Intake Form Styles */
+.intake-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.intake-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.intake-form-description {
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--secondary-color);
+  margin: 0 0 24px 0;
+}
+
+/* Reduce margin for h1 when description exists in intake form */
+.booking-steps-container .step-two .right h1:has(+ .intake-form-description),
+.booking-steps-container .step-two .right .intake-form-fields ~ * h1:has(+ .intake-form-description) {
+  margin-bottom: 8px !important;
+}
+
+/* General reduction for intake form heading */
+.booking-steps-container .step-two .right .intake-form-description {
+  margin-top: 0;
+}
+
+.intake-form-label {
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-color);
+  margin: 0;
+}
+
+.intake-form-label .required-asterisk {
+  color: #DC2626;
+}
+
+/* Input and Textarea styling for intake form */
+.intake-form-field .input-group-comp .input-field {
+  background-color: color-mix(in srgb, var(--main-color) 2%, transparent) !important;
+  color: var(--text-color) !important;
+}
+
+.intake-form-field .input-group-comp .input-field::placeholder {
+  color: var(--secondary-color) !important;
+}
+
+.intake-form-field .input-group-comp .input-field:focus,
+.intake-form-field .input-group-comp .input-field:focus-visible {
+  border-color: var(--main-color) !important;
+  outline: none;
+}
+
+.intake-form-field .textarea-group .textarea-field {
+  background-color: color-mix(in srgb, var(--main-color) 2%, transparent) !important;
+  color: var(--text-color) !important;
+}
+
+.intake-form-field .textarea-group .textarea-field::placeholder {
+  color: var(--secondary-color) !important;
+}
+
+.intake-form-field .textarea-group .textarea-field:focus,
+.intake-form-field .textarea-group .textarea-field:focus-visible {
+  border-color: var(--main-color) !important;
+  outline: none;
+}
+
+/* Dropdown styling for intake form */
+.intake-form-field .select-group .select-box {
+  background-color: color-mix(in srgb, var(--main-color) 2%, transparent) !important;
+}
+
+.intake-form-field .select-group .select-box:focus,
+.intake-form-field .select-group .select-box:focus-visible {
+  border-color: var(--main-color) !important;
+  outline: none;
+}
+
+.intake-form-field .select-group:has(.select-dropdown) .select-box {
+  border-color: var(--main-color) !important;
+}
+
+/* Checkbox styling */
+.intake-form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.intake-form-checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--main-color);
+}
+
+.intake-form-checkbox label {
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-color);
+  cursor: pointer;
+  margin: 0;
+}
+
+.intake-form-checkbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Yes/No radio buttons */
+.intake-form-yes-no {
+  display: flex;
+  gap: 16px;
+}
+
+.intake-form-yes-no label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.intake-form-yes-no input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--main-color);
+}
+
+.intake-form-yes-no span {
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-color);
+}
+
+/* File upload */
+.intake-form-file-upload-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.intake-form-file-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--secondary-color) 20%, transparent);
+  border-radius: 12px;
+  background-color: color-mix(in srgb, var(--main-color) 2%, transparent);
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: border-color 0.2s ease-in-out;
+  box-sizing: border-box;
+}
+
+.intake-form-file-input:hover {
+  border-color: color-mix(in srgb, var(--main-color) 40%, transparent);
+}
+
+.intake-form-file-input:focus,
+.intake-form-file-input:focus-visible,
+.intake-form-file-input:active {
+  border-color: var(--main-color);
+  outline: none;
+}
+
+.intake-form-file-input::file-selector-button {
+  display: none;
+}
+
+.intake-form-file-input::-webkit-file-upload-button {
+  display: none;
+}
+
+.intake-form-file-types {
+  font-family: Inter, sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--secondary-color);
+  margin: 0;
+}
+
+/* Continue button in intake form - match input field width */
+.intake-form-fields > .btn-comp,
+.intake-form-fields > button[type="button"],
+.intake-form-fields > .btn-comp.btn-primary {
+  width: auto;
+  max-width: fit-content;
+  align-self: flex-start;
+  margin-top: 8px;
 }

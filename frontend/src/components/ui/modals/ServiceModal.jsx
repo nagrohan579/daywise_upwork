@@ -1,7 +1,7 @@
 import { Modal } from "react-bootstrap";
 import { IoClose } from "react-icons/io5";
 import "./modal.css";
-import { Input, Textarea, ColorPicker, Checkbox, Button } from "../../index";
+import { Input, Textarea, ColorPicker, Checkbox, Button, Select } from "../../index";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -22,9 +22,12 @@ const ServicesModal = ({
     price: 0,
     color: "#F19B11",
     isActive: true,
+    intakeFormId: null,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userId, setUserId] = useState(null);
+  const [intakeForms, setIntakeForms] = useState([]);
+  const [loadingIntakeForms, setLoadingIntakeForms] = useState(false);
 
   // Get current user
   useEffect(() => {
@@ -45,6 +48,31 @@ const ServicesModal = ({
     fetchUser();
   }, []);
 
+  // Fetch intake forms when modal opens
+  useEffect(() => {
+    const fetchIntakeForms = async () => {
+      if (!showServiceModal || !userId) return;
+      
+      setLoadingIntakeForms(true);
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const response = await fetch(`${apiUrl}/api/intake-forms`, {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setIntakeForms(data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching intake forms:', error);
+        setIntakeForms([]);
+      } finally {
+        setLoadingIntakeForms(false);
+      }
+    };
+    fetchIntakeForms();
+  }, [showServiceModal, userId]);
+
   // Load selected service data when editing
   useEffect(() => {
     if (isEdit && selectedService) {
@@ -56,6 +84,7 @@ const ServicesModal = ({
         price: selectedService.price || 0,
         color: selectedService.color || "#F19B11",
         isActive: selectedService.isActive ?? true,
+        intakeFormId: selectedService.intakeFormId || null,
       });
     } else if (!isEdit) {
       // Reset form for create mode
@@ -67,6 +96,7 @@ const ServicesModal = ({
         price: 0,
         color: "#F19B11",
         isActive: true,
+        intakeFormId: null,
       });
     }
   }, [isEdit, selectedService, showServiceModal]);
@@ -98,21 +128,30 @@ const ServicesModal = ({
 
       if (isEdit && selectedService) {
         // Update existing service
+        const updateData = {
+          name: formData.name,
+          description: formData.description,
+          duration: formData.duration,
+          bufferTime: formData.bufferTime,
+          price: formData.price,
+          color: formData.color,
+          isActive: formData.isActive,
+        };
+        
+        // Always include intakeFormId - send null to clear it, undefined if not set
+        if (formData.intakeFormId === null) {
+          updateData.intakeFormId = null;
+        } else if (formData.intakeFormId) {
+          updateData.intakeFormId = formData.intakeFormId;
+        }
+        
         const response = await fetch(`${apiUrl}/api/appointment-types/${selectedService._id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
           credentials: 'include',
-          body: JSON.stringify({
-            name: formData.name,
-            description: formData.description,
-            duration: formData.duration,
-            bufferTime: formData.bufferTime,
-            price: formData.price,
-            color: formData.color,
-            isActive: formData.isActive,
-          }),
+          body: JSON.stringify(updateData),
         });
 
         if (!response.ok) {
@@ -123,22 +162,30 @@ const ServicesModal = ({
         toast.success("Service updated successfully!");
       } else {
         // Create new service
+        const createData = {
+          userId: userId,
+          name: formData.name,
+          description: formData.description || undefined,
+          duration: formData.duration,
+          bufferTime: formData.bufferTime,
+          bufferTimeBefore: 0, // Default value
+          price: formData.price,
+          color: formData.color,
+          isActive: formData.isActive,
+        };
+        
+        // Only include intakeFormId if it has a value (not null/undefined)
+        if (formData.intakeFormId) {
+          createData.intakeFormId = formData.intakeFormId;
+        }
+        
         const response = await fetch(`${apiUrl}/api/appointment-types`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           credentials: 'include',
-          body: JSON.stringify({
-            userId: userId,
-            name: formData.name,
-            description: formData.description,
-            duration: formData.duration,
-            bufferTime: formData.bufferTime,
-            price: formData.price,
-            color: formData.color,
-            isActive: formData.isActive,
-          }),
+          body: JSON.stringify(createData),
         });
 
         if (!response.ok) {
@@ -160,6 +207,7 @@ const ServicesModal = ({
         price: 0,
         color: "#F19B11",
         isActive: true,
+        intakeFormId: null,
       });
       setShowServiceModal(false);
 
@@ -236,7 +284,25 @@ const ServicesModal = ({
             value={formData.price}
             onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || 0)}
           />
-
+          <Select
+            label="Add an Intake Form"
+            placeholder="No form selected"
+            value={formData.intakeFormId ? (intakeForms.find(form => form._id === formData.intakeFormId)?.name || "") : "No form selected"}
+            onChange={(selectedName) => {
+              if (selectedName === "No form selected") {
+                handleInputChange('intakeFormId', null);
+              } else {
+                const selectedForm = intakeForms.find(form => form.name === selectedName);
+                handleInputChange('intakeFormId', selectedForm?._id || null);
+              }
+            }}
+            options={["No form selected", ...intakeForms.map(form => form.name)]}
+          />
+          {!formData.intakeFormId && intakeForms.length === 0 && (
+            <p className="intake-form-help-text">
+              You have no forms. To add a form to this service, navigate to the 'Intake Forms' tab and create your form. Once created, return here and add your form to this service.
+            </p>
+          )}
           <ColorPicker
             label="Service color*"
             name="serviceColor"

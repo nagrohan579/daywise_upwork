@@ -79,6 +79,7 @@ export default defineSchema({
     color: v.string(),
     isActive: v.boolean(),
     sortOrder: v.number(),
+    intakeFormId: v.optional(v.id("intakeForms")),
   })
     .index("by_userId", ["userId"])
     .index("by_userId_active", ["userId", "isActive"]),
@@ -229,4 +230,18 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_userId_isRead", ["userId", "isRead"])
     .index("by_userId_createdAt", ["userId", "createdAt"]),
+
+  // Intake Forms - Custom forms for booking process
+  intakeForms: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    fields: v.any(), // JSON array of field configurations
+    isActive: v.boolean(),
+    sortOrder: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_active", ["userId", "isActive"]),
 });

@@ -3995,18 +3995,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const appointmentTypeData = insertAppointmentTypeSchema.parse({
+      const validation = insertAppointmentTypeSchema.safeParse({
         ...req.body,
         userId
       });
       
-      const appointmentType = await storage.createAppointmentType(appointmentTypeData);
+      if (!validation.success) {
+        console.error('Validation error:', validation.error.issues);
+        return res.status(400).json({ 
+          message: "Invalid appointment type data", 
+          errors: validation.error.issues 
+        });
+      }
+      
+      const appointmentType = await storage.createAppointmentType(validation.data);
       res.json({ message: "Appointment type created successfully", appointmentType });
     } catch (error) {
       // If we already sent a response (403), don't send another one
       if (res.headersSent) {
         return;
       }
+      console.error('Error creating appointment type:', error);
       res.status(400).json({ message: "Invalid appointment type data", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
@@ -4036,10 +4045,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const updates = validation.data;
+      let updates = validation.data;
+      
+      // Handle intakeFormId: if null, we want to clear it
+      // Check the raw request body to see if intakeFormId was explicitly set to null
+      if ('intakeFormId' in req.body) {
+        if (req.body.intakeFormId === null) {
+          // Explicitly include null in updates - Convex should handle optional fields
+          updates.intakeFormId = null;
+        } else if (req.body.intakeFormId === undefined) {
+          // If undefined, don't include it in the update
+          delete updates.intakeFormId;
+        }
+      }
+      
+      console.log('Updating appointment type with:', updates);
       const appointmentType = await storage.updateAppointmentType(req.params.id, updates);
       res.json({ message: "Appointment type updated successfully", appointmentType });
     } catch (error) {
+      console.error('Error updating appointment type:', error);
       res.status(500).json({ message: "Failed to update appointment type", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
@@ -4068,6 +4092,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Appointment type deleted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete appointment type", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  // Intake Forms routes
+  app.get("/api/intake-forms", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const forms = await storage.getIntakeFormsByUser(userId);
+      res.json(forms);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch intake forms", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.get("/api/intake-forms/:id", async (req, res) => {
+    try {
+      // Allow public access via userId query param (for public booking pages)
+      const userId = req.query.userId as string || (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const form = await storage.getIntakeFormById(req.params.id);
+      if (!form) {
+        return res.status(404).json({ message: "Intake form not found" });
+      }
+
+      // Verify ownership (only if authenticated via session, not public query param)
+      if (!req.query.userId && form.userId !== userId) {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+
+      // For public access, verify the form belongs to the requested user
+      if (req.query.userId && form.userId !== req.query.userId) {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+
+      res.json(form);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch intake form", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.post("/api/intake-forms", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const formData = {
+        userId,
+        name: req.body.name,
+        description: req.body.description,
+        fields: req.body.fields,
+        isActive: req.body.isActive ?? true,
+        sortOrder: req.body.sortOrder ?? 0,
+      };
+
+      const form = await storage.createIntakeForm(formData);
+      res.json({ message: "Intake form created successfully", form });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create intake form", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.put("/api/intake-forms/:id", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      // Verify ownership
+      const existingForm = await storage.getIntakeFormById(req.params.id);
+      if (!existingForm) {
+        return res.status(404).json({ message: "Intake form not found" });
+      }
+      if (existingForm.userId !== userId) {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+
+      const updates = {
+        name: req.body.name,
+        description: req.body.description,
+        fields: req.body.fields,
+        isActive: req.body.isActive,
+        sortOrder: req.body.sortOrder,
+      };
+
+      const form = await storage.updateIntakeForm(req.params.id, updates);
+      res.json({ message: "Intake form updated successfully", form });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update intake form", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.delete("/api/intake-forms/:id", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      // Verify ownership
+      const existingForm = await storage.getIntakeFormById(req.params.id);
+      if (!existingForm) {
+        return res.status(404).json({ message: "Intake form not found" });
+      }
+      if (existingForm.userId !== userId) {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+
+      const success = await storage.deleteIntakeForm(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: "Intake form not found" });
+      }
+      res.json({ message: "Intake form deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete intake form", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 

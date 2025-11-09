@@ -47,6 +47,9 @@ const PublicBooking = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [customerTimezone, setCustomerTimezone] = useState(null);
   const [bookingEventUrl, setBookingEventUrl] = useState(null);
+  const [intakeForm, setIntakeForm] = useState(null);
+  const [loadingForm, setLoadingForm] = useState(false);
+  const [formResponses, setFormResponses] = useState({});
 
   // Get timezone options from utility (limited to 20 supported timezones)
   const timezoneOptions = useMemo(() => {
@@ -57,27 +60,90 @@ const PublicBooking = () => {
     return options.map(([label]) => label);
   }, []);
   
+  // Helper to get the actual step considering form
+  const getActualStep = () => {
+    const hasIntakeForm = selectedAppointmentType?.intakeFormId;
+    // Step mapping:
+    // 1 = Service selection
+    // 2 = Calendar/time selection
+    // 3 = Form (if exists) OR Enter Detail (if no form)
+    // 4 = Enter Detail (if form existed) OR Success (if no form)
+    // 5 = Success (if form existed)
+    return step;
+  };
+
   const goToNext = (data) => {
-    // Validate appointment type is selected before proceeding to step 2
+    // Validate appointment type is selected before proceeding
     if (step === 1 && !selectedAppointmentType) {
       toast.error("Please select an appointment type to continue");
       return;
     }
     
-    // Validate date and time are selected before proceeding to step 3 (on desktop)
-    if (step === 2 && !isMobile && (!selectedDate || !selectedTime)) {
-      toast.error("Please select a date and time");
-      return;
+    // If data is passed from SingleCalendar, extract date and time
+    let timeFromData = null;
+    let dateFromData = null;
+    if (data && typeof data === 'object') {
+      if (data.date) {
+        setSelectedDate(data.date);
+        dateFromData = data.date;
+      }
+      if (data.time) {
+        setSelectedTime(data.time);
+        timeFromData = data.time;
+      }
     }
     
-    // If data is passed from SingleCalendar, extract date and time
-    if (data && typeof data === 'object') {
-      if (data.date) setSelectedDate(data.date);
-      if (data.time) setSelectedTime(data.time);
+    // Check if we have date and time (from data param or state)
+    const hasDate = dateFromData || selectedDate;
+    const hasTime = timeFromData || selectedTime;
+    
+    // On desktop: Step 1 has calendar + time slots, so after selecting time, go directly to step 3 (form or Enter Detail)
+    // On mobile: Step 1 is service selection, Step 2 is time selection, Step 3 is form/Enter Detail
+    let nextStep;
+    if (step === 1 && !isMobile && hasDate && hasTime) {
+      // Desktop: Skip step 2, go directly to step 3
+      nextStep = 3;
+      console.log('Desktop: Step 1 -> Step 3 (skipping step 2)');
+    } else if (step === 1 && !isMobile && (!hasDate || !hasTime)) {
+      // Desktop: Validate date and time are selected
+      toast.error("Please select a date and time");
+      return;
+    } else if (step === 2 && !isMobile) {
+      // Desktop: Shouldn't reach here, but if we do, go to step 3
+      nextStep = 3;
+      console.log('Desktop: Step 2 -> Step 3');
+    } else if (step === 2 && isMobile && (!hasDate || !hasTime)) {
+      // Mobile: Validate date and time are selected
+      toast.error("Please select a date and time");
+      return;
+    } else {
+      // Normal increment
+      nextStep = step + 1;
+      console.log('Normal increment:', step, '->', nextStep);
     }
-    setStep((prev) => prev + 1);
+    
+    console.log('PublicBooking - Moving to step:', nextStep);
+    console.log('PublicBooking - Has intake form?', !!intakeForm);
+    console.log('PublicBooking - Intake form data:', intakeForm);
+    console.log('PublicBooking - Selected appointment type:', selectedAppointmentType);
+    console.log('PublicBooking - Intake form ID:', selectedAppointmentType?.intakeFormId);
+    console.log('PublicBooking - Has date:', hasDate, 'Has time:', hasTime);
+    
+    setStep(nextStep);
   };
-  const goToPrev = () => setStep((prev) => prev - 1);
+  
+  const goToPrev = () => {
+    // On desktop: Step 3 goes back to step 1 (skip step 2)
+    // On mobile: Normal decrement
+    if (step === 3 && !isMobile) {
+      setStep(1);
+    } else if (step === 4 && !isMobile && intakeForm) {
+      // If we're on Enter Detail (step 4) and there was a form, go back to form (step 3)
+      setStep(3);
+    } else {
+      setStep((prev) => prev - 1);
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -157,7 +223,10 @@ const PublicBooking = () => {
       const typesResponse = await fetch(`${apiUrl}/api/appointment-types?userId=${user.id}`);
       if (typesResponse.ok) {
         const types = await typesResponse.json();
-        setAppointmentTypes(types.filter(type => type.isActive !== false));
+        const filteredTypes = types.filter(type => type.isActive !== false);
+        console.log('PublicBooking - Appointment types loaded:', filteredTypes);
+        console.log('PublicBooking - Appointment types with intakeFormId:', filteredTypes.filter(t => t.intakeFormId));
+        setAppointmentTypes(filteredTypes);
       }
 
       setLoading(false);
@@ -238,6 +307,36 @@ const PublicBooking = () => {
     
     setSelectedAppointmentType(selected);
     setSelectedTime(null);
+    setIntakeForm(null); // Reset form when changing appointment type
+    
+    // Fetch intake form if it exists
+    if (selected.intakeFormId && userData) {
+      console.log('PublicBooking - Fetching intake form:', selected.intakeFormId, 'for user:', userData.id);
+      setLoadingForm(true);
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const formResponse = await fetch(`${apiUrl}/api/intake-forms/${selected.intakeFormId}?userId=${userData.id}`);
+        console.log('PublicBooking - Form response status:', formResponse.status);
+        if (formResponse.ok) {
+          const formData = await formResponse.json();
+          console.log('PublicBooking - Intake form loaded successfully:', formData);
+          console.log('PublicBooking - Form fields:', formData.fields);
+          setIntakeForm(formData);
+        } else {
+          const errorText = await formResponse.text();
+          console.warn('PublicBooking - Failed to load intake form:', formResponse.status, errorText);
+          setIntakeForm(null);
+        }
+      } catch (error) {
+        console.error('PublicBooking - Error fetching intake form:', error);
+        setIntakeForm(null);
+      } finally {
+        setLoadingForm(false);
+      }
+    } else {
+      console.log('PublicBooking - No intake form ID or userData:', { intakeFormId: selected.intakeFormId, hasUserData: !!userData });
+      setIntakeForm(null);
+    }
     
     // Set today's date as default if no date is selected
     const dateToUse = selectedDate || new Date();
@@ -445,6 +544,14 @@ const PublicBooking = () => {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [step]);
+
+  // Debug: Log form state changes
+  useEffect(() => {
+    console.log('PublicBooking - Intake form state changed:', intakeForm);
+    console.log('PublicBooking - Current step:', step);
+    console.log('PublicBooking - Is mobile:', isMobile);
+    console.log('PublicBooking - Should show form?', ((step === 3 && !isMobile && intakeForm) || (step === 3 && isMobile && intakeForm)));
+  }, [intakeForm, step, isMobile]);
 
   if (loading) {
     return (
@@ -655,7 +762,180 @@ const PublicBooking = () => {
           </div>
         )}
 
-        {((step === 2 && !isMobile) || (step === 3 && isMobile)) && (
+        {/* Intake Form Step - Show when step 3 and form exists (after slot selection) */}
+        {step === 3 && intakeForm && intakeForm.fields && Array.isArray(intakeForm.fields) && intakeForm.fields.length > 0 && (
+          <div className="step-two">
+            <div className="left">
+              <div className="back-arrow">
+                <BackArrowIcon
+                  onClick={goToPrev}
+                  style={{ cursor: 'pointer' }}
+                  />
+              </div>
+              {branding?.usePlatformBranding !== false && (
+              <div className="daywise-branding">
+                <button className="powered-by-button">Powered by Daywise</button>
+              </div>
+              )}
+              <div className="appointment-wrapper">
+                <h2>{selectedAppointmentType?.name || "Appointment Name Here"}</h2>
+                {selectedAppointmentType?.description && (
+                  <p>{selectedAppointmentType.description}</p>
+                )}
+              </div>
+              <div className="booking-details">
+                <div className="wrap">
+                  <ClockIcon />
+                  <h4>{selectedAppointmentType?.duration} min</h4>
+                </div>
+                <div className="wrap">
+                  <CalendarIcon2 />
+                  <h4>{formatTimeRange()}, {formatDate(selectedDate)}</h4>
+                </div>
+                <div className="wrap">
+                  <GlobeIcon />
+                  <h4>{getTimezoneName()}</h4>
+                </div>
+                {selectedAppointmentType?.price !== undefined && selectedAppointmentType?.price > 0 && (
+                  <div className="wrap">
+                    <DollarIcon />
+                    <h4>${selectedAppointmentType.price}</h4>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="right">
+              <h1 style={{ color: 'var(--text-color)' }}>{intakeForm.name || "Intake Form"}</h1>
+              {intakeForm.description && (
+                <p className="intake-form-description">{intakeForm.description}</p>
+              )}
+              {loadingForm ? (
+                <div className="forms-loading">
+                  <div className="forms-spinner"></div>
+                  <p className="forms-loading-text">Loading form...</p>
+                </div>
+              ) : (
+                <div className="intake-form-fields">
+                  {intakeForm.fields && intakeForm.fields.length > 0 ? (
+                    intakeForm.fields.map((field, index) => (
+                      <div key={field.id || index} className="intake-form-field">
+                        <label className="intake-form-label">
+                          {field.question || "Your question"}
+                          {field.required && <span className="required-asterisk"> *</span>}
+                        </label>
+                        {field.type === "text" && (
+                          field.answerSize === "single" ? (
+                            <Input
+                              placeholder="Your answer"
+                              value={formResponses[field.id] || ""}
+                              onChange={(e) => setFormResponses({ ...formResponses, [field.id]: e.target.value })}
+                            />
+                          ) : (
+                            <Textarea
+                              placeholder="Your answer"
+                              value={formResponses[field.id] || ""}
+                              onChange={(e) => setFormResponses({ ...formResponses, [field.id]: e.target.value })}
+                              style={{ borderRadius: "12px", minHeight: "80px" }}
+                            />
+                          )
+                        )}
+                        {field.type === "dropdown" && (
+                          <Select
+                            value={formResponses[field.id] || ""}
+                            onChange={(value) => setFormResponses({ ...formResponses, [field.id]: value })}
+                            options={field.options || []}
+                            placeholder="Select an option"
+                          />
+                        )}
+                        {field.type === "checkbox" && (
+                          <div className="intake-form-checkbox">
+                            <input
+                              type="checkbox"
+                              checked={formResponses[field.id] || false}
+                              onChange={(e) => setFormResponses({ ...formResponses, [field.id]: e.target.checked })}
+                            />
+                            <label>{field.checkboxLabel || "I agree"}</label>
+                          </div>
+                        )}
+                        {field.type === "checkbox-list" && (
+                          <div className="intake-form-checkbox-list">
+                            {field.options && field.options.map((option, optIndex) => (
+                              <div key={optIndex} className="intake-form-checkbox">
+                                <input
+                                  type="checkbox"
+                                  checked={(formResponses[field.id] || []).includes(option)}
+                                  onChange={(e) => {
+                                    const current = formResponses[field.id] || [];
+                                    if (e.target.checked) {
+                                      setFormResponses({ ...formResponses, [field.id]: [...current, option] });
+                                    } else {
+                                      setFormResponses({ ...formResponses, [field.id]: current.filter(v => v !== option) });
+                                    }
+                                  }}
+                                />
+                                <label>{option}</label>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {field.type === "yes-no" && (
+                          <div className="intake-form-yes-no">
+                            <label>
+                              <input
+                                type="radio"
+                                name={`yes-no-${field.id}`}
+                                value="yes"
+                                checked={formResponses[field.id] === "yes"}
+                                onChange={(e) => setFormResponses({ ...formResponses, [field.id]: e.target.value })}
+                              />
+                              <span>Yes</span>
+                            </label>
+                            <label>
+                              <input
+                                type="radio"
+                                name={`yes-no-${field.id}`}
+                                value="no"
+                                checked={formResponses[field.id] === "no"}
+                                onChange={(e) => setFormResponses({ ...formResponses, [field.id]: e.target.value })}
+                              />
+                              <span>No</span>
+                            </label>
+                          </div>
+                        )}
+                        {(field.type === "file" || field.type === "file-upload") && (
+                          <div className="intake-form-file-upload-wrapper">
+                            <input
+                              type="file"
+                              accept=".png,.jpg,.jpeg,.heic,.pdf"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setFormResponses({ ...formResponses, [field.id]: file });
+                                }
+                              }}
+                              className="intake-form-file-input"
+                            />
+                            <p className="intake-form-file-types">accepted file types: PNG, JPG, HEIC, PDF.</p>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p>No form fields available.</p>
+                  )}
+                  <Button
+                    text="Continue"
+                    onClick={goToNext}
+                    type="button"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Enter Detail Step - Show when step 4 (if form exists) or step 3 (if no form) */}
+        {((step === 4 && intakeForm && intakeForm.fields && Array.isArray(intakeForm.fields) && intakeForm.fields.length > 0) || (step === 3 && (!intakeForm || !intakeForm.fields || !Array.isArray(intakeForm.fields) || intakeForm.fields.length === 0))) && (
           <div className="step-two">
             <div className="left">
               <div className="back-arrow">
@@ -736,7 +1016,16 @@ const PublicBooking = () => {
           </div>
         )}
 
-        {((step === 3 && !isMobile) || (step === 4 && isMobile)) && (
+        {/* Debug: Log step state */}
+        {step === 3 && console.log('Step 3 Debug:', { 
+          hasIntakeForm: !!intakeForm, 
+          hasFields: !!(intakeForm?.fields), 
+          fieldsLength: intakeForm?.fields?.length,
+          fieldsIsArray: Array.isArray(intakeForm?.fields)
+        })}
+
+        {/* Success Step - Show when step 5 (if form exists) or step 4 (if no form) */}
+        {((step === 5 && intakeForm) || (step === 4 && !intakeForm)) && (
           <div className="step-three">
             <div className="containerr">
               <div className="heading-container">

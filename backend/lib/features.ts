@@ -6,6 +6,7 @@ export type FeaturesShape = {
   customBranding: boolean;     // branding + logo combined
   bookingLimit: number | null; // max bookings per month
   appointmentTypeLimit: number | null;
+  formLimit: number | null;   // max intake forms
   emailConfirmations: boolean;
   emailReminders: boolean;
   prioritySupport: boolean;
@@ -16,6 +17,7 @@ export const FEATURE_SPECS: Record<keyof FeaturesShape, FeatureSpec> = {
   customBranding: { type: "boolean", default: false },
   bookingLimit: { type: "number", default: 5 },
   appointmentTypeLimit: { type: "number", default: 1 }, // Free plan default: 1 service
+  formLimit: { type: "number", default: 1 }, // Free plan default: 1 form
   emailConfirmations: { type: "boolean", default: true },
   emailReminders: { type: "boolean", default: false },
   prioritySupport: { type: "boolean", default: false },
@@ -37,6 +39,7 @@ export const PLAN_FEATURES: Record<string, FeaturesShape> = {
     customBranding: false,
     bookingLimit: 5,
     appointmentTypeLimit: 1, // Free plan allows only 1 service/appointment type
+    formLimit: 1, // Free plan allows only 1 intake form
     emailConfirmations: true,
     emailReminders: false,
     prioritySupport: false,
@@ -46,6 +49,7 @@ export const PLAN_FEATURES: Record<string, FeaturesShape> = {
     customBranding: true,
     bookingLimit: null,
     appointmentTypeLimit: null,
+    formLimit: null, // Pro plan has unlimited forms
     emailConfirmations: true,
     emailReminders: true,
     prioritySupport: true,

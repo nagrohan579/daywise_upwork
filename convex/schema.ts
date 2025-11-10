@@ -244,4 +244,27 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_userId_active", ["userId", "isActive"]),
+
+  // Form Submissions - Permanent customer form submissions linked to bookings
+  formSubmissions: defineTable({
+    bookingId: v.id("bookings"),
+    intakeFormId: v.id("intakeForms"),
+    responses: v.any(), // Array of field responses with answers/fileUrls
+    submittedAt: v.number(),
+  })
+    .index("by_bookingId", ["bookingId"])
+    .index("by_intakeFormId", ["intakeFormId"]),
+
+  // Temporary Form Submissions - Temporary data during booking process
+  tempFormSubmissions: defineTable({
+    sessionId: v.string(),
+    intakeFormId: v.id("intakeForms"),
+    appointmentTypeId: v.id("appointmentTypes"),
+    responses: v.any(), // Array of field responses with answers/fileUrls
+    fileUrls: v.array(v.string()), // Track all uploaded file URLs
+    createdAt: v.number(),
+    expiresAt: v.number(), // createdAt + 1 hour
+  })
+    .index("by_sessionId", ["sessionId"])
+    .index("by_expiresAt", ["expiresAt"]),
 });

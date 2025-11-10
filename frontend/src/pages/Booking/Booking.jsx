@@ -9,7 +9,7 @@ import { FaPlus } from "react-icons/fa6";
 import { FaEye, FaEdit } from "react-icons/fa";
 import { RiDeleteBin5Line } from "react-icons/ri";
 import { FaTimes } from "react-icons/fa";
-import { MessageIcon } from "../../components/SVGICONS/Svg";
+import { MessageIcon, FormIcon, DownloadIcon } from "../../components/SVGICONS/Svg";
 import "./Booking.css";
 import React, { useState, useEffect } from "react";
 import { useMobile } from "../../hooks";
@@ -37,6 +37,11 @@ const BookingsPage = () => {
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [selectedComment, setSelectedComment] = useState(null);
   const [isModalBouncing, setIsModalBouncing] = useState(false);
+  const [formSubmissions, setFormSubmissions] = useState({}); // Map of bookingId -> formSubmission
+  const [showFormModal, setShowFormModal] = useState(false);
+  const [selectedFormSubmission, setSelectedFormSubmission] = useState(null);
+  const [selectedBookingId, setSelectedBookingId] = useState(null);
+  const [downloadState, setDownloadState] = useState('idle');
   const [isCalendarConnected, setIsCalendarConnected] = useState(false);
   const [isCheckingCalendarStatus, setIsCheckingCalendarStatus] = useState(true);
   const [bookingLimit, setBookingLimit] = useState(null); // null = unlimited
@@ -108,6 +113,28 @@ const BookingsPage = () => {
         console.log('Booking - Fetched bookings:', data?.length || 0, 'bookings');
         console.log('Booking - Sample booking:', data?.[0]);
         setBookings(data || []);
+        
+        // Fetch form submissions for all bookings
+        const submissionsMap = {};
+        await Promise.all(
+          (data || []).map(async (booking) => {
+            try {
+              const formResponse = await fetch(`${apiUrl}/api/bookings/${booking._id}/form-submission`, {
+                credentials: 'include',
+              });
+              if (formResponse.ok) {
+                const formData = await formResponse.json();
+                submissionsMap[booking._id] = formData;
+              } else if (formResponse.status !== 404) {
+                // Only log non-404 errors (404 means no form submission, which is normal)
+                console.error(`Error fetching form submission for booking ${booking._id}:`, formResponse.status);
+              }
+            } catch (error) {
+              console.error(`Error fetching form submission for booking ${booking._id}:`, error);
+            }
+          })
+        );
+        setFormSubmissions(submissionsMap);
       } else {
         console.error('Booking - Failed to fetch bookings, status:', bookingsResponse.status);
         setBookings([]);
@@ -394,7 +421,7 @@ const BookingsPage = () => {
         console.log('Booking - Appointment deleted successfully');
         toast.success('Appointment deleted successfully!');
         
-        // Refresh bookings list
+        // Refresh bookings list (which will also refresh form submissions)
         await fetchBookings();
         
         // Refresh calendar events
@@ -707,6 +734,20 @@ const BookingsPage = () => {
                     </div>
 
                     <div className="right">
+                      {formSubmissions[booking._id] && (
+                        <button
+                          className="booking-form-icon-btn"
+                          onClick={() => {
+                            setSelectedFormSubmission(formSubmissions[booking._id]);
+                            setSelectedBookingId(booking._id);
+                            setShowFormModal(true);
+                            setDownloadState('idle');
+                          }}
+                          title="View form"
+                        >
+                          <FormIcon />
+                        </button>
+                      )}
                       {booking.notes && booking.notes.trim() && (
                         <button
                           className="booking-message-icon-btn"
@@ -814,6 +855,215 @@ const BookingsPage = () => {
             </div>
             <div className="booking-comment-modal-content">
               <p>{selectedComment}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Form Submission Modal */}
+      {showFormModal && selectedFormSubmission && (
+        <div className="booking-comment-modal-overlay" onClick={() => {
+          setIsModalBouncing(true);
+          setTimeout(() => setIsModalBouncing(false), 300);
+        }}>
+          <div 
+            className={`booking-comment-modal ${isModalBouncing ? 'modal-bounce' : ''}`}
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}
+          >
+            <div className="booking-form-modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button
+                  className={`booking-form-download-btn ${downloadState === 'downloading' ? 'downloading' : ''} ${downloadState === 'downloaded' ? 'downloaded' : ''}`}
+                  disabled={downloadState === 'downloading'}
+                  onClick={async () => {
+                    if (!selectedBookingId) return;
+                    
+                    setDownloadState('downloading');
+                    
+                    try {
+                      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+                      console.log('🔄 Starting form download...');
+
+                      const response = await fetch(`${apiUrl}/api/bookings/${selectedBookingId}/form-submission/download`, {
+                        method: 'GET',
+                        credentials: 'include',
+                      });
+
+                      if (!response.ok) {
+                        throw new Error('Download failed');
+                      }
+
+                      // Get headers info for debugging
+                      const contentType = response.headers.get('Content-Type');
+                      const contentDisposition = response.headers.get('Content-Disposition');
+                      const contentLength = response.headers.get('Content-Length');
+
+                      console.log('📦 Response headers:', {
+                        contentType,
+                        contentDisposition,
+                        contentLength: contentLength ? `${contentLength} bytes` : 'unknown'
+                      });
+
+                      // Get the blob with explicit type from Content-Type header
+                      const blob = await response.blob();
+                      console.log('💾 Blob created:', {
+                        size: `${blob.size} bytes`,
+                        type: blob.type
+                      });
+
+                      // Get filename from Content-Disposition header
+                      let filename = 'form-submission.pdf';
+                      if (contentDisposition) {
+                        // Try to match quoted filename first: filename="something.pdf"
+                        let filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+                        if (!filenameMatch) {
+                          // Fallback to unquoted filename: filename=something.pdf
+                          filenameMatch = contentDisposition.match(/filename=([^;]+)/);
+                        }
+                        if (filenameMatch && filenameMatch[1]) {
+                          filename = filenameMatch[1].trim();
+                        }
+                      }
+
+                      console.log('📁 Download filename:', filename);
+
+                      // Create blob URL and trigger download
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = filename;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      URL.revokeObjectURL(url);
+
+                      console.log('✅ Download triggered successfully');
+                      setDownloadState('downloaded');
+
+                      // Reset to idle after 5 seconds
+                      setTimeout(() => {
+                        setDownloadState('idle');
+                      }, 5000);
+                    } catch (error) {
+                      console.error('❌ Error downloading form:', error);
+                      toast.error('Failed to download form');
+                      setDownloadState('idle');
+                    }
+                  }}
+                >
+                  {downloadState === 'downloading' ? (
+                    'Downloading...'
+                  ) : downloadState === 'downloaded' ? (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13.3333 4L6 11.3333L2.66667 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Downloaded
+                    </>
+                  ) : (
+                    <>
+                      <DownloadIcon />
+                      Download
+                    </>
+                  )}
+                </button>
+              </div>
+              <button 
+                className="booking-comment-close-btn" 
+                onClick={() => {
+                  setShowFormModal(false);
+                  setSelectedFormSubmission(null);
+                  setSelectedBookingId(null);
+                  setDownloadState('idle');
+                  setIsModalBouncing(false);
+                }}
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className="booking-comment-modal-content booking-form-modal-content">
+              <div className="booking-form-title-section">
+                <h2 className="booking-form-modal-title">
+                  {selectedFormSubmission.intakeForm?.name || 'Untitled Form'}
+                </h2>
+                {selectedFormSubmission.intakeForm?.description && (
+                  <p className="booking-form-modal-description">
+                    {selectedFormSubmission.intakeForm.description}
+                  </p>
+                )}
+              </div>
+              <div className="booking-form-modal-list">
+                {selectedFormSubmission.intakeForm?.fields?.map((field, index) => {
+                  const questionText = field?.question || field?.label || field?.title || `Question ${index + 1}`;
+                  const response = selectedFormSubmission.responses?.find(r => r.fieldId === field.id);
+                  const answerValue = response?.answer;
+                  const fileUrls = response?.fileUrls;
+
+                  const renderAnswer = () => {
+                    if (field.type === 'file' || field.type === 'file-upload') {
+                      if (fileUrls && fileUrls.length > 0) {
+                        return (
+                          <div className="booking-form-modal-files">
+                            {fileUrls.map((fileUrl, idx) => (
+                              <a
+                                key={idx}
+                                href={fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {fileUrl.split('/').pop() || `File ${idx + 1}`}
+                              </a>
+                            ))}
+                          </div>
+                        );
+                      }
+                      return <span className="booking-form-modal-answer-muted">No file uploaded</span>;
+                    }
+
+                    let displayValue = answerValue ?? null;
+
+                    if (field.type === 'checkbox') {
+                      displayValue = displayValue ? 'Yes' : 'No';
+                    } else if (field.type === 'checkbox-list') {
+                      const listValue = Array.isArray(displayValue)
+                        ? displayValue
+                        : displayValue
+                          ? [displayValue]
+                          : [];
+                      if (listValue.length === 0) {
+                        return <span className="booking-form-modal-answer-muted">Not provided</span>;
+                      }
+                      return <span>{listValue.join(', ')}</span>;
+                    } else if (field.type === 'yes-no') {
+                      displayValue = displayValue
+                        ? String(displayValue).charAt(0).toUpperCase() + String(displayValue).slice(1).toLowerCase()
+                        : 'Not provided';
+                    } else if (field.type === 'dropdown' || field.type === 'text' || field.type === 'textarea') {
+                      displayValue = displayValue ? String(displayValue) : 'Not provided';
+                    }
+
+                    if (!displayValue || displayValue === 'Not provided') {
+                      return <span className="booking-form-modal-answer-muted">Not provided</span>;
+                    }
+
+                    if (field.type === 'textarea') {
+                      return <p className="booking-form-modal-answer-textarea">{displayValue}</p>;
+                    }
+
+                    return <span>{displayValue}</span>;
+                  };
+
+                  return (
+                    <div key={field.id || index} className="booking-form-modal-item">
+                      <p className="booking-form-modal-question">{questionText}</p>
+                      <div className="booking-form-modal-answer">
+                        {renderAnswer()}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

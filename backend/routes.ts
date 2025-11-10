@@ -27,7 +27,9 @@ import { z } from "zod";
 import sharp from 'sharp';
 import { sendCustomerConfirmation, sendBusinessNotification, sendRescheduleConfirmation, sendRescheduleBusinessNotification, sendCancellationConfirmation, sendCancellationBusinessNotification, sendFeedbackEmail, sendEmailChangeOtp, sendPasswordChangeOtp } from "./email";
 import { FeatureGate } from "./featureGating";
-import { uploadFile, deleteFile, isSpacesUrl } from "./services/spaces";
+import { uploadFile, deleteFile, isSpacesUrl, moveIntakeFormFiles } from "./services/spaces";
+import PDFDocument from "pdfkit";
+import archiver from "archiver";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -2219,6 +2221,294 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get form submission for a booking
+  app.get("/api/bookings/:id/form-submission", async (req, res) => {
+    try {
+      // SECURITY: Require authentication
+      const session = req.session as any;
+      if (!session?.userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const booking = await storage.getBooking(req.params.id);
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      // SECURITY: Verify ownership
+      if (booking.userId !== session.userId) {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+
+      // Get form submission
+      const formSubmission = await storage.getFormSubmissionByBooking(req.params.id);
+      
+      if (!formSubmission) {
+        return res.status(404).json({ message: "Form submission not found" });
+      }
+
+      // Get the intake form details
+      const intakeForm = await storage.getIntakeFormById(formSubmission.intakeFormId);
+      
+      res.json({
+        ...formSubmission,
+        intakeForm,
+      });
+    } catch (error) {
+      console.error("Error fetching form submission:", error);
+      res.status(500).json({ message: "Failed to fetch form submission" });
+    }
+  });
+
+  // Download form submission as PDF/ZIP
+  app.get("/api/bookings/:id/form-submission/download", async (req, res) => {
+    try {
+      // SECURITY: Require authentication
+      const session = req.session as any;
+      if (!session?.userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const booking = await storage.getBooking(req.params.id);
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      // SECURITY: Verify ownership
+      if (booking.userId !== session.userId) {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+
+      // Get form submission
+      const formSubmission = await storage.getFormSubmissionByBooking(req.params.id);
+      
+      if (!formSubmission) {
+        return res.status(404).json({ message: "Form submission not found" });
+      }
+
+      // Get the intake form details
+      const intakeForm = await storage.getIntakeFormById(formSubmission.intakeFormId);
+      
+      if (!intakeForm) {
+        return res.status(404).json({ message: "Intake form not found" });
+      }
+
+      // Collect all file URLs from responses
+      const fileUrls: string[] = [];
+      formSubmission.responses?.forEach((response: any) => {
+        if (response.fileUrls && Array.isArray(response.fileUrls)) {
+          fileUrls.push(...response.fileUrls);
+        }
+      });
+
+      const hasFiles = fileUrls.length > 0;
+
+      // Helper function to format answer value based on field type
+      const formatAnswer = (field: any, response: any): string => {
+        if (!response || response.answer === null || response.answer === undefined) {
+          return 'Not provided';
+        }
+
+        const answerValue = response.answer;
+
+        if (field.type === 'checkbox') {
+          return answerValue ? 'Yes' : 'No';
+        } else if (field.type === 'checkbox-list') {
+          const listValue = Array.isArray(answerValue)
+            ? answerValue
+            : (answerValue ? [answerValue] : []);
+          return listValue.length > 0 ? listValue.join(', ') : 'Not provided';
+        } else if (field.type === 'yes-no') {
+          return answerValue
+            ? String(answerValue).charAt(0).toUpperCase() + String(answerValue).slice(1).toLowerCase()
+            : 'Not provided';
+        } else if (field.type === 'file' || field.type === 'file-upload') {
+          if (response.fileUrls && response.fileUrls.length > 0) {
+            // Return filenames only (will be rendered separately)
+            return response.fileUrls.map((url: string) => url.split('/').pop() || 'file').join('\n');
+          }
+          return 'No file uploaded';
+        } else {
+          return answerValue ? String(answerValue) : 'Not provided';
+        }
+      };
+
+      // Generate PDF with proper formatting matching the modal
+      const generatePDF = (): Promise<Buffer> => {
+        return new Promise((resolve, reject) => {
+          const doc = new PDFDocument({ margin: 50, size: 'A4' });
+          const pdfChunks: Buffer[] = [];
+
+          doc.on('data', (chunk) => pdfChunks.push(chunk));
+          doc.on('end', () => resolve(Buffer.concat(pdfChunks)));
+          doc.on('error', reject);
+
+          try {
+            // RGB Color constants (matching modal CSS)
+            const COLOR_TEXT = [18, 18, 18];           // #121212
+            const COLOR_SECONDARY = [100, 116, 139];   // #64748B
+            const COLOR_MUTED = [148, 163, 184];       // #94A3B8
+
+            // Title (22px, bold, black)
+            doc.fontSize(22)
+               .font('Helvetica-Bold')
+               .fillColor(COLOR_TEXT[0], COLOR_TEXT[1], COLOR_TEXT[2])
+               .text(intakeForm.name || 'Untitled Form');
+
+            // Description (14px, normal, gray) - only if exists
+            if (intakeForm.description) {
+              doc.moveDown(0.5);
+              doc.fontSize(14)
+                 .font('Helvetica')
+                 .fillColor(COLOR_SECONDARY[0], COLOR_SECONDARY[1], COLOR_SECONDARY[2])
+                 .text(intakeForm.description);
+            }
+
+            // Space before questions (28px gap equivalent)
+            doc.moveDown(1.5);
+
+            // Process ALL fields (not just answered ones)
+            if (intakeForm.fields && intakeForm.fields.length > 0) {
+              intakeForm.fields.forEach((field: any, index: number) => {
+                const questionText = field.question || field.label || field.title || `Question ${index + 1}`;
+                const response = formSubmission.responses?.find((r: any) => r.fieldId === field.id);
+                const answerText = formatAnswer(field, response);
+
+                // Question (14px, bold, black)
+                doc.fontSize(14)
+                   .font('Helvetica-Bold')
+                   .fillColor(COLOR_TEXT[0], COLOR_TEXT[1], COLOR_TEXT[2])
+                   .text(questionText);
+
+                // Small gap between question and answer
+                doc.moveDown(0.3);
+
+                // Answer (14px, normal, gray or muted if not provided)
+                const isNotProvided = answerText === 'Not provided' || answerText === 'No file uploaded';
+                const answerColor = isNotProvided ? COLOR_MUTED : COLOR_SECONDARY;
+
+                doc.fontSize(14)
+                   .font('Helvetica')
+                   .fillColor(answerColor[0], answerColor[1], answerColor[2])
+                   .text(answerText);
+
+                // Gap between fields (20px equivalent)
+                doc.moveDown(1);
+              });
+            }
+
+            // Finalize PDF
+            doc.end();
+          } catch (error) {
+            console.error('Error in PDF generation:', error);
+            reject(error);
+          }
+        });
+      };
+
+      // Download files from Digital Ocean and create ZIP
+      const createZipWithFiles = async (pdfBuffer: Buffer): Promise<Buffer> => {
+        console.log(`Starting file downloads for ${fileUrls.length} files...`);
+        const downloadedFiles: Array<{ buffer: Buffer; name: string }> = [];
+
+        // Download all files sequentially
+        for (const fileUrl of fileUrls) {
+          try {
+            console.log(`Downloading: ${fileUrl}`);
+            const response = await fetch(fileUrl);
+
+            if (response.ok) {
+              const arrayBuffer = await response.arrayBuffer();
+              const buffer = Buffer.from(arrayBuffer);
+              const fileName = fileUrl.split('/').pop() || 'file';
+
+              downloadedFiles.push({ buffer, name: fileName });
+              console.log(`✓ Downloaded: ${fileName} (${buffer.length} bytes)`);
+            } else {
+              console.error(`✗ Failed to download ${fileUrl}: HTTP ${response.status}`);
+            }
+          } catch (error) {
+            console.error(`✗ Error downloading ${fileUrl}:`, error);
+          }
+        }
+
+        console.log(`Downloaded ${downloadedFiles.length} of ${fileUrls.length} files`);
+
+        // Create ZIP archive
+        return new Promise((resolve, reject) => {
+          const archive = archiver('zip', { zlib: { level: 9 } });
+          const chunks: Buffer[] = [];
+
+          archive.on('data', (chunk) => chunks.push(chunk));
+          archive.on('end', () => {
+            const zipBuffer = Buffer.concat(chunks);
+            console.log(`✓ ZIP created: ${zipBuffer.length} bytes`);
+            resolve(zipBuffer);
+          });
+          archive.on('error', (err) => {
+            console.error('✗ ZIP creation error:', err);
+            reject(err);
+          });
+
+          // Add PDF to ZIP
+          const pdfName = `${intakeForm.name || 'form'}.pdf`;
+          archive.append(pdfBuffer, { name: pdfName });
+          console.log(`Added to ZIP: ${pdfName} (${pdfBuffer.length} bytes)`);
+
+          // Add all downloaded files to ZIP
+          downloadedFiles.forEach(({ buffer, name }) => {
+            archive.append(buffer, { name });
+            console.log(`Added to ZIP: ${name} (${buffer.length} bytes)`);
+          });
+
+          // Finalize archive
+          console.log('Finalizing ZIP archive...');
+          archive.finalize();
+        });
+      };
+
+      try {
+        console.log('Starting form submission download...');
+        console.log(`Form: ${intakeForm.name}, Files: ${fileUrls.length}`);
+
+        // Generate PDF
+        const pdfBuffer = await generatePDF();
+        console.log(`✓ PDF generated: ${pdfBuffer.length} bytes`);
+
+        if (hasFiles) {
+          // Create ZIP with PDF and files
+          const zipBuffer = await createZipWithFiles(pdfBuffer);
+          const fileName = `${intakeForm.name || 'form'}-${new Date(formSubmission.submittedAt).toISOString().split('T')[0]}.zip`;
+
+          res.setHeader('Content-Type', 'application/zip');
+          res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+          res.setHeader('Content-Length', zipBuffer.length.toString());
+          res.send(zipBuffer);
+
+          console.log(`✓ ZIP download sent: ${fileName} (${zipBuffer.length} bytes)`);
+        } else {
+          // Send PDF only
+          const fileName = `${intakeForm.name || 'form'}-${new Date(formSubmission.submittedAt).toISOString().split('T')[0]}.pdf`;
+
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+          res.setHeader('Content-Length', pdfBuffer.length.toString());
+          res.send(pdfBuffer);
+
+          console.log(`✓ PDF download sent: ${fileName} (${pdfBuffer.length} bytes)`);
+        }
+      } catch (error) {
+        console.error('✗ Error in download endpoint:', error);
+        if (!res.headersSent) {
+          res.status(500).json({ message: "Failed to generate download" });
+        }
+      }
+    } catch (error) {
+      console.error("Error downloading form submission:", error);
+      res.status(500).json({ message: "Failed to download form submission" });
+    }
+  });
+
   // Public endpoint to fetch booking by token (for event page)
   app.get("/api/bookings/token/:token", async (req, res) => {
     try {
@@ -2836,7 +3126,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Continue with booking deletion even if calendar deletion fails
         }
       }
-      
+
+      // Delete intake form submission files if they exist
+      try {
+        const formSubmissionResult = await storage.deleteFormSubmissionByBooking(req.params.id);
+        if (formSubmissionResult.fileUrls && formSubmissionResult.fileUrls.length > 0) {
+          await deleteMultipleFiles(formSubmissionResult.fileUrls);
+          console.log(`✅ Deleted ${formSubmissionResult.fileUrls.length} intake form files`);
+        }
+      } catch (error) {
+        console.error('Failed to delete intake form files:', error);
+        // Continue with booking deletion even if file deletion fails
+      }
+
       const success = await storage.deleteBooking(req.params.id);
       if (!success) {
         return res.status(500).json({ message: "Failed to delete booking" });
@@ -4216,6 +4518,178 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Intake form deleted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete intake form", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  // PUBLIC Intake Form Submission endpoints (no authentication required)
+
+  // Upload file to temp storage
+  app.post("/api/public/intake-forms/upload", upload.single("file"), async (req, res) => {
+    try {
+      const { sessionId } = req.body;
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No file provided" });
+      }
+
+      if (!sessionId) {
+        return res.status(400).json({ message: "Session ID required" });
+      }
+
+      // Validate file type
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/heic', 'application/pdf'];
+      if (!allowedTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({
+          message: "Invalid file type. Only PNG, JPG, HEIC, and PDF are allowed"
+        });
+      }
+
+      // Generate unique filename
+      const fileExtension = req.file.originalname.split('.').pop();
+      const uniqueFilename = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
+
+      // Upload to Digital Ocean Spaces with temp subfolder
+      const fileUrl = await uploadFile({
+        fileBuffer: req.file.buffer,
+        fileName: uniqueFilename,
+        folder: 'intake_form_uploads',
+        subfolder: `temp/${sessionId}`,
+        contentType: req.file.mimetype,
+      });
+
+      res.json({
+        message: "File uploaded successfully",
+        fileUrl,
+        originalName: req.file.originalname
+      });
+    } catch (error) {
+      console.error("Error uploading intake form file:", error);
+      res.status(500).json({
+        message: "Failed to upload file",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Delete file from temp storage
+  app.delete("/api/public/intake-forms/delete-file", async (req, res) => {
+    try {
+      const { fileUrl } = req.body;
+
+      if (!fileUrl) {
+        return res.status(400).json({ message: "File URL required" });
+      }
+
+      // Verify it's a temp file
+      if (!fileUrl.includes('/intake_form_uploads/temp/')) {
+        return res.status(403).json({ message: "Can only delete temp files" });
+      }
+
+      const success = await deleteFile(fileUrl);
+
+      if (success) {
+        res.json({ message: "File deleted successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to delete file" });
+      }
+    } catch (error) {
+      console.error("Error deleting intake form file:", error);
+      res.status(500).json({
+        message: "Failed to delete file",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Save temporary form submission
+  app.post("/api/public/intake-forms/save-temp", async (req, res) => {
+    try {
+      const { sessionId, intakeFormId, appointmentTypeId, responses, fileUrls } = req.body;
+
+      if (!sessionId || !intakeFormId || !appointmentTypeId || !responses) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Check if temp submission already exists
+      const existing = await storage.getTempFormSubmissionBySession(sessionId);
+
+      if (existing) {
+        // Update existing submission
+        await storage.updateTempFormSubmission(sessionId, {
+          responses,
+          fileUrls: fileUrls || [],
+        });
+        res.json({ message: "Temp submission updated successfully" });
+      } else {
+        // Create new temp submission
+        await storage.createTempFormSubmission({
+          sessionId,
+          intakeFormId,
+          appointmentTypeId,
+          responses,
+          fileUrls: fileUrls || [],
+        });
+        res.json({ message: "Temp submission created successfully" });
+      }
+    } catch (error) {
+      console.error("Error saving temp form submission:", error);
+      res.status(500).json({
+        message: "Failed to save temp submission",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Finalize form submission (move files and create permanent record)
+  app.post("/api/public/intake-forms/finalize", async (req, res) => {
+    try {
+      const { sessionId, bookingId } = req.body;
+
+      if (!sessionId || !bookingId) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Get temp submission
+      const tempSubmission = await storage.getTempFormSubmissionBySession(sessionId);
+      if (!tempSubmission) {
+        return res.status(404).json({ message: "Temp submission not found" });
+      }
+
+      // Move files from temp to booking folder
+      const newFileUrls = await moveIntakeFormFiles(tempSubmission.fileUrls, bookingId);
+
+      // Update responses with new file URLs
+      const updatedResponses = tempSubmission.responses.map((response: any) => {
+        if (response.fileUrls && Array.isArray(response.fileUrls)) {
+          // Match old URLs to new URLs
+          const updatedFileUrls = response.fileUrls.map((oldUrl: string) => {
+            const index = tempSubmission.fileUrls.indexOf(oldUrl);
+            return index !== -1 ? newFileUrls[index] : oldUrl;
+          });
+          return { ...response, fileUrls: updatedFileUrls };
+        }
+        return response;
+      });
+
+      // Update temp submission with new file URLs before finalizing
+      await storage.updateTempFormSubmission(sessionId, {
+        responses: updatedResponses,
+        fileUrls: newFileUrls,
+      });
+
+      // Create permanent submission and delete temp
+      await storage.finalizeFormSubmission(sessionId, bookingId);
+
+      res.json({
+        message: "Form submission finalized successfully",
+        fileUrls: newFileUrls
+      });
+    } catch (error) {
+      console.error("Error finalizing form submission:", error);
+      res.status(500).json({
+        message: "Failed to finalize submission",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

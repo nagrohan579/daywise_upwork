@@ -595,6 +595,59 @@ export const storage = {
     });
   },
 
+  // Form Submissions operations
+  async getTempFormSubmissionBySession(sessionId: string) {
+    return await convex.query(api.formSubmissions.getTempBySession, {
+      sessionId,
+    });
+  },
+
+  async getFormSubmissionByBooking(bookingId: string) {
+    return await convex.query(api.formSubmissions.getByBookingId, {
+      bookingId: bookingId as Id<"bookings">,
+    });
+  },
+
+  async createTempFormSubmission(submission: any) {
+    return await convex.mutation(api.formSubmissions.createTempSubmission, {
+      sessionId: submission.sessionId,
+      intakeFormId: submission.intakeFormId as Id<"intakeForms">,
+      appointmentTypeId: submission.appointmentTypeId as Id<"appointmentTypes">,
+      responses: submission.responses,
+      fileUrls: submission.fileUrls,
+    });
+  },
+
+  async updateTempFormSubmission(sessionId: string, updates: any) {
+    return await convex.mutation(api.formSubmissions.updateTempSubmission, {
+      sessionId,
+      updates,
+    });
+  },
+
+  async deleteTempFormSubmission(sessionId: string) {
+    return await convex.mutation(api.formSubmissions.deleteTempSubmission, {
+      sessionId,
+    });
+  },
+
+  async finalizeFormSubmission(sessionId: string, bookingId: string) {
+    return await convex.mutation(api.formSubmissions.finalizeSubmission, {
+      sessionId,
+      bookingId: bookingId as Id<"bookings">,
+    });
+  },
+
+  async deleteFormSubmissionByBooking(bookingId: string) {
+    return await convex.mutation(api.formSubmissions.deleteByBookingId, {
+      bookingId: bookingId as Id<"bookings">,
+    });
+  },
+
+  async cleanupExpiredTempSubmissions() {
+    return await convex.mutation(api.formSubmissions.cleanupExpiredTemp, {});
+  },
+
   // Placeholder operations that might be needed
   async getAppointmentTypeAvailabilities(appointmentTypeId: string) {
     // TODO: Implement if needed

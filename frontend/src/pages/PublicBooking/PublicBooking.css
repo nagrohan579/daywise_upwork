@@ -1366,6 +1366,14 @@
   margin: 0;
 }
 
+.intake-form-file-error {
+  font-family: Inter, sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  color: #DC2626;
+  margin: 4px 0 0 0;
+}
+
 /* Continue button in intake form - match input field width */
 .intake-form-fields > .btn-comp,
 .intake-form-fields > button[type="button"],

@@ -29,7 +29,8 @@ app.use(cors({
     : ['http://localhost:5173', 'http://localhost:5174'], // Allow local dev
   credentials: true, // Allow cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Disposition'] // Allow frontend to read Content-Disposition header
 }));
 
 // Stripe webhook MUST receive raw body for signature verification

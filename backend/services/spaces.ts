@@ -18,8 +18,9 @@ const CDN_ENDPOINT = process.env.DO_SPACES_CDN_ENDPOINT || 'https://daywisebooki
 export interface UploadFileOptions {
   fileBuffer: Buffer;
   fileName: string;
-  folder: 'profile_pictures' | 'business_logos';
+  folder: 'profile_pictures' | 'business_logos' | 'intake_form_uploads';
   contentType: string;
+  subfolder?: string; // Optional subfolder (e.g., 'temp/sessionId' or bookingId)
 }
 
 /**
@@ -28,8 +29,8 @@ export interface UploadFileOptions {
  * @returns CDN URL of the uploaded file
  */
 export async function uploadFile(options: UploadFileOptions): Promise<string> {
-  const { fileBuffer, fileName, folder, contentType } = options;
-  const key = `${folder}/${fileName}`;
+  const { fileBuffer, fileName, folder, contentType, subfolder } = options;
+  const key = subfolder ? `${folder}/${subfolder}/${fileName}` : `${folder}/${fileName}`;
 
   try {
     const upload = new Upload({
@@ -112,4 +113,82 @@ export function isSpacesUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Move files from temp folder to booking folder
+ * @param fileUrls Array of temp file URLs to move
+ * @param bookingId Booking ID for the destination folder
+ * @returns Array of new CDN URLs
+ */
+export async function moveIntakeFormFiles(
+  fileUrls: string[],
+  bookingId: string
+): Promise<string[]> {
+  const newUrls: string[] = [];
+
+  for (const fileUrl of fileUrls) {
+    try {
+      // Extract file name from URL
+      // Example: .../intake_form_uploads/temp/sessionId/file.pdf -> file.pdf
+      const url = new URL(fileUrl);
+      const pathParts = url.pathname.split('/');
+      const fileName = pathParts[pathParts.length - 1];
+
+      // Download the file from temp location using fetch
+      const response = await fetch(fileUrl);
+      if (!response.ok) {
+        console.error(`Failed to fetch temp file: ${fileUrl}`);
+        continue;
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const fileBuffer = Buffer.from(arrayBuffer);
+
+      // Get content type from response headers
+      const contentType = response.headers.get('content-type') || 'application/octet-stream';
+
+      // Upload to new location
+      const newUrl = await uploadFile({
+        fileBuffer,
+        fileName,
+        folder: 'intake_form_uploads',
+        subfolder: bookingId,
+        contentType,
+      });
+
+      newUrls.push(newUrl);
+
+      // Delete the temp file
+      await deleteFile(fileUrl);
+    } catch (error) {
+      console.error(`Error moving file ${fileUrl}:`, error);
+      // Continue with other files even if one fails
+    }
+  }
+
+  return newUrls;
+}
+
+/**
+ * Delete multiple files at once
+ * @param fileUrls Array of file URLs to delete
+ * @returns Number of successfully deleted files
+ */
+export async function deleteMultipleFiles(fileUrls: string[]): Promise<number> {
+  let successCount = 0;
+
+  for (const fileUrl of fileUrls) {
+    try {
+      const success = await deleteFile(fileUrl);
+      if (success) {
+        successCount++;
+      }
+    } catch (error) {
+      console.error(`Error deleting file ${fileUrl}:`, error);
+      // Continue with other files even if one fails
+    }
+  }
+
+  return successCount;
 }

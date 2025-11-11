@@ -2004,11 +2004,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const booking = await storage.createBooking(bookingData);
-      
+
       if (!booking) {
         return res.status(500).json({ message: "Failed to create booking" });
       }
-      
+
+      // Handle intake form submission if formSessionId is provided
+      if (bookingData.formSessionId) {
+        try {
+          console.log(`Processing intake form submission for sessionId: ${bookingData.formSessionId}`);
+
+          // Get temp submission
+          const tempSubmission = await storage.getTempFormSubmissionBySession(bookingData.formSessionId);
+          if (!tempSubmission) {
+            console.warn(`Temp form submission not found for sessionId: ${bookingData.formSessionId}`);
+          } else {
+            // Step 1: Move files from temp to permanent storage
+            let newFileUrls: string[] = [];
+            if (tempSubmission.fileUrls && tempSubmission.fileUrls.length > 0) {
+              const { moveIntakeFormFiles } = await import('./services/spaces');
+              newFileUrls = await moveIntakeFormFiles(tempSubmission.fileUrls, booking._id);
+              console.log(`✅ Moved ${newFileUrls.length} files from temp to booking ${booking._id}`);
+            }
+
+            // Step 2: Update responses with new file URLs
+            const updatedResponses = tempSubmission.responses.map((response: any) => {
+              if (response.fileUrls && Array.isArray(response.fileUrls)) {
+                // Match old URLs to new URLs
+                const updatedFileUrls = response.fileUrls.map((oldUrl: string) => {
+                  const index = tempSubmission.fileUrls.indexOf(oldUrl);
+                  return index !== -1 ? newFileUrls[index] : oldUrl;
+                });
+                return { ...response, fileUrls: updatedFileUrls };
+              }
+              return response;
+            });
+
+            // Step 3: Update temp submission with new file URLs before finalizing
+            await storage.updateTempFormSubmission(bookingData.formSessionId, {
+              responses: updatedResponses,
+              fileUrls: newFileUrls,
+            });
+
+            // Step 4: Finalize form submission (creates permanent record and deletes temp)
+            const formSubmissionResult = await storage.finalizeFormSubmission(
+              bookingData.formSessionId,
+              booking._id
+            );
+
+            console.log(`✅ Form submission finalized:`, formSubmissionResult);
+          }
+        } catch (formError) {
+          console.error('Failed to finalize form submission:', formError);
+          // Don't fail the booking if form submission fails
+        }
+      }
+
       // Send confirmation emails
       const businessUser = await storage.getUser(bookingData.userId || 'demo-user-id');
       const emailAppointmentType = await storage.getAppointmentType(bookingData.appointmentTypeId);
@@ -2124,6 +2175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({ message: "Booking created successfully", booking });
     } catch (error) {
+      console.error("POST /api/public-bookings - Error:", error);
       res.status(400).json({ message: "Invalid booking data", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });

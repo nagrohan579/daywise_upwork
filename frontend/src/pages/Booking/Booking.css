@@ -154,6 +154,35 @@
 .booking-page .booking-detail-con {
   margin-top: 60px;
 }
+
+.booking-page .past-bookings-heading {
+  margin-top: 48px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #64748b33;
+}
+
+.booking-page .past-bookings-heading h2 {
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 24px;
+  color: #121212;
+  margin: 0;
+}
+
+.booking-page .no-bookings-message {
+  margin-top: 60px;
+  text-align: center;
+}
+
+.booking-page .no-bookings-message p {
+  color: #64748B;
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+}
 .booking-page .booking-detail-con .booking-card {
   border: 1px solid #64748b33;
   box-shadow: 0px 1px 2px 0px #0000000d;

@@ -57,6 +57,7 @@ export default defineSchema({
     notes: v.optional(v.string()),
     bookingToken: v.string(),
     eventUrl: v.optional(v.string()), // Unique shareable event link for customer
+    formSessionId: v.optional(v.string()), // Session ID linking to intake form submission
     customerReminderSentAt: v.optional(v.number()),
     businessReminderSentAt: v.optional(v.number()),
     googleCalendarEventId: v.optional(v.string()), // Google Calendar event ID for syncing

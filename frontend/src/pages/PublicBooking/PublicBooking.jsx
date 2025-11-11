@@ -50,6 +50,9 @@ const PublicBooking = () => {
   const [intakeForm, setIntakeForm] = useState(null);
   const [loadingForm, setLoadingForm] = useState(false);
   const [formResponses, setFormResponses] = useState({});
+  const [formSessionId, setFormSessionId] = useState(null);
+  const [uploadedFileUrls, setUploadedFileUrls] = useState({}); // Map of fieldId -> [fileUrls]
+  const [submittingForm, setSubmittingForm] = useState(false);
 
   // Get timezone options from utility (limited to 20 supported timezones)
   const timezoneOptions = useMemo(() => {
@@ -71,6 +74,8 @@ const PublicBooking = () => {
     // 5 = Success (if form existed)
     return step;
   };
+
+  // Note: Form responses are now saved manually when Continue button is clicked
 
   const goToNext = (data) => {
     // Validate appointment type is selected before proceeding
@@ -308,7 +313,8 @@ const PublicBooking = () => {
     setSelectedAppointmentType(selected);
     setSelectedTime(null);
     setIntakeForm(null); // Reset form when changing appointment type
-    
+    setFormSessionId(null); // Clear form session ID
+
     // Fetch intake form if it exists
     if (selected.intakeFormId && userData) {
       console.log('PublicBooking - Fetching intake form:', selected.intakeFormId, 'for user:', userData.id);
@@ -322,20 +328,28 @@ const PublicBooking = () => {
           console.log('PublicBooking - Intake form loaded successfully:', formData);
           console.log('PublicBooking - Form fields:', formData.fields);
           setIntakeForm(formData);
+
+          // Generate unique session ID for form submission tracking
+          const sessionId = `form_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+          setFormSessionId(sessionId);
+          console.log('PublicBooking - Generated form session ID:', sessionId);
         } else {
           const errorText = await formResponse.text();
           console.warn('PublicBooking - Failed to load intake form:', formResponse.status, errorText);
           setIntakeForm(null);
+          setFormSessionId(null);
         }
       } catch (error) {
         console.error('PublicBooking - Error fetching intake form:', error);
         setIntakeForm(null);
+        setFormSessionId(null);
       } finally {
         setLoadingForm(false);
       }
     } else {
       console.log('PublicBooking - No intake form ID or userData:', { intakeFormId: selected.intakeFormId, hasUserData: !!userData });
       setIntakeForm(null);
+      setFormSessionId(null);
     }
     
     // Set today's date as default if no date is selected
@@ -434,6 +448,7 @@ const PublicBooking = () => {
         status: "confirmed",
         notes: comments.trim() || "",
         bookingToken: generateBookingToken(),
+        ...(formSessionId && { formSessionId }), // Include formSessionId only if it exists
       };
 
       console.log("PublicBooking - Creating booking with payload:", bookingPayload);
@@ -924,8 +939,128 @@ const PublicBooking = () => {
                     <p>No form fields available.</p>
                   )}
                   <Button
-                    text="Continue"
-                    onClick={goToNext}
+                    text={submittingForm ? "Saving..." : "Continue"}
+                    disabled={submittingForm}
+                    onClick={async () => {
+                      // Prevent multiple clicks
+                      if (submittingForm) {
+                        return;
+                      }
+
+                      // Handle form submission before proceeding
+                      if (!formSessionId || !intakeForm || !selectedAppointmentType) {
+                        toast.error("Please fill out the form");
+                        return;
+                      }
+
+                      setSubmittingForm(true);
+                      try {
+                        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+                        
+                        // Step 1: Upload all files first
+                        const fileUploadPromises = [];
+                        const fieldFileUrls = {};
+
+                        intakeForm.fields?.forEach((field) => {
+                          if ((field.type === 'file' || field.type === 'file-upload') && formResponses[field.id]) {
+                            const file = formResponses[field.id];
+                            if (file instanceof File) {
+                              const uploadPromise = (async () => {
+                                try {
+                                  const formData = new FormData();
+                                  formData.append('file', file);
+                                  formData.append('sessionId', formSessionId);
+
+                                  const uploadResponse = await fetch(`${apiUrl}/api/public/intake-forms/upload`, {
+                                    method: 'POST',
+                                    body: formData,
+                                  });
+
+                                  if (uploadResponse.ok) {
+                                    const uploadData = await uploadResponse.json();
+                                    if (!fieldFileUrls[field.id]) {
+                                      fieldFileUrls[field.id] = [];
+                                    }
+                                    fieldFileUrls[field.id].push(uploadData.fileUrl);
+                                    console.log(`Uploaded file for field ${field.id}:`, uploadData.fileUrl);
+                                  } else {
+                                    console.error(`Failed to upload file for field ${field.id}`);
+                                    toast.error(`Failed to upload file: ${file.name}`);
+                                  }
+                                } catch (error) {
+                                  console.error(`Error uploading file for field ${field.id}:`, error);
+                                  toast.error(`Error uploading file: ${file.name}`);
+                                }
+                              })();
+                              fileUploadPromises.push(uploadPromise);
+                            }
+                          }
+                        });
+
+                        // Wait for all file uploads to complete
+                        await Promise.all(fileUploadPromises);
+
+                        // Step 2: Convert formResponses from object to array format
+                        const responsesArray = intakeForm.fields?.map((field) => {
+                          const fieldId = field.id;
+                          const responseValue = formResponses[fieldId];
+                          const fileUrls = fieldFileUrls[fieldId] || [];
+
+                          const responseObj = {
+                            fieldId: typeof fieldId === 'string' ? parseInt(fieldId, 10) : fieldId,
+                          };
+
+                          if (field.type === 'file' || field.type === 'file-upload') {
+                            if (fileUrls.length > 0) {
+                              responseObj.answer = 'file_uploaded';
+                              responseObj.fileUrls = fileUrls;
+                            } else {
+                              responseObj.answer = '';
+                            }
+                          } else if (field.type === 'checkbox') {
+                            responseObj.answer = responseValue === true || responseValue === 'true' ? true : false;
+                          } else if (field.type === 'checkbox-list') {
+                            responseObj.answer = Array.isArray(responseValue) ? responseValue : (responseValue ? [responseValue] : []);
+                          } else if (field.type === 'yes-no') {
+                            responseObj.answer = responseValue || 'no';
+                          } else {
+                            responseObj.answer = responseValue || '';
+                          }
+
+                          return responseObj;
+                        }) || [];
+
+                        // Step 3: Save temp form submission
+                        const saveResponse = await fetch(`${apiUrl}/api/public/intake-forms/save-temp`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            sessionId: formSessionId,
+                            intakeFormId: intakeForm._id,
+                            appointmentTypeId: selectedAppointmentType._id,
+                            responses: responsesArray,
+                            fileUrls: Object.values(fieldFileUrls).flat(),
+                          }),
+                        });
+
+                        if (saveResponse.ok) {
+                          console.log('Form responses saved successfully');
+                          // Update uploaded file URLs state
+                          setUploadedFileUrls(fieldFileUrls);
+                          // Proceed to next step
+                          goToNext();
+                        } else {
+                          const errorText = await saveResponse.text();
+                          console.error('Failed to save form responses:', errorText);
+                          toast.error('Failed to save form. Please try again.');
+                        }
+                      } catch (error) {
+                        console.error('Error submitting form:', error);
+                        toast.error('Error submitting form. Please try again.');
+                      } finally {
+                        setSubmittingForm(false);
+                      }
+                    }}
                     type="button"
                   />
                 </div>

@@ -64,6 +64,7 @@ export const insertBookingSchema = z.object({
   notes: z.string().optional(),
   bookingToken: z.string(),
   eventUrl: z.string().optional(),
+  formSessionId: z.string().optional(), // For linking intake form submissions
 });
 
 // Availability schemas

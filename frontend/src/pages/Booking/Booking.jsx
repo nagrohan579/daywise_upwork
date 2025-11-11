@@ -450,8 +450,10 @@ const BookingsPage = () => {
   const bookingsForList = React.useMemo(() => {
     console.log('bookingsForList - bookings count:', bookings?.length || 0);
 
+    const now = new Date().getTime();
+
     // ALWAYS show Convex bookings - they are the source of truth
-    return (bookings || []).map(booking => {
+    const mappedBookings = (bookings || []).map(booking => {
       // Get appointment type name for display
       const appointmentTypeName = booking.appointmentType?.name || 'Appointment';
 
@@ -463,8 +465,24 @@ const BookingsPage = () => {
         time: formatTime(booking.appointmentDate, userTimezone, false),
         color: booking.appointmentType?.color || '#4285F4', // Always use appointment type color
         source: 'booking',
+        appointmentTimestamp: new Date(booking.appointmentDate).getTime(),
+        isPast: new Date(booking.appointmentDate).getTime() < now,
       };
     });
+
+    // Sort by appointment date (ascending - closest first)
+    const sortedBookings = [...mappedBookings].sort((a, b) => {
+      return a.appointmentTimestamp - b.appointmentTimestamp;
+    });
+
+    // Separate upcoming and past bookings
+    const upcomingBookings = sortedBookings.filter(booking => !booking.isPast);
+    const pastBookings = sortedBookings.filter(booking => booking.isPast);
+
+    return {
+      upcoming: upcomingBookings,
+      past: pastBookings,
+    };
   }, [bookings, userTimezone]);
 
   return (
@@ -667,8 +685,11 @@ const BookingsPage = () => {
 
             {showBookingList && (
               <div className="booking-detail-con">
-                {bookingsForList.map((booking, index) => (
-                  <div className="booking-card" key={index}>
+                {/* Upcoming Bookings */}
+                {bookingsForList.upcoming && bookingsForList.upcoming.length > 0 && (
+                  <>
+                    {bookingsForList.upcoming.map((booking, index) => (
+                      <div className="booking-card" key={`upcoming-${booking._id || index}`}>
                     <div className="left">
                       <div className="top">
                         <span style={{ backgroundColor: booking.color }} />
@@ -789,7 +810,152 @@ const BookingsPage = () => {
                       />
                     </div>
                   </div>
-                ))}
+                    ))}
+                  </>
+                )}
+
+                {/* Past Bookings Section */}
+                {bookingsForList.past && bookingsForList.past.length > 0 && (
+                  <>
+                    <div className="past-bookings-heading">
+                      <h2>Past Bookings</h2>
+                    </div>
+                    {bookingsForList.past.map((booking, index) => (
+                      <div className="booking-card" key={`past-${booking._id || index}`}>
+                    <div className="left">
+                      <div className="top">
+                        <span style={{ backgroundColor: booking.color }} />
+                        <h3>{booking.title}</h3>
+                      </div>
+
+                      <div className="bottom">
+                        <div className="wrap">
+                          {/* Person icon */}
+                          <svg
+                            width="14"
+                            height="16"
+                            viewBox="0 0 14 16"
+                            fill="none"
+                          >
+                            <path
+                              d="M9.81273 3.5C9.81273 4.24592 9.51641 4.96129 8.98896 5.48874C8.46152 6.01618 7.74615 6.3125 7.00023 6.3125C6.25431 6.3125 5.53893 6.01618 5.01149 5.48874C4.48404 4.96129 4.18773 4.24592 4.18773 3.5C4.18773 2.75408 4.48404 2.03871 5.01149 1.51126C5.53893 0.983816 6.25431 0.6875 7.00023 0.6875C7.74615 0.6875 8.46152 0.983816 8.98896 1.51126C9.51641 2.03871 9.81273 2.75408 9.81273 3.5ZM1.37598 14.0885C1.40008 12.6128 2.00323 11.2056 3.05536 10.1705C4.10749 9.13545 5.52429 8.55535 7.00023 8.55535C8.47616 8.55535 9.89296 9.13545 10.9451 10.1705C11.9972 11.2056 12.6004 12.6128 12.6245 14.0885C10.86 14.8976 8.94134 15.3151 7.00023 15.3125C4.99323 15.3125 3.08823 14.8745 1.37598 14.0885Z"
+                              stroke="#64748B"
+                              strokeWidth="1.125"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          <span>{booking.name}</span>
+                        </div>
+                        <div className="wrap">
+                          {/* Calendar icon */}
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 18 18"
+                            fill="none"
+                          >
+                            <path
+                              d="M5.0625 2.25V3.9375M12.9375 2.25V3.9375M2.25 14.0625V5.625C2.25 5.17745 2.42779 4.74823 2.74426 4.43176C3.06072 4.11529 3.48995 3.9375 3.9375 3.9375H14.0625C14.5101 3.9375 14.9393 4.11529 15.2557 4.43176C15.5722 4.74823 15.75 5.17745 15.75 5.625V14.0625M2.25 14.0625C2.25 14.5101 2.42779 14.9393 2.74426 15.2557C3.06072 15.5722 3.48995 15.75 3.9375 15.75H14.0625C14.5101 15.75 14.9393 15.5722 15.2557 15.2557C15.5722 14.9393 15.75 14.5101 15.75 14.0625M2.25 14.0625V8.4375C2.25 7.98995 2.42779 7.56073 2.74426 7.24426C3.06072 6.92779 3.48995 6.75 3.9375 6.75H14.0625C14.5101 6.75 14.9393 6.92779 15.2557 7.24426C15.5722 7.56073 15.75 7.98995 15.75 8.4375V14.0625"
+                              stroke="#64748B"
+                              strokeWidth="1.125"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          <span>{booking.date}</span>
+                        </div>
+                        <div className="wrap">
+                          {/* Clock icon */}
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 18 18"
+                            fill="none"
+                          >
+                            <path
+                              d="M9 4.5V9H12.375M15.75 9C15.75 9.88642 15.5754 10.7642 15.2362 11.5831C14.897 12.4021 14.3998 13.1462 13.773 13.773C13.1462 14.3998 12.4021 14.897 11.5831 15.2362C10.7642 15.5754 9.88642 15.75 9 15.75C8.11358 15.75 7.23583 15.5754 6.41689 15.2362C5.59794 14.897 4.85382 14.3998 4.22703 13.773C3.60023 13.1462 3.10303 12.4021 2.76381 11.5831C2.42459 10.7642 2.25 9.88642 2.25 9C2.25 7.20979 2.96116 5.4929 4.22703 4.22703C5.4929 2.96116 7.20979 2.25 9 2.25C10.7902 2.25 12.5071 2.96116 13.773 4.22703C15.0388 5.4929 15.75 7.20979 15.75 9Z"
+                              stroke="#64748B"
+                              strokeWidth="1.125"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          <span>{booking.time}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="right">
+                      {formSubmissions[booking._id] && (
+                        <button
+                          className="booking-form-icon-btn"
+                          onClick={() => {
+                            setSelectedFormSubmission(formSubmissions[booking._id]);
+                            setSelectedBookingId(booking._id);
+                            setShowFormModal(true);
+                            setDownloadState('idle');
+                          }}
+                          title="View form"
+                        >
+                          <FormIcon />
+                        </button>
+                      )}
+                      {booking.notes && booking.notes.trim() && (
+                        <button
+                          className="booking-message-icon-btn"
+                          onClick={() => {
+                            setSelectedComment(booking.notes);
+                            setShowCommentModal(true);
+                          }}
+                          title="View comment"
+                        >
+                          <MessageIcon />
+                        </button>
+                      )}
+                      <ActionMenu
+                        items={[
+                          {
+                            label: "View",
+                            icon: <FaEye />,
+                            onClick: () => {
+                              setSelectedBooking(booking);
+                              setModalMode("view");
+                              setShowAddAppointmentModal(true);
+                            },
+                          },
+                          {
+                            label: "Edit",
+                            icon: <FaEdit />,
+                            onClick: () => {
+                              setSelectedBooking(booking);
+                              setModalMode("edit");
+                              setShowAddAppointmentModal(true);
+                            },
+                          },
+                          {
+                            label: "Delete",
+                            icon: <RiDeleteBin5Line />,
+                            onClick: () => {
+                              setBookingToDelete(booking);
+                              setShowDeleteModal(true);
+                            },
+                          },
+                        ]}
+                      />
+                    </div>
+                  </div>
+                    ))}
+                  </>
+                )}
+
+                {/* Show message if no bookings */}
+                {(!bookingsForList.upcoming || bookingsForList.upcoming.length === 0) && 
+                 (!bookingsForList.past || bookingsForList.past.length === 0) && (
+                  <div className="no-bookings-message">
+                    <p>No bookings found.</p>
+                  </div>
+                )}
               </div>
             )}
             {showBookingCalendar && (
@@ -800,17 +966,6 @@ const BookingsPage = () => {
                   initialView={searchParams.get('dayView') === 'true' ? 'day' : null}
                   focusBookingId={searchParams.get('bookingId') || null}
                 />
-              </div>
-            )}
-
-            {showBookingList && bookingsForList.length === 0 && (
-              <div className="no-appointment-con">
-                <div className="content">
-                  <h4>No appointments yet</h4>
-                  <p>
-                    Your appointments will appear here once customers start booking.
-                  </p>
-                </div>
               </div>
             )}
           </>
@@ -996,7 +1151,10 @@ const BookingsPage = () => {
               <div className="booking-form-modal-list">
                 {selectedFormSubmission.intakeForm?.fields?.map((field, index) => {
                   const questionText = field?.question || field?.label || field?.title || `Question ${index + 1}`;
-                  const response = selectedFormSubmission.responses?.find(r => r.fieldId === field.id);
+                  const responses = Array.isArray(selectedFormSubmission.responses) 
+                    ? selectedFormSubmission.responses 
+                    : [];
+                  const response = responses.find(r => r.fieldId === field.id);
                   const answerValue = response?.answer;
                   const fileUrls = response?.fileUrls;
 

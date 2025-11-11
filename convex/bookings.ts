@@ -120,6 +120,8 @@ export const create = mutation({
     status: v.optional(v.string()),
     notes: v.optional(v.string()),
     bookingToken: v.string(),
+    eventUrl: v.optional(v.string()),
+    formSessionId: v.optional(v.string()),
     googleCalendarEventId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -134,6 +136,8 @@ export const create = mutation({
       status: args.status ?? "confirmed",
       notes: args.notes,
       bookingToken: args.bookingToken,
+      eventUrl: args.eventUrl,
+      formSessionId: args.formSessionId,
       googleCalendarEventId: args.googleCalendarEventId,
     });
   },

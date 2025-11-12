@@ -56,10 +56,12 @@ export const update = mutation({
   },
   handler: async (ctx, { id, updates }) => {
     // Prepare patch data - filter out null/undefined values
+    // Note: boolean false should be included, only null/undefined are filtered
     const patchData: any = {};
     
     for (const [key, value] of Object.entries(updates)) {
-      // Skip null values - we'll handle intakeFormId separately if it's null
+      // Skip null/undefined values - we'll handle intakeFormId separately if it's null
+      // Boolean false is a valid value and should be included
       if (value !== undefined && value !== null) {
         patchData[key] = value;
       }
@@ -107,5 +109,22 @@ export const deleteAppointmentType = mutation({
   handler: async (ctx, { id }) => {
     await ctx.db.delete(id);
     return true;
+  },
+});
+
+export const setAllInactiveForUser = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const appointmentTypes = await ctx.db
+      .query("appointmentTypes")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+    
+    // Set all appointment types to inactive
+    for (const appointmentType of appointmentTypes) {
+      await ctx.db.patch(appointmentType._id, { isActive: false });
+    }
+    
+    return appointmentTypes.length;
   },
 });

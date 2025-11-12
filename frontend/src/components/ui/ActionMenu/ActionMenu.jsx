@@ -27,8 +27,9 @@ const ActionMenu = ({ items = [] }) => {
           {items.map((item, idx) => (
             <div 
               key={idx} 
-              className="action-item" 
+              className={`action-item ${item.disabled ? 'action-item-disabled' : ''}`}
               onClick={() => {
+                if (item.disabled) return;
                 setOpen(false);
                 item.onClick();
               }}

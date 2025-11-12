@@ -867,7 +867,7 @@
 }
 
 .booking-steps-container .powered-by-button:hover {
-  background-color: #0041C7;
+  background-color: color-mix(in srgb, var(--main-color) 90%, black);
   transform: translateY(-1px);
 }
 

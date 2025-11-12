@@ -72,7 +72,7 @@
 
 .powered-by-daywise {
   padding: 4px 8px;
-  background: color-mix(in srgb, var(--main-color) 2%, transparent);
+  background: var(--main-color);
   border-radius: 20px;
   font-family: 'Inter', sans-serif;
   font-weight: 500;
@@ -80,6 +80,12 @@
   line-height: 16px;
   color: #FFFFFF;
   display: inline-block;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.powered-by-daywise:hover {
+  background: color-mix(in srgb, var(--main-color) 90%, black);
 }
 
 .booking-details {

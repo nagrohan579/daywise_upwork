@@ -18,28 +18,54 @@
   right: 0;
   top: 100%;
   margin-top: 4px;
-  min-width: 160px;
+  min-width: 200px;
+  width: 200px;
   background: #fff;
-  border: 1px solid #E0E9FE;
-  border-radius: 8px;
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   z-index: 999;
-  padding: 6px 0;
+  padding: 5px 0px;
+  box-sizing: border-box;
 }
 
 .action-item {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  font-size: 14px;
+  padding: 6px 12px;
+  gap: 7px;
+  width: 200px;
+  height: 30px;
+  border-radius: 14px;
+  flex: none;
+  order: 0;
+  align-self: stretch;
+  flex-grow: 0;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  text-transform: capitalize;
   color: #64748B;
   cursor: pointer;
   transition: background 0.2s ease;
+  box-sizing: border-box;
 }
 
 .action-item:hover {
   background: #f5f8ff;
+}
+
+.action-item-disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+}
+
+.action-item-disabled:hover {
+  background: #f5f8ff;
+  opacity: 0.6;
 }
 
 .action-icon {

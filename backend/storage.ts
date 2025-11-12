@@ -244,6 +244,12 @@ export const storage = {
     });
   },
 
+  async setAllAppointmentTypesInactiveForUser(userId: string) {
+    return await convex.mutation(api.appointmentTypes.setAllInactiveForUser, {
+      userId: userId as Id<"users">,
+    });
+  },
+
   // Availability patterns operations
   async getAvailabilityPatternsByUser(userId: string) {
     return await convex.query(api.availability.getPatternsByUser, {

@@ -4309,6 +4309,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Honor query userId for public booking, else use session or demo
       const userId = req.query.userId as string || (req.session as any)?.userId || "demo-user-id";
       const appointmentTypes = await storage.getAppointmentTypesByUser(userId);
+      
+      // Check if user is on free plan and has more than 1 service
+      // Only set all to inactive if there are multiple active services (violates free plan limit)
+      const features = await getUserFeatures(userId);
+      if (features.appointmentTypeLimit === 1 && appointmentTypes.length > 1) {
+        const activeServices = appointmentTypes.filter(at => at.isActive);
+        // Only deactivate all if there are multiple active services
+        if (activeServices.length > 1) {
+          await storage.setAllAppointmentTypesInactiveForUser(userId);
+          // Fetch updated appointment types
+          const updatedAppointmentTypes = await storage.getAppointmentTypesByUser(userId);
+          return res.json(updatedAppointmentTypes);
+        }
+      }
+      
       res.json(appointmentTypes);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch appointment types", error: error instanceof Error ? error.message : "Unknown error" });

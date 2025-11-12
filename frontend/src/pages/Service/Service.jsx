@@ -22,6 +22,8 @@ const Service = () => {
   const [appointmentTypes, setAppointmentTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [appointmentTypeLimit, setAppointmentTypeLimit] = useState(null); // null = unlimited
+  const [showTopWarning, setShowTopWarning] = useState(true); // For dismissing top warning banner
+  const [togglingServiceId, setTogglingServiceId] = useState(null); // Track which service is being toggled
 
   // Fetch current user
   useEffect(() => {
@@ -138,9 +140,123 @@ const Service = () => {
     }
   };
 
+  const handleToggleActive = async (service) => {
+    // Check if user is on free plan and trying to activate a service
+    if (appointmentTypeLimit === 1 && !service.isActive) {
+      // Check if there's already an active service
+      const activeServices = appointmentTypes.filter(s => s.isActive && s._id !== service._id);
+      if (activeServices.length > 0) {
+        toast.error("Toggle disable one of the active services to activate or upgrade to pro");
+        return;
+      }
+    }
+
+    // Set loading state immediately
+    setTogglingServiceId(service._id);
+
+    // Store original state for potential revert
+    const originalServices = [...appointmentTypes];
+    
+    // Optimistically update the UI
+    const updatedServices = appointmentTypes.map(s => {
+      if (s._id === service._id) {
+        return { ...s, isActive: !s.isActive };
+      }
+      // If activating on free plan, deactivate all others
+      if (appointmentTypeLimit === 1 && !service.isActive && s.isActive) {
+        return { ...s, isActive: false };
+      }
+      return s;
+    });
+    setAppointmentTypes(updatedServices);
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const updateData = { isActive: !service.isActive };
+      console.log('Toggling service:', service._id, 'to', updateData.isActive);
+      
+      const response = await fetch(`${apiUrl}/api/appointment-types/${service._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(updateData),
+      });
+
+      console.log('Toggle response status:', response.status);
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Toggle response data:', result);
+        // If activating on free plan, deactivate all other services
+        if (appointmentTypeLimit === 1 && !service.isActive) {
+          // Use the updated services list to find other active services
+          const otherActiveServices = updatedServices.filter(s => s.isActive && s._id !== service._id);
+          for (const otherService of otherActiveServices) {
+            await fetch(`${apiUrl}/api/appointment-types/${otherService._id}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+              body: JSON.stringify({
+                isActive: false,
+              }),
+            });
+          }
+        }
+        // Refresh the list to ensure consistency
+        await fetchAppointmentTypes();
+      } else {
+        // Revert optimistic update on error
+        setAppointmentTypes(originalServices);
+        const errorData = await response.json();
+        toast.error(errorData.message || "Failed to update service");
+      }
+    } catch (error) {
+      // Revert optimistic update on error
+      setAppointmentTypes(originalServices);
+      console.error('Error toggling service:', error);
+      toast.error("Failed to update service");
+    } finally {
+      setTogglingServiceId(null);
+    }
+  };
+
+  // Check if user is on free plan with more than 1 service
+  const isFreePlanWithMultipleServices = appointmentTypeLimit === 1 && appointmentTypes.length > 1;
+  
+  // Check if there's an active service (for free plan)
+  const hasActiveService = appointmentTypes.some(s => s.isActive);
+
   return (
     <AppLayout>
       <div className="service-page">
+        {/* Top Warning Banner */}
+        {isFreePlanWithMultipleServices && showTopWarning && (
+          <div className="service-top-warning-banner">
+            <div className="service-warning-content">
+              <div className="service-warning-icon">
+                <svg width="16" height="14" viewBox="0 0 21 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path fillRule="evenodd" clipRule="evenodd" d="M7.76007 1.5C8.91507 -0.5 11.8031 -0.5 12.9571 1.5L20.3121 14.248C21.4661 16.248 20.0221 18.748 17.7131 18.748H3.00407C0.695065 18.748 -0.747935 16.248 0.406065 14.248L7.75907 1.5H7.76007ZM10.3591 6.747C10.558 6.747 10.7487 6.82602 10.8894 6.96667C11.03 7.10732 11.1091 7.29809 11.1091 7.497V11.247C11.1091 11.4459 11.03 11.6367 10.8894 11.7773C10.7487 11.918 10.558 11.997 10.3591 11.997C10.1602 11.997 9.96939 11.918 9.82874 11.7773C9.68808 11.6367 9.60907 11.4459 9.60907 11.247V7.497C9.60907 7.29809 9.68808 7.10732 9.82874 6.96667C9.96939 6.82602 10.1602 6.747 10.3591 6.747ZM10.3591 14.997C10.558 14.997 10.7487 14.918 10.8894 14.7773C11.03 14.6367 11.1091 14.4459 11.1091 14.247C11.1091 14.0481 11.03 13.8573 10.8894 13.7167C10.7487 13.576 10.558 13.497 10.3591 13.497C10.1602 13.497 9.96939 13.576 9.82874 13.7167C9.68808 13.8573 9.60907 14.0481 9.60907 14.247C9.60907 14.4459 9.68808 14.6367 9.82874 14.7773C9.96939 14.918 10.1602 14.997 10.3591 14.997Z" fill="white"/>
+                </svg>
+              </div>
+              <p className="service-warning-text">
+                You've switched to the Free Plan. All services are inactive. Activate one service to continue accepting bookings.
+              </p>
+            </div>
+            <button
+              className="service-warning-close"
+              onClick={() => setShowTopWarning(false)}
+            >
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0.5625 9.5625L9.5625 0.5625M0.5625 0.5625L9.5625 9.5625" stroke="white" strokeWidth="1.125" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        )}
+
         <div className="top-con">
           <h1>
             <svg
@@ -179,7 +295,7 @@ const Service = () => {
               onClick={handleAddNew}
             />
             {appointmentTypeLimit !== null && (
-              <p className="service-limit-text">
+              <p className={`service-limit-text ${isFreePlanWithMultipleServices ? 'service-limit-text-over-limit' : ''}`}>
                 <strong>{appointmentTypes.length} of {appointmentTypeLimit}</strong> Services/appointments added. Upgrade to add more.
               </p>
             )}
@@ -199,9 +315,24 @@ const Service = () => {
             </div>
           </div>
         ) : (
-          <div className="servies-card-list">
-            {appointmentTypes.map((service) => (
-              <div className="cardd" key={service._id}>
+          <>
+            <div className="servies-card-list">
+              {appointmentTypes.map((service) => {
+                const isGrayedOut = isFreePlanWithMultipleServices && !service.isActive;
+                const isToggling = togglingServiceId === service._id;
+                const canToggle = appointmentTypeLimit !== 1 || service.isActive || !hasActiveService;
+                
+                return (
+                <div 
+                  className={`cardd ${isGrayedOut ? 'service-grayed-out' : ''} ${isToggling ? 'service-toggling' : ''}`}
+                  key={service._id}
+                  style={{ position: 'relative' }}
+                >
+                  {isToggling && (
+                    <div className="service-card-loader-overlay">
+                      <div className="service-card-spinner"></div>
+                    </div>
+                  )}
                 <div className="top">
                   <div className="wrap">
                     <span
@@ -228,6 +359,22 @@ const Service = () => {
                         label: "Delete",
                         icon: <RiDeleteBin5Line />,
                         onClick: () => handleDeleteClick(service),
+                      },
+                      {
+                        label: service.isActive ? "Active" : "Inactive",
+                        icon: (
+                          <div className="service-toggle-switch">
+                            <div className={`service-toggle-slider ${service.isActive ? 'active' : ''}`} />
+                          </div>
+                        ),
+                        onClick: () => {
+                          if (!canToggle) {
+                            toast.error("Toggle disable one of the active services to activate or upgrade to pro");
+                            return;
+                          }
+                          handleToggleActive(service);
+                        },
+                        disabled: !canToggle,
                       },
                     ]}
                   />
@@ -264,8 +411,27 @@ const Service = () => {
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+
+            {/* Bottom Warning Section */}
+            {isFreePlanWithMultipleServices && (
+              <div className="service-bottom-warning">
+                <div className="service-bottom-warning-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V15H13V17ZM13 13H11V7H13V13Z"
+                      fill="#FA5151"
+                    />
+                  </svg>
+                </div>
+                <p className="service-bottom-warning-text">
+                  You've switched to the Free Plan. This plan allows 1 active service. All of your services are currently set to inactive. To start accepting bookings again, choose 1 service to activate.
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
 

@@ -358,7 +358,7 @@
 }
 
 .field-config-section + .field-config-section {
-  margin-top: 24px;
+  margin-top: 12px;
 }
 
 .field-config-header {
@@ -428,13 +428,32 @@
 .field-config-content {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 0px;
 }
 
 .field-config-item {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+/* Remove bottom margin from the question input field container */
+.field-config-content > .field-config-item:first-child .input-group-comp {
+  margin-bottom: 0px !important;
+}
+
+/* Add small spacing for the Required checkbox to look nice (4-6px gap from question input) */
+.field-config-content > .field-config-item:nth-child(2) {
+  margin-top: 6px;
+}
+
+.field-config-content > .field-config-item:nth-child(2) .checkbox-wrapper {
+  margin-top: 0px !important;
+}
+
+/* Add moderate spacing after Required checkbox to next section (15-20px gap) */
+.field-config-content > .field-config-item:nth-child(3) {
+  margin-top: 18px;
 }
 
 .field-config-label {
@@ -489,6 +508,14 @@
   gap: 8px;
 }
 
+/* Ensure input fields in dropdown options are properly aligned with buttons */
+.dropdown-option-item .input-group-comp {
+  margin-bottom: 0 !important;
+  flex: 0 1 auto;
+  width: 250px;
+  max-width: 250px;
+}
+
 .delete-option-btn {
   padding: 6px 14px;
   border: 1px solid #FEE2E2;
@@ -503,6 +530,10 @@
   transition: all 0.2s;
   white-space: nowrap;
   flex-shrink: 0;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .delete-option-btn:hover:not(:disabled) {
@@ -516,7 +547,7 @@
 }
 
 .add-option-btn {
-  padding: 6px 14px;
+  padding: 6px 20px;
   border: 1px solid #3B82F6;
   border-radius: 9999px;
   background: #3B82F6;
@@ -529,6 +560,10 @@
   transition: all 0.2s;
   white-space: nowrap;
   flex-shrink: 0;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .add-option-btn:hover {
@@ -595,6 +630,30 @@
   flex-direction: column;
 }
 
+/* Form Description Textarea - Remove blue border by default, show only on focus */
+.form-description-wrapper textarea,
+.form-description-wrapper .textarea-field {
+  border: 1px solid #E5E7EB !important;
+  outline: none !important;
+}
+
+.form-description-wrapper textarea:focus,
+.form-description-wrapper .textarea-field:focus {
+  border: 1px solid #3B82F6 !important;
+  outline: none !important;
+}
+
+/* Question Input Fields - Remove blue border by default, show only on focus */
+.field-config-item .input-group-comp .input-field {
+  border: 1px solid #E5E7EB !important;
+  outline: none !important;
+}
+
+.field-config-item .input-group-comp .input-field:focus {
+  border: 1px solid #3B82F6 !important;
+  outline: none !important;
+}
+
 .form-builder-preview {
   background: #FFFFFF;
   border: 1px solid #E5E7EB;
@@ -610,6 +669,15 @@
   font-size: 20px;
   line-height: 28px;
   color: #121212;
+  margin: 0 0 4px 0;
+}
+
+.preview-description {
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #64748B;
   margin: 0 0 16px 0;
 }
 

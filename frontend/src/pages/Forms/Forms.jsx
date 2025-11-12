@@ -58,10 +58,10 @@ const Forms = () => {
   // Fetch forms and user features together
   const fetchForms = async () => {
     if (!userId) return;
-
+    
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
+      
       // Fetch both in parallel
       const [formsResponse, featuresResponse] = await Promise.all([
         fetch(`${apiUrl}/api/intake-forms`, {
@@ -71,7 +71,7 @@ const Forms = () => {
           credentials: 'include',
         })
       ]);
-
+      
       if (formsResponse.ok) {
         const data = await formsResponse.json();
         setForms(data || []);
@@ -79,7 +79,7 @@ const Forms = () => {
         // If endpoint doesn't exist yet, just set empty array
         setForms([]);
       }
-
+      
       if (featuresResponse.ok) {
         const featuresData = await featuresResponse.json();
         // formLimit will be null for pro plan (unlimited), or a number for free tier
@@ -355,8 +355,8 @@ const Forms = () => {
       if (response.ok) {
         toast.success("Form deleted successfully");
         await fetchForms(); // Refresh forms list
-        setShowDeleteModal(false);
-        setFormToDelete(null);
+      setShowDeleteModal(false);
+      setFormToDelete(null);
       } else {
         const error = await response.json();
         toast.error(error.message || "Failed to delete form");
@@ -394,28 +394,28 @@ const Forms = () => {
         </div>
         {!loading && !refreshingForms && !showFormBuilder && (
           <>
-            <div className="add-new-btn-wrap">
-              <Button
-                text={isMobile ? "New" : "Add New"}
-                style={{
-                  width: isMobile ? "75px" : "",
-                  ...(formLimit !== null && forms.length >= formLimit ? {
-                    backgroundColor: '#64748B33',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: '#64748B80',
-                  } : {})
-                }}
-                icon={<FaPlus color={formLimit !== null && forms.length >= formLimit ? "#64748B80" : "#fff"} />}
-                variant="primary"
-                onClick={handleAddNew}
-              />
-              {formLimit !== null && (
-                <p className="forms-count-text">
+          <div className="add-new-btn-wrap">
+            <Button
+              text={isMobile ? "New" : "Add New"}
+              style={{
+                width: isMobile ? "75px" : "",
+                ...(formLimit !== null && forms.length >= formLimit ? {
+                  backgroundColor: '#64748B33',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#64748B80',
+                } : {})
+              }}
+              icon={<FaPlus color={formLimit !== null && forms.length >= formLimit ? "#64748B80" : "#fff"} />}
+              variant="primary"
+              onClick={handleAddNew}
+            />
+            {formLimit !== null && (
+              <p className="forms-count-text">
                   <strong>{forms.length} of {formLimit}</strong> forms added. Upgrade to add more.
-                </p>
-              )}
-            </div>
+              </p>
+            )}
+          </div>
           </>
         )}
         
@@ -423,8 +423,8 @@ const Forms = () => {
           <div className="form-builder-container">
             {(savingForm || loadingFormData) && (
               <div className="form-builder-loading-overlay">
-                <div className="forms-loading">
-                  <div className="forms-spinner"></div>
+          <div className="forms-loading">
+            <div className="forms-spinner"></div>
                   <p className="forms-loading-text">
                     {savingForm ? "Saving information..." : "Loading form data..."}
                   </p>
@@ -623,7 +623,6 @@ const Forms = () => {
                                 onChange={(e) => handleFieldUpdate(index, { question: e.target.value })}
                                 placeholder="Your question"
                                 style={{
-                                  border: '1px solid #3B82F6',
                                   borderRadius: '8px',
                                 }}
                               />
@@ -696,7 +695,6 @@ const Forms = () => {
                                 onChange={(e) => handleFieldUpdate(index, { question: e.target.value })}
                                 placeholder="Your question"
                                 style={{
-                                  border: '1px solid #3B82F6',
                                   borderRadius: '8px',
                                 }}
                               />
@@ -803,7 +801,6 @@ const Forms = () => {
                                 onChange={(e) => handleFieldUpdate(index, { question: e.target.value })}
                                 placeholder="Your question"
                                 style={{
-                                  border: '1px solid #3B82F6',
                                   borderRadius: '8px',
                                 }}
                               />
@@ -823,7 +820,6 @@ const Forms = () => {
                                 onChange={(e) => handleFieldUpdate(index, { checkboxLabel: e.target.value })}
                                 placeholder="I agree"
                                 style={{
-                                  border: '1px solid #3B82F6',
                                   borderRadius: '8px',
                                 }}
                               />
@@ -871,7 +867,6 @@ const Forms = () => {
                                 onChange={(e) => handleFieldUpdate(index, { question: e.target.value })}
                                 placeholder="Your question"
                                 style={{
-                                  border: '1px solid #3B82F6',
                                   borderRadius: '8px',
                                 }}
                               />
@@ -978,7 +973,6 @@ const Forms = () => {
                                 onChange={(e) => handleFieldUpdate(index, { question: e.target.value })}
                                 placeholder="Yes or No?"
                                 style={{
-                                  border: '1px solid #3B82F6',
                                   borderRadius: '8px',
                                 }}
                               />
@@ -990,17 +984,6 @@ const Forms = () => {
                                 checked={field.required}
                                 onChange={(e) => handleFieldUpdate(index, { required: e.target.checked })}
                               />
-                            </div>
-                            <div className="field-config-item">
-                              <p style={{
-                                fontFamily: 'Inter, sans-serif',
-                                fontSize: '14px',
-                                lineHeight: '20px',
-                                color: '#64748B',
-                                margin: 0,
-                              }}>
-                                No extra settings. Users will choose Yes or No.
-                              </p>
                             </div>
                           </div>
                         </div>
@@ -1045,7 +1028,6 @@ const Forms = () => {
                                 onChange={(e) => handleFieldUpdate(index, { question: e.target.value })}
                                 placeholder="Upload a file"
                                 style={{
-                                  border: '1px solid #3B82F6',
                                   borderRadius: '8px',
                                 }}
                               />
@@ -1057,17 +1039,6 @@ const Forms = () => {
                                 checked={field.required}
                                 onChange={(e) => handleFieldUpdate(index, { required: e.target.checked })}
                               />
-                            </div>
-                            <div className="field-config-item">
-                              <p style={{
-                                fontFamily: 'Inter, sans-serif',
-                                fontSize: '14px',
-                                lineHeight: '20px',
-                                color: '#64748B',
-                                margin: 0,
-                              }}>
-                                No extra settings.
-                              </p>
                             </div>
                           </div>
                         </div>
@@ -1096,6 +1067,11 @@ const Forms = () => {
                       ? "Untitled Form" 
                       : formName}
                   </h3>
+                  {formDescription && formDescription.trim() !== "" && (
+                    <p className="preview-description">
+                      {formDescription}
+                    </p>
+                  )}
                   {formFields.length === 0 ? (
                     <p className="preview-placeholder">Your questions will appear here.</p>
                   ) : (
@@ -1406,6 +1382,11 @@ const Forms = () => {
                     ? "Untitled Form" 
                     : formName}
                 </h3>
+                {formDescription && formDescription.trim() !== "" && (
+                  <p className="preview-description">
+                    {formDescription}
+                  </p>
+                )}
                 {formFields.length === 0 ? (
                   <p className="preview-placeholder">Your questions will appear here.</p>
                 ) : (
@@ -1421,7 +1402,7 @@ const Forms = () => {
                             <Input
                               placeholder="Your answer"
                               disabled
-                              style={{
+          style={{
                                 backgroundColor: '#F9FAFB',
                                 border: '1px solid #E5E7EB',
                                 cursor: 'not-allowed',
@@ -1443,7 +1424,7 @@ const Forms = () => {
                         {field.type === "dropdown" && (
                           <div style={{ width: '100%' }}>
                             <select
-                              style={{
+            style={{
                                 width: '100%',
                                 padding: '10px 14px',
                                 backgroundColor: '#FFFFFF',
@@ -1480,7 +1461,7 @@ const Forms = () => {
                             <input
                               type="checkbox"
                               disabled
-                              style={{
+                style={{
                                 width: '20px',
                                 height: '20px',
                                 cursor: 'not-allowed',
@@ -1495,7 +1476,7 @@ const Forms = () => {
                             }}>
                               {field.checkboxLabel || "I agree"}
                             </span>
-                          </div>
+              </div>
                         )}
                         {field.type === "checkbox-list" && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1616,7 +1597,7 @@ const Forms = () => {
                                   lineHeight: '20px',
                                   color: '#121212',
                                   border: '1px solid #3B82F6',
-                                  borderRadius: '8px',
+                borderRadius: '8px', 
                                   backgroundColor: '#F0F4FF',
                                   cursor: 'pointer',
                                 }}
@@ -1630,14 +1611,14 @@ const Forms = () => {
                               margin: 0,
                             }}>
                               accepted file types: PNG, JPG, HEIC, PDF.
-                            </p>
-                          </div>
+                </p>
+              </div>
                         )}
-                      </div>
+            </div>
                     ))}
                   </div>
                 )}
-                <Button
+              <Button
                   text="Submit (disabled in preview)"
                   variant="primary"
                   style={{
@@ -1669,14 +1650,14 @@ const Forms = () => {
           <div className="delete-modal-content">
             <button 
               className="delete-modal-close-btn"
-              onClick={() => {
+                onClick={() => {
                 if (!isDeleting) {
                   setShowDeleteModal(false);
                   setFormToDelete(null);
                 }
-              }}
-              disabled={isDeleting}
-              style={{ 
+                }}
+                disabled={isDeleting}
+                style={{
                 position: 'absolute',
                 right: '13px',
                 top: '13px',

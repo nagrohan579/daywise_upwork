@@ -237,11 +237,9 @@ const PublicBooking = () => {
 
           toast.success("Payment successful! Booking confirmed. Check your email for details.");
 
-          // Navigate to success step
-          // Check if there's an intake form from the booking data
-          const hasIntakeForm = result.appointmentType?.intakeFormId || bookingData.formSessionId;
-          const finalStep = hasIntakeForm ? 5 : 4;
-          setStep(finalStep);
+          // Always go to step 4 (success page) after payment
+          // The intake form was already filled before payment
+          setStep(4);
         } catch (error) {
           console.error("PublicBooking - Error completing booking after payment:", error);
           toast.error(error.message || "Failed to complete booking after payment");

@@ -216,14 +216,30 @@ const PublicBooking = () => {
             setBookingEventUrl(eventUrl);
           }
 
+          // Restore booking state from the bookingData
+          // Find the appointment type from the result or fetch it
+          if (result.appointmentType) {
+            setSelectedAppointmentType(result.appointmentType);
+          }
+
+          // Set the selected date and time from booking data
+          const appointmentDate = new Date(bookingData.appointmentDate);
+          setSelectedDate(appointmentDate);
+          setSelectedTime(appointmentDate.toISOString());
+
+          // Set customer details
+          setCustomerName(bookingData.customerName);
+          setCustomerEmail(bookingData.customerEmail);
+          setComments(bookingData.notes || '');
+
           // Clean URL
           window.history.replaceState({}, '', `/${slug}`);
-          
+
           toast.success("Payment successful! Booking confirmed. Check your email for details.");
-          
+
           // Navigate to success step
-          // Check if there's an intake form from the booking data or current state
-          const hasIntakeForm = selectedAppointmentType?.intakeFormId || bookingData.formSessionId;
+          // Check if there's an intake form from the booking data
+          const hasIntakeForm = result.appointmentType?.intakeFormId || bookingData.formSessionId;
           const finalStep = hasIntakeForm ? 5 : 4;
           setStep(finalStep);
         } catch (error) {

@@ -6326,10 +6326,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      return res.json({ 
-        message: "Booking created successfully", 
+      return res.json({
+        message: "Booking created successfully",
         booking,
-        paymentSessionId: sessionId 
+        appointmentType,
+        paymentSessionId: sessionId
       });
     } catch (error: any) {
       console.error('Error completing booking:', error);

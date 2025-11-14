@@ -81,6 +81,7 @@ export default defineSchema({
     isActive: v.boolean(),
     sortOrder: v.number(),
     intakeFormId: v.optional(v.id("intakeForms")),
+    requirePayment: v.optional(v.boolean()),
   })
     .index("by_userId", ["userId"])
     .index("by_userId_active", ["userId", "isActive"]),

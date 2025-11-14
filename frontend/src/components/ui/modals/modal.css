@@ -61,6 +61,191 @@
   align-items: center;
 }
 
+/* Require Payment from Customers Section */
+.service-payment-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 5px;
+  width: 100%;
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+/* Free account - everything grayed out */
+.service-payment-free {
+  opacity: 0.4;
+}
+
+/* Pro plan without Stripe - only toggle wrapper disabled */
+.service-payment-no-stripe .service-payment-toggle-wrapper {
+  opacity: 0.6;
+}
+
+.service-payment-no-stripe .service-payment-toggle-wrapper:hover {
+  cursor: not-allowed;
+}
+
+.service-payment-free .service-payment-toggle-wrapper:hover {
+  cursor: not-allowed;
+}
+
+.service-payment-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 5px;
+  width: 100%;
+  min-height: 46px; /* Default height for pro + stripe (no tooltip) */
+}
+
+.service-payment-free .service-payment-content {
+  height: 67px; /* Height for free account (with tooltip) */
+}
+
+.service-payment-no-stripe .service-payment-content {
+  height: 67px; /* Height for pro without stripe (with tooltip) */
+}
+
+.service-payment-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 5px;
+  width: 100%;
+}
+
+.service-payment-title {
+  width: 100%;
+  height: 20px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  color: #121212;
+  margin: 0;
+}
+
+.service-payment-tooltip {
+  width: 100%;
+  min-height: 16px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  display: flex;
+  align-items: center;
+  color: #64748B;
+  margin: 0;
+}
+
+/* Hide tooltip when empty (pro + stripe connected) */
+.service-payment-tooltip:empty {
+  display: none;
+}
+
+.service-payment-toggle-wrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0px;
+  gap: 8px;
+  width: 96px;
+  height: 21px;
+  margin-top: 0;
+}
+
+.service-payment-toggle-label {
+  width: 17px;
+  height: 16px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  display: flex;
+  align-items: center;
+  text-align: right;
+  color: #64748B;
+}
+
+/* When toggle is inactive and enabled (pro + stripe) - "No" label */
+.service-payment-section:not(.service-payment-free):not(.service-payment-no-stripe) .service-payment-toggle-wrapper .service-payment-toggle-label:first-of-type {
+  color: rgba(100, 116, 139, 0.2);
+}
+
+/* When toggle is active and enabled (pro + stripe) - "Yes" label */
+.service-payment-section:not(.service-payment-free):not(.service-payment-no-stripe) .service-payment-toggle-wrapper .service-payment-toggle-label:last-of-type {
+  color: #64748B;
+}
+
+.service-payment-toggle-label-active {
+  color: #64748B;
+}
+
+.service-payment-toggle {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 21px;
+  background: #64748B;
+  border-radius: 32.3077px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.service-payment-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.service-payment-toggle-slider {
+  position: absolute;
+  box-sizing: border-box;
+  width: 21px;
+  height: 21px;
+  left: 0px;
+  top: 0px;
+  background: #F9FAFF;
+  border: 0.807692px solid #64748B;
+  border-radius: 50%;
+  transition: transform 0.3s, border-color 0.3s;
+}
+
+.service-payment-toggle-active {
+  background: #0053F1;
+}
+
+.service-payment-toggle-active .service-payment-toggle-slider {
+  transform: translateX(21px);
+  border-color: #0053F1;
+}
+
+.service-payment-toggle-disabled {
+  cursor: not-allowed;
+}
+
+.service-payment-toggle-disabled:hover {
+  cursor: not-allowed;
+}
+
+.service-payment-toggle-disabled .service-payment-toggle-slider {
+  cursor: not-allowed;
+}
+
+.service-payment-toggle-disabled:hover .service-payment-toggle-slider {
+  cursor: not-allowed;
+}
+
 /* Change Email Modal */
 .changeEmailModal .modal-header {
   display: flex;

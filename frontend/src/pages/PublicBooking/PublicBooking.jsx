@@ -163,6 +163,91 @@ const PublicBooking = () => {
     console.log('PublicBooking - Customer country auto-detected:', location.country);
   }, []);
 
+  // Handle Stripe payment callbacks
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment');
+    const sessionId = params.get('session_id');
+
+    if (paymentStatus === 'success' && sessionId) {
+      // Payment successful, complete the booking
+      const handlePaymentSuccess = async () => {
+        try {
+          const pendingBooking = sessionStorage.getItem('pendingBooking');
+          const storedSessionId = sessionStorage.getItem('checkoutSessionId');
+
+          if (!pendingBooking || !storedSessionId) {
+            toast.error("Booking data not found. Please try again.");
+            window.location.href = `/${slug}`;
+            return;
+          }
+
+          const bookingData = JSON.parse(pendingBooking);
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+          // Complete the booking
+          const response = await fetch(`${apiUrl}/api/public-bookings/complete`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              sessionId: storedSessionId,
+              bookingData,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to complete booking');
+          }
+
+          const result = await response.json();
+          console.log("PublicBooking - Booking completed after payment:", result);
+
+          // Clean up sessionStorage
+          sessionStorage.removeItem('pendingBooking');
+          sessionStorage.removeItem('checkoutSessionId');
+
+          // Store the event URL for the "View Details" button
+          if (result.booking && result.booking.bookingToken) {
+            const frontendUrl = import.meta.env.VITE_FRONTEND_URL || 'http://localhost:5173';
+            const eventUrl = `${frontendUrl}/event/${result.booking.bookingToken}`;
+            setBookingEventUrl(eventUrl);
+          }
+
+          // Clean URL
+          window.history.replaceState({}, '', `/${slug}`);
+          
+          toast.success("Payment successful! Booking confirmed. Check your email for details.");
+          
+          // Navigate to success step
+          // Check if there's an intake form from the booking data or current state
+          const hasIntakeForm = selectedAppointmentType?.intakeFormId || bookingData.formSessionId;
+          const finalStep = hasIntakeForm ? 5 : 4;
+          setStep(finalStep);
+        } catch (error) {
+          console.error("PublicBooking - Error completing booking after payment:", error);
+          toast.error(error.message || "Failed to complete booking after payment");
+          // Clean up and refresh
+          sessionStorage.removeItem('pendingBooking');
+          sessionStorage.removeItem('checkoutSessionId');
+          window.location.href = `/${slug}`;
+        }
+      };
+
+      handlePaymentSuccess();
+    } else if (paymentStatus === 'canceled') {
+      // Payment canceled
+      toast.error("Payment was canceled. Please try again.");
+      // Clean up sessionStorage
+      sessionStorage.removeItem('pendingBooking');
+      sessionStorage.removeItem('checkoutSessionId');
+      // Clean URL and refresh
+      window.location.href = `/${slug}`;
+    }
+  }, [slug]);
+
   useEffect(() => {
     if (!slug) {
       toast.error("Invalid booking link");
@@ -436,7 +521,7 @@ const PublicBooking = () => {
                Math.random().toString(36).substring(2, 15);
       };
 
-      // Create booking using API endpoint (like AddAppointmentModal but without session)
+      // Create booking payload
       const bookingPayload = {
         userId: userData.id,
         appointmentTypeId: selectedAppointmentType._id,
@@ -451,6 +536,40 @@ const PublicBooking = () => {
         ...(formSessionId && { formSessionId }), // Include formSessionId only if it exists
       };
 
+      // Check if payment is required
+      if (selectedAppointmentType.requirePayment) {
+        console.log("PublicBooking - Payment required, redirecting to Stripe checkout");
+        
+        // Create Stripe checkout session
+        const checkoutResponse = await fetch(`${apiUrl}/api/public-bookings/checkout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: userData.id,
+            appointmentTypeId: selectedAppointmentType._id,
+            bookingData: bookingPayload,
+          }),
+        });
+
+        if (!checkoutResponse.ok) {
+          const errorData = await checkoutResponse.json();
+          throw new Error(errorData.message || 'Failed to create checkout session');
+        }
+
+        const checkoutData = await checkoutResponse.json();
+        
+        // Store booking data in sessionStorage for after payment
+        sessionStorage.setItem('pendingBooking', JSON.stringify(bookingPayload));
+        sessionStorage.setItem('checkoutSessionId', checkoutData.sessionId);
+        
+        // Redirect to Stripe checkout
+        window.location.href = checkoutData.url;
+        return; // Don't continue with normal booking flow
+      }
+
+      // No payment required, proceed with normal booking creation
       console.log("PublicBooking - Creating booking with payload:", bookingPayload);
 
       const response = await fetch(`${apiUrl}/api/public-bookings`, {

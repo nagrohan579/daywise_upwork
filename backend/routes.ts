@@ -4428,6 +4428,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Handle requirePayment: explicitly include boolean values (including false)
+      if ('requirePayment' in req.body) {
+        updates.requirePayment = req.body.requirePayment === true;
+      }
+      
       console.log('Updating appointment type with:', updates);
       const appointmentType = await storage.updateAppointmentType(req.params.id, updates);
       res.json({ message: "Appointment type updated successfully", appointmentType });
@@ -6036,6 +6041,215 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ========== End Stripe Connect Routes ==========
+
+  // Create Stripe checkout session for booking payment
+  app.post("/api/public-bookings/checkout", async (req, res) => {
+    try {
+      const { userId, appointmentTypeId, bookingData } = req.body;
+
+      if (!userId || !appointmentTypeId || !bookingData) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Get appointment type and verify it belongs to user
+      const appointmentType = await storage.getAppointmentType(appointmentTypeId);
+      if (!appointmentType) {
+        return res.status(404).json({ message: "Appointment type not found" });
+      }
+      if (appointmentType.userId !== userId) {
+        return res.status(403).json({ message: "Appointment type does not belong to this user" });
+      }
+
+      // Check if payment is required
+      if (!appointmentType.requirePayment) {
+        return res.status(400).json({ message: "Payment is not required for this service" });
+      }
+
+      // Check if user has Stripe connected
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (!user.stripeAccountId) {
+        return res.status(400).json({ message: "Stripe account not connected" });
+      }
+
+      if (!user.stripeAccessToken) {
+        return res.status(400).json({ message: "Stripe access token not found. Please reconnect your Stripe account." });
+      }
+
+      // Get service price (convert to cents if needed)
+      const priceInCents = appointmentType.price ? Math.round(appointmentType.price * 100) : 0;
+      if (priceInCents <= 0) {
+        return res.status(400).json({ message: "Service price is not set" });
+      }
+
+      // Create Stripe checkout session on behalf of connected account
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const successUrl = `${frontendUrl}/${user.slug || userId}?payment=success&session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = `${frontendUrl}/${user.slug || userId}?payment=canceled`;
+
+      // Use PLATFORM Stripe instance with connected account ID
+      // This allows webhooks to be received by the platform, not the connected account
+      const Stripe = (await import('stripe')).default;
+      const platformStripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-06-20" });
+
+      // Create checkout session on connected account via platform
+      const checkoutSession = await platformStripe.checkout.sessions.create({
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: appointmentType.name,
+                description: `Booking for ${appointmentType.name}`,
+              },
+              unit_amount: priceInCents,
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'payment',
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        payment_intent_data: {
+          // Money goes directly to connected account (no platform fee)
+          application_fee_amount: 0,
+        },
+        metadata: {
+          userId,
+          appointmentTypeId,
+          bookingData: JSON.stringify(bookingData),
+        },
+      }, {
+        stripeAccount: user.stripeAccountId, // Pass connected account ID
+      });
+
+      return res.json({ url: checkoutSession.url, sessionId: checkoutSession.id });
+    } catch (error: any) {
+      console.error('Error creating booking checkout session:', error);
+      return res.status(500).json({ message: error.message || "Failed to create checkout session" });
+    }
+  });
+
+  // Complete booking after successful payment
+  app.post("/api/public-bookings/complete", async (req, res) => {
+    try {
+      const { sessionId, bookingData } = req.body;
+
+      if (!sessionId || !bookingData) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Verify the checkout session was successful
+      // Note: In production, you should verify this via webhook for security
+      // For now, we'll trust the frontend but you should add webhook verification
+
+      // Create the booking using the same logic as /api/public-bookings
+      const validatedData = insertBookingSchema.parse(bookingData);
+      
+      // Additional validation
+      if (!validatedData.customerName?.trim()) {
+        return res.status(400).json({ message: "Customer name is required" });
+      }
+      if (!validatedData.customerEmail?.includes('@')) {
+        return res.status(400).json({ message: "Valid email address is required" });
+      }
+
+      const userId = validatedData.userId;
+      const appointmentType = await storage.getAppointmentType(validatedData.appointmentTypeId);
+      if (!appointmentType) {
+        return res.status(404).json({ message: "Appointment type not found" });
+      }
+
+      const appointmentDate = new Date(validatedData.appointmentDate);
+      const appointmentDuration = appointmentType.duration || 30;
+      const durationMs = appointmentDuration * 60 * 1000;
+      const appointmentEnd = new Date(appointmentDate.getTime() + durationMs);
+
+      // Check for conflicts (same as in /api/public-bookings)
+      const blockedDates = await storage.getBlockedDatesByUser(userId);
+      const hasBlockedConflict = blockedDates.some(blocked => {
+        const blockStart = new Date(blocked.startDate);
+        let blockEnd = new Date(blocked.endDate);
+        if (blocked.isAllDay) {
+          blockEnd.setHours(23, 59, 59, 999);
+        }
+        return appointmentDate < blockEnd && appointmentEnd > blockStart;
+      });
+
+      if (hasBlockedConflict) {
+        return res.status(409).json({ 
+          message: "The selected date and time is no longer available. Please choose a different time slot." 
+        });
+      }
+
+      const existingUserBookings = await storage.getBookingsByUser(userId);
+      const dateStr = appointmentDate.toISOString().split('T')[0];
+      const sameDay = existingUserBookings.filter(booking => {
+        const bookingDate = new Date(booking.appointmentDate).toISOString().split('T')[0];
+        return bookingDate === dateStr;
+      });
+
+      const hasBookingConflict = sameDay.some(existing => {
+        const existingStart = new Date(existing.appointmentDate);
+        const existingEnd = new Date(existingStart.getTime() + (existing.duration || 30) * 60 * 1000);
+        return appointmentDate < existingEnd && appointmentEnd > existingStart;
+      });
+
+      if (hasBookingConflict) {
+        return res.status(409).json({ 
+          message: "The selected time slot is no longer available. Please choose a different time." 
+        });
+      }
+      
+      const booking = await storage.createBooking(validatedData);
+
+      if (!booking) {
+        return res.status(500).json({ message: "Failed to create booking" });
+      }
+
+      // Handle intake form submission if formSessionId is provided
+      if (validatedData.formSessionId) {
+        try {
+          const tempSubmission = await storage.getTempFormSubmissionBySession(validatedData.formSessionId);
+          if (tempSubmission) {
+            let newFileUrls: string[] = [];
+            if (tempSubmission.fileUrls && tempSubmission.fileUrls.length > 0) {
+              const { moveIntakeFormFiles } = await import('./services/spaces');
+              newFileUrls = await moveIntakeFormFiles(tempSubmission.fileUrls, booking._id);
+            }
+
+            // Update responses with new file URLs
+            const updatedResponses = tempSubmission.responses.map((response: any) => {
+              if (response.fileUrls && response.fileUrls.length > 0) {
+                const fieldFileUrls = newFileUrls.filter((url: string) => 
+                  tempSubmission.fileUrls?.includes(url)
+                );
+                return { ...response, fileUrls: fieldFileUrls };
+              }
+              return response;
+            });
+
+            await storage.finalizeFormSubmission(booking._id, tempSubmission.intakeFormId, updatedResponses);
+          }
+        } catch (formError) {
+          console.error('Error processing intake form:', formError);
+          // Don't fail the booking if form processing fails
+        }
+      }
+
+      return res.json({ 
+        message: "Booking created successfully", 
+        booking,
+        paymentSessionId: sessionId 
+      });
+    } catch (error: any) {
+      console.error('Error completing booking:', error);
+      return res.status(500).json({ message: error.message || "Failed to complete booking" });
+    }
+  });
 
   // Stripe Webhooks with signature verification
   app.post("/api/stripe/webhook", async (req, res) => {

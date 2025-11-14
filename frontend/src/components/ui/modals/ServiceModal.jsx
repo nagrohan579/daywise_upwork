@@ -23,11 +23,14 @@ const ServicesModal = ({
     color: "#F19B11",
     isActive: true,
     intakeFormId: null,
+    requirePayment: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userId, setUserId] = useState(null);
   const [intakeForms, setIntakeForms] = useState([]);
   const [loadingIntakeForms, setLoadingIntakeForms] = useState(false);
+  const [userPlan, setUserPlan] = useState(null); // "free" or "pro"
+  const [isStripeConnected, setIsStripeConnected] = useState(false);
 
   // Get current user
   useEffect(() => {
@@ -48,29 +51,53 @@ const ServicesModal = ({
     fetchUser();
   }, []);
 
-  // Fetch intake forms when modal opens
+  // Fetch intake forms, user plan, and Stripe status when modal opens
   useEffect(() => {
-    const fetchIntakeForms = async () => {
+    const fetchData = async () => {
       if (!showServiceModal || !userId) return;
       
       setLoadingIntakeForms(true);
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        const response = await fetch(`${apiUrl}/api/intake-forms`, {
-          credentials: 'include',
-        });
-        if (response.ok) {
-          const data = await response.json();
+        
+        // Fetch all data in parallel
+        const [intakeFormsResponse, subscriptionResponse, stripeResponse] = await Promise.all([
+          fetch(`${apiUrl}/api/intake-forms`, {
+            credentials: 'include',
+          }),
+          fetch(`${apiUrl}/api/user-subscriptions/me`, {
+            credentials: 'include',
+          }),
+          fetch(`${apiUrl}/api/stripe/status`, {
+            credentials: 'include',
+          })
+        ]);
+        
+        if (intakeFormsResponse.ok) {
+          const data = await intakeFormsResponse.json();
           setIntakeForms(data || []);
         }
+        
+        if (subscriptionResponse.ok) {
+          const data = await subscriptionResponse.json();
+          const planId = data.subscription?.planId || "free";
+          setUserPlan(planId);
+        }
+        
+        if (stripeResponse.ok) {
+          const data = await stripeResponse.json();
+          setIsStripeConnected(data.isConnected || false);
+        }
       } catch (error) {
-        console.error('Error fetching intake forms:', error);
+        console.error('Error fetching data:', error);
         setIntakeForms([]);
+        setUserPlan("free");
+        setIsStripeConnected(false);
       } finally {
         setLoadingIntakeForms(false);
       }
     };
-    fetchIntakeForms();
+    fetchData();
   }, [showServiceModal, userId]);
 
   // Load selected service data when editing
@@ -85,6 +112,7 @@ const ServicesModal = ({
         color: selectedService.color || "#F19B11",
         isActive: selectedService.isActive ?? true,
         intakeFormId: selectedService.intakeFormId || null,
+        requirePayment: selectedService.requirePayment || false,
       });
     } else if (!isEdit) {
       // Reset form for create mode
@@ -97,6 +125,7 @@ const ServicesModal = ({
         color: "#F19B11",
         isActive: true,
         intakeFormId: null,
+        requirePayment: false,
       });
     }
   }, [isEdit, selectedService, showServiceModal]);
@@ -136,6 +165,7 @@ const ServicesModal = ({
           price: formData.price,
           color: formData.color,
           isActive: formData.isActive,
+          requirePayment: formData.requirePayment,
         };
         
         // Always include intakeFormId - send null to clear it, undefined if not set
@@ -172,6 +202,7 @@ const ServicesModal = ({
           price: formData.price,
           color: formData.color,
           isActive: formData.isActive,
+          requirePayment: formData.requirePayment,
         };
         
         // Only include intakeFormId if it has a value (not null/undefined)
@@ -208,6 +239,7 @@ const ServicesModal = ({
         color: "#F19B11",
         isActive: true,
         intakeFormId: null,
+        requirePayment: false,
       });
       setShowServiceModal(false);
 
@@ -315,6 +347,36 @@ const ServicesModal = ({
             checked={formData.isActive}
             onChange={(e) => handleInputChange('isActive', e.target.checked)}
           />
+
+          {/* Require Payment from Customers Section */}
+          <div className={`service-payment-section ${userPlan === "free" ? "service-payment-free" : !isStripeConnected ? "service-payment-no-stripe" : ""}`}>
+            <div className="service-payment-content">
+              <div className="service-payment-header">
+                <h4 className="service-payment-title">Require Payment from Customers</h4>
+                <p className="service-payment-tooltip">
+                  {userPlan === "free" 
+                    ? "Upgrade to a paid plan to charge customers"
+                    : !isStripeConnected
+                    ? "Connect to Stripe Payments in the 'Payments' tab to charge your customers"
+                    : ""
+                  }
+                </p>
+              </div>
+              <div className="service-payment-toggle-wrapper">
+                <span className="service-payment-toggle-label">No</span>
+                <label className={`service-payment-toggle ${formData.requirePayment ? "service-payment-toggle-active" : ""} ${(userPlan === "free" || !isStripeConnected) ? "service-payment-toggle-disabled" : ""}`}>
+                  <input
+                    type="checkbox"
+                    checked={formData.requirePayment}
+                    onChange={(e) => handleInputChange('requirePayment', e.target.checked)}
+                    disabled={userPlan === "free" || !isStripeConnected}
+                  />
+                  <span className="service-payment-toggle-slider"></span>
+                </label>
+                <span className={`service-payment-toggle-label ${formData.requirePayment ? "service-payment-toggle-label-active" : ""}`}>Yes</span>
+              </div>
+            </div>
+          </div>
 
           <div className="btn-wrap">
             <Button

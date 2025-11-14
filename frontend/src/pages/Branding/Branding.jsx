@@ -499,13 +499,56 @@ const Branding = () => {
     document.getElementById("logo-upload-input").click();
   };
 
+  // Helper function to fetch image as blob to avoid CORS issues
+  const fetchImageAsDataUrl = async (imageUrl) => {
+    // If it's already a data URL, return it
+    if (imageUrl.startsWith('data:')) {
+      return imageUrl;
+    }
+    
+    // Fetch through backend to avoid CORS issues
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    try {
+      // Use backend proxy endpoint to fetch image
+      const response = await fetch(`${apiUrl}/api/branding/proxy-image?imageUrl=${encodeURIComponent(imageUrl)}`, {
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch image');
+      }
+      
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Error fetching image through proxy:', error);
+      // Fallback: try direct fetch (may fail with CORS)
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+  };
+
   // Handle edit button click for logo
   const handleEditLogo = async () => {
     if (!logoUrl) return;
     
     try {
+      // Fetch image as data URL to avoid CORS issues
+      const imageDataUrl = await fetchImageAsDataUrl(logoUrl);
+      
       // Load the original image
-      setImage(logoUrl);
+      setImage(imageDataUrl);
       setAspect(undefined); // No aspect ratio for logo
       setShape('rect');
       
@@ -607,6 +650,8 @@ const Branding = () => {
     } catch (error) {
       console.error('Error saving logo:', error);
       toast.error(error.message || 'Failed to save logo');
+      // Re-throw error so ImageCropEditor can handle it
+      throw error;
     } finally {
       setLogoUploading(false);
     }
@@ -654,8 +699,11 @@ const Branding = () => {
     if (!profileUrl) return;
     
     try {
+      // Fetch image as data URL to avoid CORS issues
+      const imageDataUrl = await fetchImageAsDataUrl(profileUrl);
+      
       // Load the original image
-      setImage(profileUrl);
+      setImage(imageDataUrl);
       setAspect(1); // Square aspect ratio for profile picture
       setShape('round'); // Circular crop for profile
       
@@ -757,6 +805,8 @@ const Branding = () => {
     } catch (error) {
       console.error('Error saving profile picture:', error);
       toast.error(error.message || 'Failed to save profile picture');
+      // Re-throw error so ImageCropEditor can handle it
+      throw error;
     } finally {
       setProfileUploading(false);
     }

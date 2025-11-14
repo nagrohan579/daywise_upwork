@@ -27,15 +27,25 @@ const ImageCropEditor = ({
   } = useImageCropContext();
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Clear error when modal opens/closes or image changes
+  useEffect(() => {
+    if (show) {
+      setError(null);
+    }
+  }, [show, imageSrc]);
 
   const handleSave = async () => {
     if (!croppedAreaPixels) {
       console.warn('ImageCropEditor - No crop area selected');
+      setError('Please adjust the crop area before saving');
       return;
     }
 
     console.log('ImageCropEditor - Starting save, croppedAreaPixels:', croppedAreaPixels);
     setIsProcessing(true);
+    setError(null);
     try {
       const croppedFile = await getProcessedImage();
       
@@ -58,6 +68,7 @@ const ImageCropEditor = ({
       onClose();
     } catch (error) {
       console.error('ImageCropEditor - Error processing crop:', error);
+      setError(error.message || 'Failed to save image. Please try again.');
       // Don't close on error - let user try again
     } finally {
       setIsProcessing(false);
@@ -136,6 +147,19 @@ const ImageCropEditor = ({
             </div>
           </div>
         </div>
+        {error && (
+          <div style={{
+            marginTop: '16px',
+            padding: '12px',
+            backgroundColor: '#FEE2E2',
+            border: '1px solid #FCA5A5',
+            borderRadius: '4px',
+            color: '#DC2626',
+            fontSize: '14px'
+          }}>
+            {error}
+          </div>
+        )}
       </Modal.Body>
       <Modal.Footer>
         <Button
@@ -148,7 +172,7 @@ const ImageCropEditor = ({
           }}
         />
         <Button
-          text={isProcessing ? "Processing..." : "Save"}
+          text={isProcessing ? "Saving..." : "Save"}
           onClick={handleSave}
           disabled={isProcessing || !croppedAreaPixels}
         />

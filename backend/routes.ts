@@ -5100,6 +5100,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Proxy image endpoint - fetches image and returns with CORS headers to avoid CORS issues
+  app.get("/api/branding/proxy-image", async (req, res) => {
+    try {
+      const { imageUrl } = req.query;
+      
+      if (!imageUrl || typeof imageUrl !== 'string') {
+        return res.status(400).json({ message: 'imageUrl is required' });
+      }
+      
+      // Fetch the image
+      const imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) {
+        return res.status(404).json({ message: 'Image not found' });
+      }
+      
+      const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+      const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+      
+      // Set CORS headers
+      const origin = req.headers.origin || req.headers.referer?.split('/').slice(0, 3).join('/');
+      const allowedOrigins = process.env.NODE_ENV === 'production'
+        ? (process.env.FRONTEND_URL || '').split(',').filter(Boolean)
+        : ['http://localhost:5173', 'http://localhost:5174'];
+      
+      if (process.env.NODE_ENV !== 'production') {
+        res.setHeader('Access-Control-Allow-Origin', origin || 'http://localhost:5173');
+      } else if (origin && allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+      } else if (allowedOrigins.length > 0) {
+        res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]);
+      } else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+      }
+      
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      res.setHeader('Content-Type', contentType);
+      
+      res.send(imageBuffer);
+    } catch (error: any) {
+      console.error('Error proxying image:', error);
+      res.status(500).json({ message: 'Failed to proxy image', error: error.message });
+    }
+  });
+
   // Get cropped image - applies crop server-side to avoid CORS issues
   app.get("/api/branding/cropped-image", async (req, res) => {
     try {
@@ -5131,36 +5177,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('BACKEND - Processing crop:', { pixels, rotation });
       
-      // Fetch the image
-      const imageResponse = await fetch(imageUrl);
-      if (!imageResponse.ok) {
-        return res.status(404).json({ message: 'Image not found' });
+      // Fetch the image with error handling
+      let imageResponse;
+      try {
+        imageResponse = await fetch(imageUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; DaywiseBot/1.0)',
+          },
+        });
+        if (!imageResponse.ok) {
+          console.error('BACKEND - Failed to fetch image:', imageResponse.status, imageResponse.statusText);
+          return res.status(404).json({ message: 'Image not found' });
+        }
+      } catch (fetchError: any) {
+        console.error('BACKEND - Error fetching image:', fetchError);
+        return res.status(500).json({ message: 'Failed to fetch image', error: fetchError.message });
       }
       
-      const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
-      console.log('BACKEND - Image fetched, size:', imageBuffer.length);
-      
-      // Apply crop using sharp
-      // Note: croppedAreaPixels coordinates are in the original image's coordinate system
-      // So we extract first, then rotate the cropped result if needed
-      let sharpImage = sharp(imageBuffer);
-      
-      // Extract the crop area from the original image
-      let croppedImage = sharpImage.extract({
-        left: Math.max(0, Math.round(pixels.x)),
-        top: Math.max(0, Math.round(pixels.y)),
-        width: Math.round(pixels.width),
-        height: Math.round(pixels.height),
-      });
-      
-      // Apply rotation to the cropped result if needed
-      if (rotation !== 0) {
-        croppedImage = croppedImage.rotate(rotation);
+      let imageBuffer;
+      try {
+        imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+        console.log('BACKEND - Image fetched, size:', imageBuffer.length);
+      } catch (bufferError: any) {
+        console.error('BACKEND - Error converting image to buffer:', bufferError);
+        return res.status(500).json({ message: 'Failed to process image', error: bufferError.message });
       }
       
-      // Convert to PNG buffer
-      const croppedBuffer = await croppedImage.png().toBuffer();
-      console.log('BACKEND - Cropped image created, size:', croppedBuffer.length);
+      // Apply crop using sharp with error handling
+      let croppedBuffer;
+      try {
+        // Note: croppedAreaPixels coordinates are in the original image's coordinate system
+        // So we extract first, then rotate the cropped result if needed
+        let sharpImage = sharp(imageBuffer);
+        
+        // Get image metadata to validate crop bounds
+        const metadata = await sharpImage.metadata();
+        const imageWidth = metadata.width || 0;
+        const imageHeight = metadata.height || 0;
+        
+        // Validate and clamp crop coordinates
+        const cropLeft = Math.max(0, Math.min(Math.round(pixels.x), imageWidth - 1));
+        const cropTop = Math.max(0, Math.min(Math.round(pixels.y), imageHeight - 1));
+        const cropWidth = Math.max(1, Math.min(Math.round(pixels.width), imageWidth - cropLeft));
+        const cropHeight = Math.max(1, Math.min(Math.round(pixels.height), imageHeight - cropTop));
+        
+        console.log('BACKEND - Crop bounds:', {
+          original: { x: pixels.x, y: pixels.y, width: pixels.width, height: pixels.height },
+          clamped: { left: cropLeft, top: cropTop, width: cropWidth, height: cropHeight },
+          imageSize: { width: imageWidth, height: imageHeight }
+        });
+        
+        // Extract the crop area from the original image
+        let croppedImage = sharpImage.extract({
+          left: cropLeft,
+          top: cropTop,
+          width: cropWidth,
+          height: cropHeight,
+        });
+        
+        // Apply rotation to the cropped result if needed
+        if (rotation !== 0 && rotation !== 360) {
+          croppedImage = croppedImage.rotate(rotation);
+        }
+        
+        // Convert to PNG buffer (preserve original format if possible, but PNG is safe)
+        croppedBuffer = await croppedImage.png().toBuffer();
+        console.log('BACKEND - Cropped image created, size:', croppedBuffer.length);
+      } catch (sharpError: any) {
+        console.error('BACKEND - Error processing image with sharp:', sharpError);
+        return res.status(500).json({ message: 'Failed to process image crop', error: sharpError.message });
+      }
       
       // Set CORS headers BEFORE sending response
       const origin = req.headers.origin || req.headers.referer?.split('/').slice(0, 3).join('/');

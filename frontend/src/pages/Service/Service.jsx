@@ -229,12 +229,18 @@ const Service = () => {
   
   // Check if there's an active service (for free plan)
   const hasActiveService = appointmentTypes.some(s => s.isActive);
+  
+  // Count active services
+  const activeServiceCount = appointmentTypes.filter(s => s.isActive).length;
+  
+  // Show warnings only when: free plan + more than 1 service + (no active OR more than 1 active)
+  const shouldShowWarnings = isFreePlanWithMultipleServices && (activeServiceCount === 0 || activeServiceCount > 1);
 
   return (
     <AppLayout>
       <div className="service-page">
         {/* Top Warning Banner */}
-        {isFreePlanWithMultipleServices && showTopWarning && (
+        {shouldShowWarnings && showTopWarning && (
           <div className="service-top-warning-banner">
             <div className="service-warning-content">
               <div className="service-warning-icon">
@@ -318,9 +324,14 @@ const Service = () => {
           <>
             <div className="servies-card-list">
               {appointmentTypes.map((service) => {
+                // Gray out inactive services when on free plan with multiple services
                 const isGrayedOut = isFreePlanWithMultipleServices && !service.isActive;
                 const isToggling = togglingServiceId === service._id;
+                // Can toggle if: not on free plan, OR service is active, OR no active service yet
+                // On free plan with multiple services: can only activate if no other is active
                 const canToggle = appointmentTypeLimit !== 1 || service.isActive || !hasActiveService;
+                // Disable toggle for inactive services when another is already active (but still allow click for toast)
+                const isToggleDisabled = appointmentTypeLimit === 1 && !service.isActive && hasActiveService;
                 
                 return (
                 <div 
@@ -364,17 +375,21 @@ const Service = () => {
                         label: service.isActive ? "Active" : "Inactive",
                         icon: (
                           <div className="service-toggle-switch">
-                            <div className={`service-toggle-slider ${service.isActive ? 'active' : ''}`} />
+                            <div className={`service-toggle-slider ${service.isActive ? 'active' : ''} ${isToggleDisabled ? 'disabled' : ''}`} />
                           </div>
                         ),
                         onClick: () => {
+                          if (isToggleDisabled) {
+                            toast.error("Deactivate one of the active services or upgrade to Pro to activate this");
+                            return;
+                          }
                           if (!canToggle) {
                             toast.error("Toggle disable one of the active services to activate or upgrade to pro");
                             return;
                           }
                           handleToggleActive(service);
                         },
-                        disabled: !canToggle,
+                        disabled: isToggleDisabled,
                       },
                     ]}
                   />
@@ -416,7 +431,7 @@ const Service = () => {
             </div>
 
             {/* Bottom Warning Section */}
-            {isFreePlanWithMultipleServices && (
+            {shouldShowWarnings && (
               <div className="service-bottom-warning">
                 <div className="service-bottom-warning-icon">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">

@@ -35,6 +35,9 @@ const Forms = () => {
   const [savingForm, setSavingForm] = useState(false);
   const [loadingFormData, setLoadingFormData] = useState(false);
   const [refreshingForms, setRefreshingForms] = useState(false);
+  const [showTopWarning, setShowTopWarning] = useState(true); // For dismissing top warning banner
+  const [togglingFormId, setTogglingFormId] = useState(null); // Track which form is being toggled
+  const [openMenuId, setOpenMenuId] = useState(null); // Track which menu is open
 
   // Fetch current user
   useEffect(() => {
@@ -74,9 +77,11 @@ const Forms = () => {
       
       if (formsResponse.ok) {
         const data = await formsResponse.json();
+        console.log('Fetched forms:', data?.length, data);
         setForms(data || []);
       } else {
         // If endpoint doesn't exist yet, just set empty array
+        console.error('Failed to fetch forms:', formsResponse.status);
         setForms([]);
       }
       
@@ -369,10 +374,124 @@ const Forms = () => {
     }
   };
 
+  const handleToggleActive = async (form) => {
+    // Check if user is on free plan and trying to activate a form
+    if (formLimit === 1 && !form.isActive) {
+      // Check if there's already an active form
+      const activeForms = forms.filter(f => f.isActive && f._id !== form._id);
+      if (activeForms.length > 0) {
+        toast.error("Deactivate one of the active forms or upgrade to Pro to activate this");
+        return;
+      }
+    }
+
+    // Set loading state immediately
+    setTogglingFormId(form._id);
+
+    // Store original state for potential revert
+    const originalForms = [...forms];
+    
+    // Optimistically update the UI
+    const updatedForms = forms.map(f => {
+      if (f._id === form._id) {
+        return { ...f, isActive: !f.isActive };
+      }
+      // If activating on free plan, deactivate all others
+      if (formLimit === 1 && !form.isActive && f.isActive) {
+        return { ...f, isActive: false };
+      }
+      return f;
+    });
+    setForms(updatedForms);
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const updateData = { isActive: !form.isActive };
+      
+      const response = await fetch(`${apiUrl}/api/intake-forms/${form._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(updateData),
+      });
+      
+      if (response.ok) {
+        // If activating on free plan, deactivate all other forms
+        if (formLimit === 1 && !form.isActive) {
+          const otherActiveForms = updatedForms.filter(f => f.isActive && f._id !== form._id);
+          for (const otherForm of otherActiveForms) {
+            await fetch(`${apiUrl}/api/intake-forms/${otherForm._id}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+              body: JSON.stringify({
+                isActive: false,
+              }),
+            });
+          }
+        }
+        // Refresh the list to ensure consistency
+        await fetchForms();
+      } else {
+        // Revert optimistic update on error
+        setForms(originalForms);
+        const errorData = await response.json();
+        toast.error(errorData.message || "Failed to update form");
+      }
+    } catch (error) {
+      // Revert optimistic update on error
+      setForms(originalForms);
+      console.error('Error toggling form:', error);
+      toast.error("Failed to update form");
+    } finally {
+      setTogglingFormId(null);
+    }
+  };
+
+  // Check if user is on free plan with more than 1 form
+  const isFreePlanWithMultipleForms = formLimit === 1 && forms.length > 1;
+  
+  // Check if there's an active form (for free plan)
+  const hasActiveForm = forms.some(f => f.isActive);
+  
+  // Count active forms
+  const activeFormCount = forms.filter(f => f.isActive).length;
+  
+  // Show warnings only when: free plan + more than 1 form + (no active OR more than 1 active)
+  const shouldShowWarnings = isFreePlanWithMultipleForms && (activeFormCount === 0 || activeFormCount > 1);
+
   return (
     <AppLayout>
       <div className="forms-page">
-        <div className="top-con">
+        {/* Top Warning Banner */}
+        {shouldShowWarnings && showTopWarning && (
+          <div className="forms-top-warning-banner">
+            <div className="forms-warning-content">
+              <div className="forms-warning-icon">
+                <svg width="16" height="14" viewBox="0 0 21 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path fillRule="evenodd" clipRule="evenodd" d="M7.76007 1.5C8.91507 -0.5 11.8031 -0.5 12.9571 1.5L20.3121 14.248C21.4661 16.248 20.0221 18.748 17.7131 18.748H3.00407C0.695065 18.748 -0.747935 16.248 0.406065 14.248L7.75907 1.5H7.76007ZM10.3591 6.747C10.558 6.747 10.7487 6.82602 10.8894 6.96667C11.03 7.10732 11.1091 7.29809 11.1091 7.497V11.247C11.1091 11.4459 11.03 11.6367 10.8894 11.7773C10.7487 11.918 10.558 11.997 10.3591 11.997C10.1602 11.997 9.96939 11.918 9.82874 11.7773C9.68808 11.6367 9.60907 11.4459 9.60907 11.247V7.497C9.60907 7.29809 9.68808 7.10732 9.82874 6.96667C9.96939 6.82602 10.1602 6.747 10.3591 6.747ZM10.3591 14.997C10.558 14.997 10.7487 14.918 10.8894 14.7773C11.03 14.6367 11.1091 14.4459 11.1091 14.247C11.1091 14.0481 11.03 13.8573 10.8894 13.7167C10.7487 13.576 10.558 13.497 10.3591 13.497C10.1602 13.497 9.96939 13.576 9.82874 13.7167C9.68808 13.8573 9.60907 14.0481 9.60907 14.247C9.60907 14.4459 9.68808 14.6367 9.82874 14.7773C9.96939 14.918 10.1602 14.997 10.3591 14.997Z" fill="white"/>
+                </svg>
+              </div>
+              <p className="forms-warning-text">
+                You've switched to the Free Plan. All intake forms are inactive. Activate one intake form to continue accepting bookings.
+              </p>
+            </div>
+            <button
+              className="forms-warning-close"
+              onClick={() => setShowTopWarning(false)}
+            >
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0.5625 9.5625L9.5625 0.5625M0.5625 0.5625L9.5625 9.5625" stroke="white" strokeWidth="1.125" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        )}
+
+        <div className={`top-con ${shouldShowWarnings && showTopWarning ? 'has-warning-banner' : ''}`}>
           <h1>
             <svg
               width="18"
@@ -411,8 +530,8 @@ const Forms = () => {
               onClick={handleAddNew}
             />
             {formLimit !== null && (
-              <p className="forms-count-text">
-                  <strong>{forms.length} of {formLimit}</strong> forms added. Upgrade to add more.
+              <p className={`forms-count-text ${isFreePlanWithMultipleForms ? 'forms-count-text-over-limit' : ''}`}>
+                  <strong>{forms.length} of {formLimit}</strong> intake forms created. Upgrade to add more.
               </p>
             )}
           </div>
@@ -1331,29 +1450,104 @@ const Forms = () => {
             </div>
           </div>
         ) : (
+          <>
           <div className="forms-card-list">
-            {forms.map((form) => (
-              <div className="cardd" key={form.id}>
+            {forms.map((form) => {
+              // Gray out inactive forms when on free plan with multiple forms
+              const isGrayedOut = isFreePlanWithMultipleForms && !form.isActive;
+              const isToggling = togglingFormId === form._id;
+              // Can toggle if: not on free plan, OR form is active, OR no active form yet
+              // On free plan with multiple forms: can only activate if no other is active
+              const canToggle = formLimit !== 1 || form.isActive || !hasActiveForm;
+              // Disable toggle for inactive forms when another is already active (but still allow click for toast)
+              const isToggleDisabled = formLimit === 1 && !form.isActive && hasActiveForm;
+              const isMenuOpen = openMenuId === form._id;
+              
+              return (
+              <div 
+                className={`cardd ${isGrayedOut ? 'forms-grayed-out' : ''} ${isToggling ? 'forms-toggling' : ''}`}
+                key={form._id || form.id}
+                style={{ position: 'relative' }}
+              >
+                {isToggling && (
+                  <div className="forms-card-loader-overlay">
+                    <div className="forms-card-spinner"></div>
+                  </div>
+                )}
                 <div className="top">
                   <h2>{form.name}</h2>
                   <ActionMenu
+                    isOpen={isMenuOpen}
+                    onOpenChange={(open) => {
+                      if (open) {
+                        setOpenMenuId(form._id || form.id);
+                      } else {
+                        setOpenMenuId(null);
+                      }
+                    }}
                     items={[
                       {
                         label: "Edit",
                         icon: <FaEdit />,
-                        onClick: () => handleEdit(form),
+                        onClick: () => {
+                          setOpenMenuId(null);
+                          handleEdit(form);
+                        },
                       },
                       {
                         label: "Delete",
                         icon: <RiDeleteBin5Line />,
-                        onClick: () => handleDeleteClick(form),
+                        onClick: () => {
+                          setOpenMenuId(null);
+                          handleDeleteClick(form);
+                        },
+                      },
+                      {
+                        label: form.isActive ? "Active" : "Inactive",
+                        icon: (
+                          <div className={`forms-toggle-switch ${form.isActive ? 'active' : ''}`}>
+                            <div className={`forms-toggle-slider ${form.isActive ? 'active' : ''} ${isToggleDisabled ? 'disabled' : ''}`} />
+                          </div>
+                        ),
+                        onClick: () => {
+                          if (isToggleDisabled) {
+                            toast.error("Deactivate one of the active forms or upgrade to Pro to activate this");
+                            return;
+                          }
+                          if (!canToggle) {
+                            toast.error("Toggle disable one of the active forms to activate or upgrade to pro");
+                            return;
+                          }
+                          setOpenMenuId(null);
+                          handleToggleActive(form);
+                        },
+                        disabled: isToggleDisabled,
                       },
                     ]}
                   />
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
+
+          {/* Bottom Warning Section */}
+          {shouldShowWarnings && (
+            <div className="forms-bottom-warning">
+              <div className="forms-bottom-warning-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V15H13V17ZM13 13H11V7H13V13Z"
+                    fill="#FA5151"
+                  />
+                </svg>
+              </div>
+              <p className="forms-bottom-warning-text">
+                You've switched to the Free Plan. This plan allows 1 active intake form. All of your forms are currently set to inactive. Please choose 1 intake form to activate.
+              </p>
+            </div>
+          )}
+          </>
         )}
 
         {/* Preview Modal */}

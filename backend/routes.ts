@@ -4311,11 +4311,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const appointmentTypes = await storage.getAppointmentTypesByUser(userId);
       
       // Check if user is on free plan and has more than 1 service
-      // Only set all to inactive if there are multiple active services (violates free plan limit)
+      // If they downgraded from Pro and have more than 1 active service, set all services to inactive
       const features = await getUserFeatures(userId);
       if (features.appointmentTypeLimit === 1 && appointmentTypes.length > 1) {
         const activeServices = appointmentTypes.filter(at => at.isActive);
-        // Only deactivate all if there are multiple active services
+        // If there are multiple active services, set all to inactive (they downgraded from Pro)
+        // This ensures that when they downgrade with multiple active services, all become inactive
+        // and they can choose one to activate. If they have only 1 active, that's allowed on free plan.
         if (activeServices.length > 1) {
           await storage.setAllAppointmentTypesInactiveForUser(userId);
           // Fetch updated appointment types
@@ -4477,9 +4479,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      const forms = await storage.getIntakeFormsByUser(userId);
+      console.log('Fetching intake forms for userId:', userId);
+      let forms = await storage.getIntakeFormsByUser(userId);
+      console.log('Forms fetched from storage:', forms?.length || 0, Array.isArray(forms));
+      
+      // Ensure we always return ALL forms (including inactive ones)
+      // The query should return all forms, but let's make sure
+      if (!Array.isArray(forms)) {
+        console.warn('Forms is not an array, setting to empty array. Type:', typeof forms, 'Value:', forms);
+        forms = [];
+      }
+      
+      // Check if user is on free plan and has more than 1 form
+      // If they downgraded from Pro, set all forms to inactive so they can choose one to activate
+      try {
+        console.log('Getting user features for userId:', userId);
+        const features = await getUserFeatures(userId);
+        console.log('User features:', features?.formLimit);
+        if (features.formLimit === 1 && forms.length > 1) {
+          const activeForms = forms.filter(f => f.isActive);
+          console.log('Total forms:', forms.length, 'Active forms:', activeForms.length);
+          console.log('Forms status:', forms.map(f => ({ id: f._id, name: f.name, isActive: f.isActive })));
+          
+          // If there are multiple active forms, set all to inactive (they downgraded from Pro)
+          // This ensures that when they downgrade with multiple active forms, all become inactive
+          // and they can choose one to activate. If they have only 1 active, that's allowed on free plan.
+          // But if they have more than 1 form total and more than 1 active, set all to inactive.
+          if (activeForms.length > 1) {
+            console.log('Setting all forms to inactive because there are', activeForms.length, 'active forms on free plan');
+            const result = await storage.setAllIntakeFormsInactiveForUser(userId);
+            console.log('setAllIntakeFormsInactiveForUser returned:', result);
+            
+            // Fetch updated forms - ensure we get ALL forms (including inactive ones)
+            forms = await storage.getIntakeFormsByUser(userId);
+            if (!Array.isArray(forms)) {
+              forms = [];
+            }
+            console.log('Forms after setting all inactive:', forms.length, forms.map(f => ({ id: f._id, name: f.name, isActive: f.isActive })));
+            
+            // Verify all forms are now inactive
+            const stillActive = forms.filter(f => f.isActive);
+            if (stillActive.length > 0) {
+              console.error('WARNING: Some forms are still active after deactivation:', stillActive.map(f => ({ id: f._id, name: f.name })));
+              // Force deactivate any remaining active forms
+              for (const form of stillActive) {
+                console.log('Force deactivating form:', form._id);
+                await storage.updateIntakeForm(form._id, { isActive: false });
+              }
+              // Fetch again
+              forms = await storage.getIntakeFormsByUser(userId);
+              if (!Array.isArray(forms)) {
+                forms = [];
+              }
+            }
+          }
+        }
+      } catch (featuresError) {
+        // If there's an error getting features, log it but still return forms
+        console.error('Error getting user features for forms:', featuresError);
+        console.error('Error stack:', featuresError instanceof Error ? featuresError.stack : 'No stack trace');
+        // Continue and return forms anyway
+      }
+      
+      // Ensure ALL forms are returned (both active and inactive)
+      // The query should already return all forms, but this is a safeguard
+      
+      // Always return ALL forms, regardless of active status
+      console.log('Returning forms:', forms.length, forms.map(f => ({ id: f._id, name: f.name, isActive: f.isActive })));
       res.json(forms);
     } catch (error) {
+      console.error('Error in /api/intake-forms:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       res.status(500).json({ message: "Failed to fetch intake forms", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
@@ -4552,13 +4622,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Permission denied" });
       }
 
-      const updates = {
-        name: req.body.name,
-        description: req.body.description,
-        fields: req.body.fields,
-        isActive: req.body.isActive,
-        sortOrder: req.body.sortOrder,
-      };
+      // Only include fields that are actually provided in the request
+      const updates: any = {};
+      if (req.body.name !== undefined) updates.name = req.body.name;
+      if (req.body.description !== undefined) updates.description = req.body.description;
+      if (req.body.fields !== undefined) updates.fields = req.body.fields;
+      if (req.body.isActive !== undefined) updates.isActive = req.body.isActive;
+      if (req.body.sortOrder !== undefined) updates.sortOrder = req.body.sortOrder;
 
       const form = await storage.updateIntakeForm(req.params.id, updates);
       res.json({ message: "Intake form updated successfully", form });

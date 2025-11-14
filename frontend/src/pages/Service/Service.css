@@ -152,6 +152,11 @@
   border-color: #64748B;
 }
 
+.service-toggle-slider.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Bottom Warning Section */
 .service-bottom-warning {
   display: flex;

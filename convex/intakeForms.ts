@@ -83,3 +83,21 @@ export const deleteForm = mutation({
     return { success: true };
   },
 });
+
+// Set all intake forms inactive for a user
+export const setAllInactiveForUser = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const intakeForms = await ctx.db
+      .query("intakeForms")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+    
+    // Set all intake forms to inactive
+    for (const form of intakeForms) {
+      await ctx.db.patch(form._id, { isActive: false });
+    }
+    
+    return intakeForms.length;
+  },
+});

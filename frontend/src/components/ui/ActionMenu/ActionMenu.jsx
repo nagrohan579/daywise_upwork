@@ -2,9 +2,14 @@ import React, { useState, useRef, useEffect } from "react";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import "./ActionMenu.css";
 
-const ActionMenu = ({ items = [] }) => {
-  const [open, setOpen] = useState(false);
+const ActionMenu = ({ items = [], isOpen: controlledIsOpen, onOpenChange }) => {
+  const [internalOpen, setInternalOpen] = useState(false);
   const menuRef = useRef();
+  
+  // Use controlled state if provided, otherwise use internal state
+  const isControlled = controlledIsOpen !== undefined;
+  const open = isControlled ? controlledIsOpen : internalOpen;
+  const setOpen = isControlled ? onOpenChange : setInternalOpen;
 
   // Close menu when clicked outside
   useEffect(() => {
@@ -13,9 +18,11 @@ const ActionMenu = ({ items = [] }) => {
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", handler);
+    if (open) {
+      document.addEventListener("mousedown", handler);
+    }
     return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  }, [open, setOpen]);
 
   return (
     <div className="action-menu" ref={menuRef}>
@@ -29,9 +36,14 @@ const ActionMenu = ({ items = [] }) => {
               key={idx} 
               className={`action-item ${item.disabled ? 'action-item-disabled' : ''}`}
               onClick={() => {
-                if (item.disabled) return;
-                setOpen(false);
-                item.onClick();
+                // Always call onClick, even if disabled (allows showing toast messages)
+                if (item.onClick) {
+                  item.onClick();
+                }
+                // Only close menu if not disabled
+                if (!item.disabled) {
+                  setOpen(false);
+                }
               }}
             >
               {item.icon && <span className="action-icon">{item.icon}</span>}

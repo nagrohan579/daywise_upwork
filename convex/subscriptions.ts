@@ -80,6 +80,22 @@ export const getUserSubscription = query({
   },
 });
 
+// Check if user has active Pro subscription
+export const hasProSubscription = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const subscription = await ctx.db
+      .query("userSubscriptions")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+
+    if (!subscription) return false;
+
+    // Check if subscription is active and is "pro" plan
+    return subscription.status === "active" && subscription.planId === "pro";
+  },
+});
+
 export const getAllUserSubscriptions = query({
   handler: async (ctx) => {
     return await ctx.db.query("userSubscriptions").collect();

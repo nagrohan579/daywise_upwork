@@ -966,7 +966,7 @@ const PublicBooking = () => {
                 <div className="intake-form-fields">
                   {intakeForm.fields && intakeForm.fields.length > 0 ? (
                     intakeForm.fields.map((field, index) => (
-                      <div key={field.id || index} className="intake-form-field">
+                      <div key={field.id || index} className="intake-form-field" data-field-id={field.id}>
                         <label className="intake-form-label">
                           {field.question || "Your question"}
                           {field.required && <span className="required-asterisk"> *</span>}
@@ -1084,6 +1084,82 @@ const PublicBooking = () => {
                       if (!formSessionId || !intakeForm || !selectedAppointmentType) {
                         toast.error("Please fill out the form");
                         return;
+                      }
+
+                      // Validate required fields
+                      if (intakeForm.fields && intakeForm.fields.length > 0) {
+                        const firstEmptyRequiredField = intakeForm.fields.find((field) => {
+                          if (!field.required) return false;
+                          
+                          const fieldId = field.id;
+                          const responseValue = formResponses[fieldId];
+                          
+                          // Check based on field type
+                          if (field.type === 'file' || field.type === 'file-upload') {
+                            // File fields: check if file is uploaded
+                            return !responseValue || !(responseValue instanceof File);
+                          } else if (field.type === 'checkbox') {
+                            // Checkbox: must be checked
+                            return !responseValue || responseValue === false;
+                          } else if (field.type === 'checkbox-list') {
+                            // Checkbox list: must have at least one selected
+                            const selected = Array.isArray(responseValue) ? responseValue : [];
+                            return selected.length === 0;
+                          } else if (field.type === 'yes-no') {
+                            // Yes-no: must have a value
+                            return !responseValue || responseValue === '';
+                          } else if (field.type === 'dropdown') {
+                            // Dropdown: must have a selected value
+                            return !responseValue || responseValue === '';
+                          } else {
+                            // Text fields: must have non-empty value
+                            return !responseValue || (typeof responseValue === 'string' && responseValue.trim() === '');
+                          }
+                        });
+
+                        if (firstEmptyRequiredField) {
+                          const fieldQuestion = firstEmptyRequiredField.question || 'This field';
+                          toast.error(`Please fill in the required field: ${fieldQuestion}`);
+                          
+                          // Focus on the first empty required field
+                          setTimeout(() => {
+                            const fieldId = firstEmptyRequiredField.id;
+                            const fieldElement = document.querySelector(`[data-field-id="${fieldId}"]`);
+                            
+                            if (fieldElement) {
+                              // Scroll to the field
+                              fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              
+                              // Focus on the appropriate input element based on field type
+                              let inputElement = null;
+                              
+                              if (firstEmptyRequiredField.type === 'file' || firstEmptyRequiredField.type === 'file-upload') {
+                                inputElement = fieldElement.querySelector('input[type="file"]');
+                              } else if (firstEmptyRequiredField.type === 'checkbox') {
+                                inputElement = fieldElement.querySelector('input[type="checkbox"]');
+                              } else if (firstEmptyRequiredField.type === 'checkbox-list') {
+                                inputElement = fieldElement.querySelector('input[type="checkbox"]');
+                              } else if (firstEmptyRequiredField.type === 'yes-no') {
+                                inputElement = fieldElement.querySelector('input[type="radio"]');
+                              } else if (firstEmptyRequiredField.type === 'dropdown') {
+                                inputElement = fieldElement.querySelector('.select-box, select');
+                              } else {
+                                // Text fields (single or multi-line)
+                                inputElement = fieldElement.querySelector('input[type="text"], textarea, .input-field');
+                              }
+                              
+                              if (inputElement) {
+                                inputElement.focus();
+                                // For select boxes, we might need to click to open dropdown
+                                if (firstEmptyRequiredField.type === 'dropdown' && inputElement.classList.contains('select-box')) {
+                                  inputElement.click();
+                                }
+                              }
+                            }
+                          }, 100);
+                          
+                          return;
+                        }
                       }
 
                       setSubmittingForm(true);

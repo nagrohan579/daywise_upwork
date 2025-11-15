@@ -179,10 +179,23 @@ const Select = ({
       const dropdown = containerRef.current.querySelector('.select-dropdown');
       
       if (selectBox && dropdown) {
-        const rect = selectBox.getBoundingClientRect();
-        dropdown.style.width = `${rect.width}px`;
-        dropdown.style.left = `${rect.left}px`;
-        dropdown.style.top = `${rect.bottom + 4}px`;
+        // Check if this select is within an intake form field (should use absolute positioning)
+        const isInIntakeForm = containerRef.current.closest('.intake-form-field');
+        
+        if (isInIntakeForm) {
+          // For intake forms, use absolute positioning relative to select-group
+          const rect = selectBox.getBoundingClientRect();
+          dropdown.style.width = `${rect.width}px`;
+          dropdown.style.position = 'absolute';
+          dropdown.style.left = '0';
+          dropdown.style.top = 'calc(100% + 4px)';
+        } else {
+          // For other contexts, use fixed positioning
+          const rect = selectBox.getBoundingClientRect();
+          dropdown.style.width = `${rect.width}px`;
+          dropdown.style.left = `${rect.left}px`;
+          dropdown.style.top = `${rect.bottom + 4}px`;
+        }
       }
     }
   }, [open]);

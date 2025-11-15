@@ -1180,6 +1180,8 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 .intake-form-description {
@@ -1216,6 +1218,10 @@
 }
 
 /* Input and Textarea styling for intake form */
+.intake-form-field .input-group-comp {
+  margin-bottom: 0 !important;
+}
+
 .intake-form-field .input-group-comp .input-field {
   background-color: color-mix(in srgb, var(--main-color) 2%, transparent) !important;
   color: var(--text-color) !important;
@@ -1229,6 +1235,10 @@
 .intake-form-field .input-group-comp .input-field:focus-visible {
   border-color: var(--main-color) !important;
   outline: none;
+}
+
+.intake-form-field .textarea-group {
+  margin-bottom: 0;
 }
 
 .intake-form-field .textarea-group .textarea-field {
@@ -1247,8 +1257,21 @@
 }
 
 /* Dropdown styling for intake form */
+.intake-form-field .select-group {
+  margin-bottom: 0;
+  position: relative;
+}
+
 .intake-form-field .select-group .select-box {
   background-color: color-mix(in srgb, var(--main-color) 2%, transparent) !important;
+}
+
+.intake-form-field .select-group .select-dropdown {
+  position: absolute !important;
+  top: calc(100% + 4px) !important;
+  left: 0 !important;
+  width: 100% !important;
+  margin-top: 0 !important;
 }
 
 .intake-form-field .select-group .select-box:focus,

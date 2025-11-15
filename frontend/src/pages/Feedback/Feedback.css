@@ -28,6 +28,7 @@
   font-family: Inter, sans-serif;
   margin: 0px;
   margin-top: 8px;
+  max-width: 638px;
 }
 
 .feedback-page .feedback-form-section {

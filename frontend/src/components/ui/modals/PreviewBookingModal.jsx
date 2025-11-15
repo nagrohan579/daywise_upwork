@@ -70,6 +70,9 @@ const PreviewBookingModal = ({
       className="previewBookingModal"
     >
       <Modal.Header>
+        <div className="content-wrap">
+          <Modal.Title>This is a Preview</Modal.Title>
+        </div>
         <button
           className="close-btn"
           onClick={() => setShowPreviewBooking(false)}

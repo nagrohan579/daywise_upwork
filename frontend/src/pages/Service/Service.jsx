@@ -511,10 +511,24 @@ const Service = () => {
                   height="32"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="#DC2626"
-                  strokeWidth="2"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
-                  <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  {/* Triangle */}
+                  <path
+                    d="M12 2L2 20H22L12 2Z"
+                    fill="#DC2626"
+                    stroke="#DC2626"
+                    strokeWidth="1.5"
+                    strokeLinejoin="round"
+                  />
+                  {/* Exclamation mark */}
+                  <path
+                    d="M12 8V12M12 16H12.01"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </div>
               <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '12px', color: '#1F2937' }}>

@@ -528,11 +528,12 @@
   display: flex;
   justify-content: space-between;
   gap: 28px;
+  margin-bottom: 16px;
 }
 .dateSpecificHour .input-wrap .input-group-comp,
 .dateSpecificHour .input-wrap .select-group {
   flex: 1;
-  margin-bottom: 28px;
+  margin-bottom: 0;
 }
 
 .dateSpecificHour .reason-input-con {
@@ -575,7 +576,7 @@
 
 .dateSpecificHour .closed-month-btn {
   padding: 10px 16px;
-  border: 1px solid #E0E9FE;
+  border: 1px solid #64748b33;
   border-radius: 8px;
   background-color: #FFFFFF;
   font-family: Inter;
@@ -771,8 +772,51 @@
 }
 .previewBookingModal .modal-header {
   display: flex;
-  justify-content: end;
+  justify-content: space-between;
+  align-items: start;
   border-bottom: none;
+  padding: 24px 24px 10px 40px;
+}
+.previewBookingModal .content-wrap {
+  max-width: 390px;
+  padding-right: 16px;
+}
+.previewBookingModal .content-wrap .modal-title {
+  font-family: Inter;
+  font-weight: 600;
+  font-style: Semi Bold;
+  font-size: 22px;
+  line-height: 36px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: var(--text-color);
+}
+
+/* Fix selected date circle in preview modal - comprehensive fix */
+
+/* Ensure the abbr element inside doesn't affect the shape */
+.previewBookingModal .react-calendar__tile--active abbr {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+}
+
+
+/* Override any base tile styles in preview modal */
+.previewBookingModal .react-calendar__tile {
+  box-sizing: border-box !important;
+}
+
+/* Ensure table cells don't constrain */
+.previewBookingModal .react-calendar__month-view__days__day[role="gridcell"] {
+  width: auto !important;
+  min-width: 0 !important;
+  padding: 0 !important;
 }
 .previewBookingModal .main-wrapper {
   border: 1px solid color-mix(in srgb, var(--secondary-color) 20%, transparent);
@@ -965,6 +1009,52 @@
 
 .previewBookingModal .preview-right .single-calendar-container .react-calendar {
   overflow: visible !important;
+}
+
+/* Make calendar slightly less wide in preview modal */
+.previewBookingModal .single-calendar-container .calendar-date-wrapper {
+  width: 320px !important;
+  max-width: 320px !important;
+}
+
+/* Fix the calendar table to allow perfect circles */
+.previewBookingModal .react-calendar__month-view {
+  width: 100% !important;
+}
+
+.previewBookingModal .react-calendar__month-view__days {
+  table-layout: auto !important;
+}
+
+/* Ensure each day cell has enough space for the circle */
+.previewBookingModal .react-calendar__month-view__days__day {
+  width: auto !important;
+  min-width: 54px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Force the active tile to be a perfect circle */
+.previewBookingModal .react-calendar__month-view__days__day .react-calendar__tile--active {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  max-width: 44px !important;
+  max-height: 44px !important;
+  padding: 0 !important;
+  margin: 5px auto !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  aspect-ratio: 1 / 1 !important;
+  flex-shrink: 0 !important;
+  line-height: 44px !important;
+  vertical-align: middle !important;
 }
 
 @media (max-width: 768px) {

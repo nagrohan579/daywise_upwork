@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalAction } from "./_generated/server";
+import { internal } from "./_generated/api";
 
 // Get booking by ID
 export const getById = query({
@@ -164,15 +165,17 @@ export const deleteBooking = mutation({
   },
 });
 
-// Get bookings due for reminders
+// Get bookings due for reminders (24 hours before appointment)
 export const getDueForReminders = query({
-  args: { windowMinutes: v.number() },
-  handler: async (ctx, { windowMinutes }) => {
+  handler: async (ctx) => {
     const now = Date.now();
-    const windowStart = now + (24 * 60 - windowMinutes) * 60 * 1000; // 24 hours - window
-    const windowEnd = now + 24 * 60 * 60 * 1000; // 24 hours
+    const twentyFourHoursFromNow = now + 24 * 60 * 60 * 1000;
+    const windowMinutes = 30; // 30-minute window for flexibility
+    const windowStart = twentyFourHoursFromNow - (windowMinutes * 60 * 1000);
+    const windowEnd = twentyFourHoursFromNow + (windowMinutes * 60 * 1000);
 
-    return await ctx.db
+    // Get all confirmed bookings within the 24-hour window
+    const bookings = await ctx.db
       .query("bookings")
       .withIndex("by_appointmentDate")
       .filter((q) =>
@@ -183,6 +186,30 @@ export const getDueForReminders = query({
         )
       )
       .collect();
+
+    // Filter bookings based on:
+    // 1. User has Pro subscription
+    // 2. Reminders haven't been sent yet
+    const eligibleBookings = [];
+
+    for (const booking of bookings) {
+      // Check if reminders already sent
+      if (booking.customerReminderSentAt && booking.businessReminderSentAt) {
+        continue; // Skip if both reminders already sent
+      }
+
+      // Check if user has Pro subscription
+      const subscription = await ctx.db
+        .query("userSubscriptions")
+        .withIndex("by_userId", (q) => q.eq("userId", booking.userId))
+        .first();
+
+      if (subscription && subscription.status === "active" && subscription.planId === "pro") {
+        eligibleBookings.push(booking);
+      }
+    }
+
+    return eligibleBookings;
   },
 });
 
@@ -204,5 +231,45 @@ export const markRemindersSent = mutation({
     }
 
     await ctx.db.patch(id, updates);
+  },
+});
+
+// Internal action to send due reminders (called by cron)
+export const sendDueReminders = internalAction({
+  handler: async (ctx) => {
+    // Get all eligible bookings
+    const bookings = await ctx.runQuery(internal.bookings.getDueForReminders);
+
+    console.log(`[Reminder Cron] Found ${bookings.length} bookings due for reminders`);
+
+    // Send reminder for each booking
+    for (const booking of bookings) {
+      try {
+        // Get the backend URL from environment
+        const backendUrl = process.env.BACKEND_URL || "http://localhost:3000";
+
+        // Call backend API to send the reminder
+        const response = await fetch(`${backendUrl}/api/cron/send-reminder`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            bookingId: booking._id,
+          }),
+        });
+
+        if (response.ok) {
+          console.log(`[Reminder Cron] Successfully sent reminder for booking ${booking._id}`);
+        } else {
+          const errorText = await response.text();
+          console.error(`[Reminder Cron] Failed to send reminder for booking ${booking._id}: ${errorText}`);
+        }
+      } catch (error) {
+        console.error(`[Reminder Cron] Error sending reminder for booking ${booking._id}:`, error);
+      }
+    }
+
+    return { processed: bookings.length };
   },
 });

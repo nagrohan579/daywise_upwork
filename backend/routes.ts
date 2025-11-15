@@ -6110,6 +6110,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Stripe Customer Portal for subscription cancellation
+  app.post("/api/billing/portal/cancel", requireAuth, async (req, res) => {
+    try {
+      const session = req.session as any;
+      const userId = session.userId;
+
+      // Get user's Stripe customer ID and subscription
+      const userSubscription = await storage.getUserSubscription(userId);
+      if (!userSubscription?.stripeCustomerId) {
+        return res.status(400).json({
+          message: "No payment method found. Please upgrade to a paid plan first."
+        });
+      }
+
+      if (!userSubscription?.stripeSubscriptionId) {
+        return res.status(400).json({
+          message: "No active subscription found."
+        });
+      }
+
+      const returnUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const billingUrl = `${returnUrl}/billing`;
+
+      // Create customer portal session with cancellation flow
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: userSubscription.stripeCustomerId,
+        return_url: billingUrl,
+        flow_data: {
+          type: 'subscription_cancel',
+          subscription_cancel: {
+            subscription: userSubscription.stripeSubscriptionId,
+          },
+        },
+      });
+
+      return res.json({ url: portalSession.url });
+    } catch (e: any) {
+      return res.status(500).json({ message: e?.message ?? "Portal creation error" });
+    }
+  });
+
   // ========== Stripe Connect Routes ==========
 
   // Initiate Stripe Connect OAuth flow
@@ -7429,6 +7470,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Delete notification error:', error);
       res.status(500).json({ message: "Failed to delete notification" });
+    }
+  });
+
+  // Cron endpoint to send 24-hour reminders (called by Convex cron)
+  app.post("/api/cron/send-reminder", async (req, res) => {
+    try {
+      const { bookingId } = req.body;
+
+      if (!bookingId) {
+        return res.status(400).json({ message: "Booking ID is required" });
+      }
+
+      // Get booking details
+      const booking = await storage.getBookingById(bookingId);
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      // Get user (business owner) details
+      const user = await storage.getUserById(booking.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Get appointment type if exists
+      let appointmentTypeName = "Appointment";
+      let appointmentDuration = booking.duration || 30;
+      if (booking.appointmentTypeId) {
+        const appointmentType = await storage.getAppointmentTypeById(booking.appointmentTypeId);
+        if (appointmentType) {
+          appointmentTypeName = appointmentType.name;
+          appointmentDuration = appointmentType.duration;
+        }
+      }
+
+      // Get branding info
+      const branding = await storage.getBrandingByUserId(booking.userId);
+
+      // Determine timezones for email formatting
+      const customerTimezone = booking.customerTimezone || user.timezone || 'Etc/UTC';
+      const businessTimezone = user.timezone || 'Etc/UTC';
+
+      // Format dates for customer email (in customer's timezone)
+      const customerEmailData = {
+        customerName: booking.customerName,
+        customerEmail: booking.customerEmail,
+        businessName: user.businessName || user.name,
+        businessEmail: user.email,
+        appointmentDate: formatDateForEmail(new Date(booking.appointmentDate), customerTimezone),
+        appointmentTime: formatTimeForEmail(new Date(booking.appointmentDate), customerTimezone),
+        appointmentType: appointmentTypeName,
+        appointmentDuration,
+        bookingToken: booking.bookingToken,
+        eventUrl: booking.eventUrl,
+        businessColors: branding ? { primary: branding.primary, secondary: branding.secondary } : undefined,
+        businessLogo: branding?.logoUrl,
+        usePlatformBranding: branding?.usePlatformBranding ?? true,
+      };
+
+      // Format dates for business email (in business user's timezone)
+      const businessEmailData = {
+        ...customerEmailData,
+        customerEmail: user.email, // Send to business owner
+        appointmentDate: formatDateForEmail(new Date(booking.appointmentDate), businessTimezone),
+        appointmentTime: formatTimeForEmail(new Date(booking.appointmentDate), businessTimezone),
+      };
+
+      // Send reminder emails
+      const customerEmailSent = await sendAppointmentReminder(customerEmailData);
+      const businessEmailSent = await sendAppointmentReminder({
+        ...businessEmailData,
+        customerName: `Business Reminder: ${booking.customerName}`,
+      });
+
+      // Mark reminders as sent
+      if (customerEmailSent && businessEmailSent) {
+        await storage.markRemindersSent(bookingId, "both");
+      } else if (customerEmailSent) {
+        await storage.markRemindersSent(bookingId, "customer");
+      } else if (businessEmailSent) {
+        await storage.markRemindersSent(bookingId, "business");
+      }
+
+      res.json({
+        message: "Reminders sent successfully",
+        customerEmailSent,
+        businessEmailSent
+      });
+    } catch (error) {
+      console.error('[Cron] Send reminder error:', error);
+      res.status(500).json({ message: "Failed to send reminder emails" });
     }
   });
 

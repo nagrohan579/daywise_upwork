@@ -149,6 +149,119 @@
   vertical-align: middle;
 }
 
+/* Payment Method Card Styles */
+.billing-page .add-update-billing-card .payment-method-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 20px;
+  gap: 20px;
+  width: 346px;
+  background: #F9FAFF;
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+}
+
+.billing-page .add-update-billing-card .payment-method-icon-wrapper {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+  gap: 8px;
+  width: 56px;
+  height: 28.92px;
+  background: #FFFFFF;
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  border-radius: 5px;
+}
+
+.billing-page .add-update-billing-card .payment-method-icon-wrapper svg {
+  width: 40px;
+  height: 12.92px;
+}
+
+.billing-page .add-update-billing-card .payment-method-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 10px;
+  width: auto;
+  min-width: 139px;
+  height: 48px;
+}
+
+.billing-page .add-update-billing-card .payment-method-card-number {
+  width: auto;
+  min-width: 139px;
+  height: 20px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  color: #64748B;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.billing-page .add-update-billing-card .payment-method-expiry {
+  width: auto;
+  min-width: 139px;
+  height: 18px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 18px;
+  display: flex;
+  align-items: center;
+  color: #64748B;
+  margin: 0;
+}
+
+.billing-page .add-update-billing-card .payment-method-card > button {
+  width: auto;
+  height: 32px;
+  padding: 8px 12px;
+  border-radius: 50px;
+}
+
+.billing-page .add-update-billing-card .cancel-subscription-btn {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 12px;
+  gap: 6px;
+  width: 159px;
+  height: 40px;
+  background: #FFF5F5;
+  border: 1px solid #FFF5F5;
+  border-radius: 50px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  color: #FA5151;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: all 0.2s ease-in-out;
+  white-space: nowrap;
+}
+
+.billing-page .add-update-billing-card .cancel-subscription-btn:hover {
+  background: #FFE5E5;
+  border-color: #FFE5E5;
+}
+
 
 /* RESPONSIVE */
 @media screen and (max-width: 1180px) {

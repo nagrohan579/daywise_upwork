@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { AppLayout, Button, PricingTable } from "../../components";
+import { VisaIcon } from "../../components/SVGICONS/Svg";
 import { toast } from "sonner";
 import "./Billing.css";
 
@@ -199,6 +200,29 @@ const Billing = () => {
     }
   };
 
+  // Handle Cancel Subscription click
+  const handleCancelSubscription = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/billing/portal/cancel`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to open cancellation portal');
+      }
+
+      const data = await response.json();
+      // Redirect to Stripe Customer Portal with cancellation flow pre-configured
+      window.location.href = data.url;
+    } catch (error) {
+      console.error('Error opening cancellation portal:', error);
+      toast.error(error.message || 'Failed to open cancellation portal');
+    }
+  };
+
   // Helper: Check if a plan is the current one
   const isCurrentPlanCard = (planId, interval) => {
     if (planId === "free") {
@@ -322,26 +346,35 @@ const Billing = () => {
           <div className="add-update-billing-card">
             <h1>Payment Method</h1>
             {paymentMethod ? (
-              <div style={{ marginTop: '1rem' }}>
-                <p style={{ fontSize: '1rem', color: '#334155', marginBottom: '0.5rem' }}>
-                  <strong>{paymentMethod.brand.toUpperCase()}</strong> ending in <strong>••••{paymentMethod.last4}</strong>
-                </p>
-                <p style={{ fontSize: '0.875rem', color: '#64748B' }}>
-                  Expires {paymentMethod.expMonth}/{paymentMethod.expYear}
-                </p>
-                <Button
-                  text="Manage Subscription"
-                  onClick={handleManageSubscription}
-                  style={{
-                    marginTop: '1rem',
-                    backgroundColor: "#0053F1",
-                    color: "#fff",
-                  }}
-                />
-                <p style={{ fontSize: '0.875rem', color: '#64748B', marginTop: '0.5rem' }}>
-                  Update payment method, view invoices, or cancel subscription
-                </p>
-              </div>
+              <>
+                <div className="payment-method-card">
+                  <div className="payment-method-icon-wrapper">
+                    <VisaIcon />
+                  </div>
+                  <div className="payment-method-details">
+                    <p className="payment-method-card-number">
+                      •••• •••• •••• {paymentMethod.last4}
+                    </p>
+                    <p className="payment-method-expiry">
+                      Expires on {String(paymentMethod.expMonth).padStart(2, '0')}/{paymentMethod.expYear}
+                    </p>
+                  </div>
+                  <Button
+                    text="Manage Subscription"
+                    onClick={handleManageSubscription}
+                    style={{
+                      backgroundColor: "#0053F1",
+                      color: "#fff",
+                    }}
+                  />
+                </div>
+                <button
+                  className="cancel-subscription-btn"
+                  onClick={handleCancelSubscription}
+                >
+                  Cancel Subscription
+                </button>
+              </>
             ) : (
               <div>
                 <p className="no-card-text">Setting up payment method...</p>

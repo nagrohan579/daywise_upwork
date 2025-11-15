@@ -426,7 +426,7 @@ const DateSpecificHourModal = ({
                   style={{
                     padding: '8px 16px',
                     borderRadius: '8px',
-                    border: selectedYear === currentYear ? '1px solid #0053F1' : '1px solid #E0E9FE',
+                    border: selectedYear === currentYear ? '1px solid #0053F1' : '1px solid #64748b33',
                     backgroundColor: selectedYear === currentYear ? '#0053F1' : '#FFFFFF',
                     color: selectedYear === currentYear ? '#FFFFFF' : '#64748B',
                     fontSize: '14px',
@@ -446,7 +446,7 @@ const DateSpecificHourModal = ({
                     style={{
                       padding: '8px 16px',
                       borderRadius: '8px',
-                      border: selectedYear !== currentYear ? '1px solid #0053F1' : '1px solid #E0E9FE',
+                      border: selectedYear !== currentYear ? '1px solid #0053F1' : '1px solid #64748b33',
                       backgroundColor: selectedYear !== currentYear ? '#0053F1' : '#FFFFFF',
                       color: selectedYear !== currentYear ? '#FFFFFF' : '#64748B',
                       fontSize: '14px',

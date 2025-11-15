@@ -339,7 +339,7 @@ const Account = () => {
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                     <path d="M10 0C4.477 0 0 4.477 0 10s4.477 10 10 10 10-4.477 10-10S15.523 0 10 0zm5.03 7.47l-5.5 5.5a.75.75 0 01-1.06 0l-2.5-2.5a.75.75 0 111.06-1.06l1.97 1.97 4.97-4.97a.75.75 0 111.06 1.06z" fill="#10B981"/>
                   </svg>
-                  <span style={{ color: '#059669', fontWeight: '500' }}>
+                  <span style={{ color: '#059669', fontWeight: '500', fontSize: '14px' }}>
                     Connected with Google
                   </span>
                 </div>

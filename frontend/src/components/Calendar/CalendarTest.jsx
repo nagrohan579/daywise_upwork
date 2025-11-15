@@ -776,7 +776,7 @@ const CalendarApp = ({ events = [], initialDate = null, initialView = null, focu
         showAddAppointmentModal={showAddAppointmentModal}
         setShowAddAppointmentModal={setShowAddAppointmentModal}
         selectedEvent={selectedEvent}
-        mode={"edit"}
+        mode={"view"}
       />
     </>
   );

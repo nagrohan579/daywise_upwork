@@ -24,7 +24,13 @@ import "./Sidebar.css";
 
 // Mock Icons (replace with actual SVG or library icons like Lucide, Feather)
 const Icon = ({ children }) => (
-  <span style={{ width: "20px", height: "20px" }}>{children}</span>
+  <span style={{ 
+    width: "20px", 
+    height: "20px", 
+    display: "flex", 
+    alignItems: "center", 
+    justifyContent: "center" 
+  }}>{children}</span>
 );
 
 const navItems = [

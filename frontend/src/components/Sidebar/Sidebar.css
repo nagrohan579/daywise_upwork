@@ -28,7 +28,7 @@
   position: fixed;
   top: 0;
   left: 0;
-  height: 93vh;
+  height: 100vh;
   width: var(--sidebar-width-mobile);
   background-color: #f9faff;
   z-index: 50;
@@ -37,6 +37,7 @@
   box-shadow: 2px 0 6px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .sidebar-container.is-open {
@@ -82,15 +83,19 @@
 
 .sidebar-header {
   padding: 40px 30px 40px 50px;
+  flex-shrink: 0; /* Prevents header from shrinking */
 }
 .sidebar-header img {
   width: 150px;
   height: 30px;
 }
 .sidebar-nav {
-  flex-grow: 1; /* Pushes logout to the bottom */
+  flex: 1 1 auto; /* Takes available space, can shrink if needed */
   padding: 10px 0;
   list-style: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0; /* Allows flex item to shrink below content size */
 }
 .sidebar-nav ul {
   padding: 0px;
@@ -132,6 +137,7 @@
   flex-direction: column;
   gap: 8px;
   border-top: 1px solid #E5E7EB;
+  flex-shrink: 0; /* Prevents this section from shrinking */
 }
 
 .sidebar-container .leave-feedback-button {
@@ -242,15 +248,8 @@
   }
 }
 @media (max-width: 991px) {
-  /* Make sidebar full height on mobile */
-  .sidebar-container {
-    height: 100vh;
-  }
-  
-  /* Push logout container to bottom using flexbox */
-  .sidebar-container .logout-container {
-    margin-top: auto;
-  }
+  /* Sidebar is already 100vh from base styles */
+  /* Logout container stays at bottom via flexbox */
   
   .sidebar-header {
     margin-top: 40px;

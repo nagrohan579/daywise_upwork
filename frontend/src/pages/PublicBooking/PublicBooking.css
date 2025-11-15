@@ -439,6 +439,15 @@
   vertical-align: middle;
 }
 
+/* Apply CSS variable to icons in confirmation screen */
+.step-three .containerr .appointment-container .booking-details .wrap svg path[stroke] {
+  stroke: var(--secondary-color) !important;
+}
+
+.step-three .containerr .appointment-container .booking-details .wrap svg path[fill]:not([fill="none"]) {
+  fill: var(--secondary-color) !important;
+}
+
 .step-three .containerr .success-buttons {
   display: flex;
   flex-direction: row;

@@ -1,8 +1,3 @@
-.forms-page {
-  font-family: Inter, sans-serif;
-  position: relative;
-}
-
 /* Top Warning Banner */
 .forms-top-warning-banner {
   display: flex;
@@ -80,16 +75,17 @@
   right: 30px;
 }
 
+.forms-page {
+  font-family: Inter, sans-serif;
+  position: relative;
+}
+
 .forms-page .top-con {
   border-bottom: 1px solid #64748b33;
   padding-bottom: 24px;
   margin-bottom: 24px;
   margin-top: 0;
   padding-top: 0;
-}
-
-.forms-page .top-con.has-warning-banner {
-  padding-top: 50px;
 }
 .forms-page .top-con h1 {
   font-family: Inter, sans-serif;
@@ -183,13 +179,26 @@
 
 /* Grayed out forms */
 .forms-grayed-out {
-  opacity: 0.5;
+  position: relative;
   pointer-events: auto;
 }
 
+.forms-grayed-out::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  z-index: 1;
+  border-radius: 12px;
+}
+
 .forms-grayed-out .action-menu {
-  pointer-events: auto;
-  opacity: 1;
+  position: relative;
+  z-index: 2;
 }
 
 /* Forms card loader overlay */

@@ -4492,21 +4492,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if user is on free plan and has more than 1 form
       // If they downgraded from Pro, set all forms to inactive so they can choose one to activate
+      let isFreePlan = false;
       try {
         console.log('Getting user features for userId:', userId);
         const features = await getUserFeatures(userId);
         console.log('User features:', features?.formLimit);
-        if (features.formLimit === 1 && forms.length > 1) {
-          const activeForms = forms.filter(f => f.isActive);
-          console.log('Total forms:', forms.length, 'Active forms:', activeForms.length);
-          console.log('Forms status:', forms.map(f => ({ id: f._id, name: f.name, isActive: f.isActive })));
-          
-          // If there are multiple active forms, set all to inactive (they downgraded from Pro)
-          // This ensures that when they downgrade with multiple active forms, all become inactive
-          // and they can choose one to activate. If they have only 1 active, that's allowed on free plan.
-          // But if they have more than 1 form total and more than 1 active, set all to inactive.
-          if (activeForms.length > 1) {
-            console.log('Setting all forms to inactive because there are', activeForms.length, 'active forms on free plan');
+        isFreePlan = features?.formLimit === 1;
+      } catch (featuresError) {
+        // If there's an error getting features, try to get subscription directly as fallback
+        console.error('Error getting user features for forms:', featuresError);
+        console.error('Error stack:', featuresError instanceof Error ? featuresError.stack : 'No stack trace');
+        try {
+          const subscription = await storage.getUserSubscription(userId);
+          console.log('Got subscription directly, planId:', subscription?.planId);
+          isFreePlan = !subscription || subscription.planId === 'free' || !subscription.planId;
+        } catch (subError) {
+          console.error('Error getting subscription directly:', subError);
+          // If we can't determine the plan, assume free plan to be safe
+          isFreePlan = true;
+        }
+      }
+      
+      // If on free plan and has more than 1 form, check for multiple active forms
+      if (isFreePlan && forms.length > 1) {
+        const activeForms = forms.filter(f => f.isActive);
+        console.log('Total forms:', forms.length, 'Active forms:', activeForms.length);
+        console.log('Forms status:', forms.map(f => ({ id: f._id, name: f.name, isActive: f.isActive })));
+        
+        // If there are multiple active forms, set all to inactive (they downgraded from Pro)
+        // This ensures that when they downgrade with multiple active forms, all become inactive
+        // and they can choose one to activate. If they have only 1 active, that's allowed on free plan.
+        // But if they have more than 1 form total and more than 1 active, set all to inactive.
+        if (activeForms.length > 1) {
+          console.log('Setting all forms to inactive because there are', activeForms.length, 'active forms on free plan');
+          try {
             const result = await storage.setAllIntakeFormsInactiveForUser(userId);
             console.log('setAllIntakeFormsInactiveForUser returned:', result);
             
@@ -4532,13 +4551,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 forms = [];
               }
             }
+          } catch (deactivateError) {
+            console.error('Error deactivating forms:', deactivateError);
+            // Try individual deactivation as fallback
+            for (const form of activeForms) {
+              try {
+                console.log('Deactivating form individually:', form._id);
+                await storage.updateIntakeForm(form._id, { isActive: false });
+              } catch (individualError) {
+                console.error('Error deactivating individual form:', form._id, individualError);
+              }
+            }
+            // Fetch again
+            forms = await storage.getIntakeFormsByUser(userId);
+            if (!Array.isArray(forms)) {
+              forms = [];
+            }
           }
         }
-      } catch (featuresError) {
-        // If there's an error getting features, log it but still return forms
-        console.error('Error getting user features for forms:', featuresError);
-        console.error('Error stack:', featuresError instanceof Error ? featuresError.stack : 'No stack trace');
-        // Continue and return forms anyway
       }
       
       // Ensure ALL forms are returned (both active and inactive)

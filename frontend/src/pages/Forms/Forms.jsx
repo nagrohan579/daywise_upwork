@@ -491,7 +491,7 @@ const Forms = () => {
           </div>
         )}
 
-        <div className={`top-con ${shouldShowWarnings && showTopWarning ? 'has-warning-banner' : ''}`}>
+        <div className="top-con">
           <h1>
             <svg
               width="18"

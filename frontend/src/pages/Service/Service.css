@@ -82,13 +82,26 @@
 
 /* Grayed out services */
 .service-grayed-out {
-  opacity: 0.5;
+  position: relative;
   pointer-events: auto;
 }
 
+.service-grayed-out::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  z-index: 1;
+  border-radius: 12px;
+}
+
 .service-grayed-out .action-menu {
-  pointer-events: auto;
-  opacity: 1;
+  position: relative;
+  z-index: 2;
 }
 
 /* Service card loader overlay */

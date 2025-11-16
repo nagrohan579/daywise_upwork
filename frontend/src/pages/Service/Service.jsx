@@ -324,8 +324,8 @@ const Service = () => {
           <>
             <div className="servies-card-list">
               {appointmentTypes.map((service) => {
-                // Gray out inactive services when on free plan with multiple services
-                const isGrayedOut = isFreePlanWithMultipleServices && !service.isActive;
+                // Gray out all inactive services regardless of plan
+                const isGrayedOut = !service.isActive;
                 const isToggling = togglingServiceId === service._id;
                 // Can toggle if: not on free plan, OR service is active, OR no active service yet
                 // On free plan with multiple services: can only activate if no other is active
@@ -350,10 +350,15 @@ const Service = () => {
                       style={{
                         width: "11px",
                         height: "11px",
+                        minWidth: "11px",
+                        minHeight: "11px",
+                        maxWidth: "11px",
+                        maxHeight: "11px",
                         borderRadius: "50%",
                         backgroundColor: service.color,
                         display: "inline-block",
-                        marginRight: "6px",
+                        flexShrink: 0,
+                        aspectRatio: "1 / 1",
                       }}
                     />
                     <h2>{service.name}</h2>

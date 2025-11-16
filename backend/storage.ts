@@ -227,7 +227,31 @@ export const storage = {
   },
 
   async createAppointmentType(appointmentType: any) {
-    const id = await convex.mutation(api.appointmentTypes.create, appointmentType);
+    // Convert string IDs to Convex IDs and filter out null intakeFormId
+    const mutationData: any = {
+      userId: appointmentType.userId as Id<"users">,
+      name: appointmentType.name,
+      description: appointmentType.description,
+      duration: appointmentType.duration,
+      bufferTimeBefore: appointmentType.bufferTimeBefore,
+      bufferTime: appointmentType.bufferTime,
+      price: appointmentType.price,
+      color: appointmentType.color,
+      isActive: appointmentType.isActive,
+      sortOrder: appointmentType.sortOrder,
+    };
+    
+    // Only include intakeFormId if it's provided and not null
+    if (appointmentType.intakeFormId && appointmentType.intakeFormId !== null) {
+      mutationData.intakeFormId = appointmentType.intakeFormId as Id<"intakeForms">;
+    }
+    
+    // Include requirePayment if provided
+    if (appointmentType.requirePayment !== undefined) {
+      mutationData.requirePayment = appointmentType.requirePayment;
+    }
+    
+    const id = await convex.mutation(api.appointmentTypes.create, mutationData);
     return await convex.query(api.appointmentTypes.getById, { id });
   },
 

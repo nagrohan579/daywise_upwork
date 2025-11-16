@@ -81,6 +81,24 @@
   margin-top: 30px;
 }
 
+.availability-con .weekHour-con .input-group-comp {
+  width: auto;
+  display: inline-block;
+}
+
+.availability-con .weekHour-con .select-group {
+  width: auto;
+  max-width: none;
+  display: inline-flex;
+  margin-bottom: 0;
+}
+
+.availability-con .weekHour-con .select-group .select-box {
+  width: auto;
+  min-width: fit-content;
+  white-space: nowrap;
+}
+
 /* SPECIFIC DATE */
 .show-date-specific-hour .wrapper {
   display: flex;

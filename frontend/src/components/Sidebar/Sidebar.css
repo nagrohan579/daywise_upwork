@@ -312,4 +312,12 @@
   .sidebar-container .logout-container {
     margin-bottom: 8px;
   }
+  
+  /* Center logo horizontally in desktop view */
+  .sidebar-header {
+    padding: 40px 4px 40px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 }

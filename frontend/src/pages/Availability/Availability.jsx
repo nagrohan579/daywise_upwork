@@ -399,7 +399,6 @@ const Availability = () => {
                 style={{
                   backgroundColor: "#F9FAFF",
                   borderRadius: "100px",
-                  maxWidth: "233px",
                 }}
                 options={timezoneOptions}
                 showCurrentTime={true}

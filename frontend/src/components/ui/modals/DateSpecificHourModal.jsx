@@ -18,7 +18,7 @@ const DateSpecificHourModal = ({
 
   // Form state
   const [selectedDate, setSelectedDate] = useState("");
-  const [selectedType, setSelectedType] = useState("");
+  const [selectedType, setSelectedType] = useState("Unavailable");
   const [reason, setReason] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -69,6 +69,22 @@ const DateSpecificHourModal = ({
     const monthIndex = months.indexOf(monthName); // 0-11
     return monthIndex < currentMonth;
   };
+
+  // Reset form to default values when modal opens in create mode
+  useEffect(() => {
+    if (showDateSpecificHour && !isEdit) {
+      setSelectedDate("");
+      setSelectedType("Unavailable");
+      setReason("");
+      setStartTime("");
+      setEndTime("");
+      setStartDate("");
+      setEndDate("");
+      setSelectedMonths([]);
+      setSelectedService("All services");
+      setSelectedYear(currentYear);
+    }
+  }, [showDateSpecificHour, isEdit]);
 
   // Fetch services when modal opens
   useEffect(() => {

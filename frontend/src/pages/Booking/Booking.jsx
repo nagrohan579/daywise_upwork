@@ -6,10 +6,8 @@ import {
   GoogleButton,
 } from "../../components";
 import { FaPlus } from "react-icons/fa6";
-import { FaEye, FaEdit } from "react-icons/fa";
-import { RiDeleteBin5Line } from "react-icons/ri";
 import { FaTimes } from "react-icons/fa";
-import { MessageIcon, FormIcon, DownloadIcon } from "../../components/SVGICONS/Svg";
+import { MessageIcon, FormIcon, DownloadIcon, ViewIcon, EditIconAdmin, DeleteIcon, CancelIcon } from "../../components/SVGICONS/Svg";
 import "./Booking.css";
 import React, { useState, useEffect } from "react";
 import { useMobile } from "../../hooks";
@@ -17,6 +15,7 @@ import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import CalendarApp from "../../components/Calendar/CalendarTest";
 import { getTimeComponents, formatDate, formatTime, toLocalDateString } from "../../utils/dateFormatting";
+import { Modal } from "react-bootstrap";
 
 const BookingsPage = () => {
   const [showBookingList, setShowBookingList] = useState(true);
@@ -33,6 +32,9 @@ const BookingsPage = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [bookingToDelete, setBookingToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [bookingToCancel, setBookingToCancel] = useState(null);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [bookings, setBookings] = useState([]);
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [selectedComment, setSelectedComment] = useState(null);
@@ -46,6 +48,7 @@ const BookingsPage = () => {
   const [isCheckingCalendarStatus, setIsCheckingCalendarStatus] = useState(true);
   const [bookingLimit, setBookingLimit] = useState(null); // null = unlimited
   const [userTimezone, setUserTimezone] = useState('Etc/UTC'); // Default to UTC
+  const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' or 'past'
 
   const isMobile = useMobile(991);
 
@@ -400,6 +403,59 @@ const BookingsPage = () => {
     setShowDeleteModal(true);
   };
 
+  // Show cancel confirmation modal
+  const handleCancelClick = (booking) => {
+    setBookingToCancel(booking);
+    setShowCancelModal(true);
+  };
+
+  // Cancel appointment handler
+  const handleCancelAppointment = async () => {
+    if (!bookingToCancel) return;
+
+    setIsCancelling(true);
+
+    try {
+      console.log('Booking - Cancelling appointment:', bookingToCancel);
+      
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      
+      // Update booking status to cancelled via API
+      const response = await fetch(`${apiUrl}/api/bookings/${bookingToCancel._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ status: 'cancelled' }),
+      });
+
+      if (response.ok) {
+        console.log('Booking - Appointment cancelled successfully');
+        toast.success('Appointment cancelled successfully!');
+        
+        // Close modal
+        setShowCancelModal(false);
+        setBookingToCancel(null);
+        
+        // Refresh bookings list
+        await fetchBookings();
+        
+        // Refresh calendar events
+        fetchCalendarEvents(false);
+      } else {
+        const errorData = await response.json();
+        console.error('Booking - Failed to cancel appointment:', errorData);
+        toast.error(errorData.message || 'Failed to cancel appointment');
+      }
+    } catch (error) {
+      console.error('Booking - Error cancelling appointment:', error);
+      toast.error('Failed to cancel appointment');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   // Delete appointment handler
   const handleDeleteAppointment = async () => {
     if (!bookingToDelete) return;
@@ -675,20 +731,39 @@ const BookingsPage = () => {
                 </div>
               )}
             </div>
-            {!isLoadingData && bookingLimit !== null && (
-              <div className="booking-limit-text-wrap">
-                <p className="booking-limit-text">
-                  <strong>{getCurrentMonthBookingsCount()} of {bookingLimit}</strong> bookings used this month. Upgrade to add more.
-                </p>
-              </div>
-            )}
 
             {showBookingList && (
               <div className="booking-detail-con">
+                {/* Tabs */}
+                <div className="booking-tabs-container">
+                  <div className="booking-tabs-wrapper">
+                    <button
+                      className={`booking-tab ${activeTab === 'upcoming' ? 'active' : ''}`}
+                      onClick={() => setActiveTab('upcoming')}
+                    >
+                      <span>Upcoming Bookings</span>
+                    </button>
+                    <button
+                      className={`booking-tab ${activeTab === 'past' ? 'active' : ''}`}
+                      onClick={() => setActiveTab('past')}
+                    >
+                      <span>Past Bookings</span>
+                    </button>
+                  </div>
+                </div>
+
                 {/* Upcoming Bookings */}
-                {bookingsForList.upcoming && bookingsForList.upcoming.length > 0 && (
+                {activeTab === 'upcoming' && (
                   <>
-                    {bookingsForList.upcoming.map((booking, index) => (
+                    {!isLoadingData && bookingLimit !== null && (
+                      <div className="booking-limit-text-wrap">
+                        <p className="booking-limit-text">
+                          <strong>{getCurrentMonthBookingsCount()} of {bookingLimit}</strong> bookings used this month. Upgrade to add more.
+                        </p>
+                      </div>
+                    )}
+                    {bookingsForList.upcoming && bookingsForList.upcoming.length > 0 ? (
+                      bookingsForList.upcoming.map((booking, index) => (
                       <div className="booking-card" key={`upcoming-${booking._id || index}`}>
                     <div className="left">
                       <div className="top">
@@ -785,7 +860,7 @@ const BookingsPage = () => {
                         items={[
                           {
                             label: "View",
-                            icon: <FaEye />,
+                            icon: <ViewIcon />,
                             onClick: () => {
                               setSelectedBooking(booking);
                               setModalMode("view");
@@ -794,7 +869,7 @@ const BookingsPage = () => {
                           },
                           {
                             label: "Edit",
-                            icon: <FaEdit />,
+                            icon: <EditIconAdmin />,
                             onClick: () => {
                               setSelectedBooking(booking);
                               setModalMode("edit");
@@ -802,25 +877,40 @@ const BookingsPage = () => {
                             },
                           },
                           {
+                            label: "Cancel",
+                            icon: <CancelIcon />,
+                            onClick: () => handleCancelClick(booking),
+                          },
+                          {
                             label: "Delete",
-                            icon: <RiDeleteBin5Line />,
+                            icon: <DeleteIcon />,
                             onClick: () => handleDeleteClick(booking),
                           },
                         ]}
                       />
                     </div>
                   </div>
-                    ))}
+                      ))
+                    ) : (
+                      <div className="no-bookings-message">
+                        <p>No upcoming bookings found.</p>
+                      </div>
+                    )}
                   </>
                 )}
 
-                {/* Past Bookings Section */}
-                {bookingsForList.past && bookingsForList.past.length > 0 && (
+                {/* Past Bookings */}
+                {activeTab === 'past' && (
                   <>
-                    <div className="past-bookings-heading">
-                      <h2>Past Bookings</h2>
-                    </div>
-                    {bookingsForList.past.map((booking, index) => (
+                    {!isLoadingData && bookingLimit !== null && (
+                      <div className="booking-limit-text-wrap">
+                        <p className="booking-limit-text">
+                          <strong>{getCurrentMonthBookingsCount()} of {bookingLimit}</strong> bookings used this month. Upgrade to add more.
+                        </p>
+                      </div>
+                    )}
+                    {bookingsForList.past && bookingsForList.past.length > 0 ? (
+                      bookingsForList.past.map((booking, index) => (
                       <div className="booking-card" key={`past-${booking._id || index}`}>
                     <div className="left">
                       <div className="top">
@@ -917,7 +1007,7 @@ const BookingsPage = () => {
                         items={[
                           {
                             label: "View",
-                            icon: <FaEye />,
+                            icon: <ViewIcon />,
                             onClick: () => {
                               setSelectedBooking(booking);
                               setModalMode("view");
@@ -926,35 +1016,24 @@ const BookingsPage = () => {
                           },
                           {
                             label: "Edit",
-                            icon: <FaEdit />,
+                            icon: <EditIconAdmin />,
                             onClick: () => {
                               setSelectedBooking(booking);
                               setModalMode("edit");
                               setShowAddAppointmentModal(true);
                             },
                           },
-                          {
-                            label: "Delete",
-                            icon: <RiDeleteBin5Line />,
-                            onClick: () => {
-                              setBookingToDelete(booking);
-                              setShowDeleteModal(true);
-                            },
-                          },
                         ]}
                       />
                     </div>
                   </div>
-                    ))}
+                      ))
+                    ) : (
+                      <div className="no-bookings-message">
+                        <p>No past bookings found.</p>
+                      </div>
+                    )}
                   </>
-                )}
-
-                {/* Show message if no bookings */}
-                {(!bookingsForList.upcoming || bookingsForList.upcoming.length === 0) && 
-                 (!bookingsForList.past || bookingsForList.past.length === 0) && (
-                  <div className="no-bookings-message">
-                    <p>No bookings found.</p>
-                  </div>
                 )}
               </div>
             )}
@@ -1342,6 +1421,68 @@ const BookingsPage = () => {
           </div>
         </div>
       )}
+
+      {/* Cancel Confirmation Modal */}
+      <Modal
+        show={showCancelModal}
+        onHide={() => {
+          if (!isCancelling) {
+            setShowCancelModal(false);
+            setBookingToCancel(null);
+          }
+        }}
+        centered
+        backdrop="static"
+        className="cancel-confirmation-modal"
+      >
+        <Modal.Body style={{ padding: 0 }}>
+          <div className="cancel-modal-content">
+            <button 
+              className="cancel-modal-close-btn"
+              onClick={() => {
+                if (!isCancelling) {
+                  setShowCancelModal(false);
+                  setBookingToCancel(null);
+                }
+              }}
+              disabled={isCancelling}
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M13.5 4.5L4.5 13.5M4.5 4.5L13.5 13.5" stroke="#64748B" strokeWidth="1.125" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            
+            <div className="cancel-modal-text">
+              <h3>Are you sure you want to cancel this booking?</h3>
+              <p className="cancel-modal-info">
+                This action can't be undone.
+              </p>
+            </div>
+            
+            <div className="cancel-modal-buttons">
+              <button 
+                className="cancel-modal-delete-btn"
+                onClick={handleCancelAppointment}
+                disabled={isCancelling}
+              >
+                {isCancelling ? "Cancelling..." : "Yes, Cancel"}
+              </button>
+              <button 
+                className="cancel-modal-cancel-btn"
+                onClick={() => {
+                  if (!isCancelling) {
+                    setShowCancelModal(false);
+                    setBookingToCancel(null);
+                  }
+                }}
+                disabled={isCancelling}
+              >
+                No, Back
+              </button>
+            </div>
+          </div>
+        </Modal.Body>
+      </Modal>
     </AppLayout>
   );
 };

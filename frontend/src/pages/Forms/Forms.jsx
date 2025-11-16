@@ -1453,8 +1453,8 @@ const Forms = () => {
           <>
           <div className="forms-card-list">
             {forms.map((form) => {
-              // Gray out inactive forms when on free plan with multiple forms
-              const isGrayedOut = isFreePlanWithMultipleForms && !form.isActive;
+              // Gray out all inactive forms regardless of plan
+              const isGrayedOut = !form.isActive;
               const isToggling = togglingFormId === form._id;
               // Can toggle if: not on free plan, OR form is active, OR no active form yet
               // On free plan with multiple forms: can only activate if no other is active
@@ -1525,6 +1525,27 @@ const Forms = () => {
                       },
                     ]}
                   />
+                </div>
+
+                <div className="bottom">
+                  <div className="wrap">
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 18 18"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M12.017 7.01108H15.761L13.3753 4.62383C12.6072 3.85573 11.6504 3.30337 10.6012 3.02228C9.55196 2.74119 8.4472 2.74127 7.39799 3.02252C6.34879 3.30377 5.39211 3.85627 4.62414 4.62448C3.85617 5.39269 3.30397 6.34954 3.02304 7.39883M2.23854 14.7331V10.9891M2.23854 10.9891H5.98254M2.23854 10.9891L4.62354 13.3763C5.39163 14.1444 6.34839 14.6968 7.39763 14.9779C8.44688 15.259 9.55164 15.2589 10.6008 14.9776C11.65 14.6964 12.6067 14.1439 13.3747 13.3757C14.1427 12.6075 14.6949 11.6506 14.9758 10.6013M15.761 3.26708V7.00958"
+                        stroke="#64748B"
+                        strokeWidth="1.125"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <span>{form.isActive ? "Active" : "Inactive"}</span>
+                  </div>
                 </div>
               </div>
               );

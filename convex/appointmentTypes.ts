@@ -31,9 +31,10 @@ export const create = mutation({
     isActive: v.optional(v.boolean()),
     sortOrder: v.optional(v.number()),
     intakeFormId: v.optional(v.id("intakeForms")),
+    requirePayment: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("appointmentTypes", {
+    const insertData: any = {
       userId: args.userId,
       name: args.name,
       description: args.description,
@@ -44,8 +45,19 @@ export const create = mutation({
       color: args.color ?? "#3b82f6",
       isActive: args.isActive ?? true,
       sortOrder: args.sortOrder ?? 0,
-      intakeFormId: args.intakeFormId,
-    });
+    };
+    
+    // Only include intakeFormId if it's provided and not null
+    if (args.intakeFormId !== undefined && args.intakeFormId !== null) {
+      insertData.intakeFormId = args.intakeFormId;
+    }
+    
+    // Include requirePayment if provided
+    if (args.requirePayment !== undefined) {
+      insertData.requirePayment = args.requirePayment;
+    }
+    
+    return await ctx.db.insert("appointmentTypes", insertData);
   },
 });
 

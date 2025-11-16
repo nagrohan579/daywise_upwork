@@ -510,6 +510,59 @@ export async function sendCancellationBusinessNotification(data: BookingEmailDat
   });
 }
 
+// Email sent to customer when business cancels the appointment
+export async function sendBusinessCancellationConfirmation(data: BookingEmailData): Promise<boolean> {
+  // Use app colors: #0053F1 (primary), #64748B (secondary), #121212 (text)
+  const primaryColor = data.businessColors?.primary || '#0053F1';
+  const secondaryColor = data.businessColors?.secondary || '#64748B';
+  const textColor = '#121212';
+  
+  const logoSection = data.businessLogo ? `
+    <div style="text-align: center; margin-bottom: 20px;">
+      <img src="${data.businessLogo}" alt="${data.businessName} Logo" style="max-width: 120px; max-height: 60px; object-fit: contain;" />
+    </div>` : '';
+  const platformBadge = data.usePlatformBranding ? `
+    <div style="text-align: center; margin-top: 20px;">
+      <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by DayWise</span>
+    </div>` : '';
+  
+  return await handleEmailSend('Business Cancellation Confirmation', {
+    from: FROM_EMAIL!,
+    to: data.customerEmail,
+    subject: `Appointment Cancelled - ${data.businessName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, ${primaryColor}, ${secondaryColor}); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          ${logoSection}
+          <h1 style="color: white; margin: 0; font-size: 28px;">Appointment Cancelled</h1>
+        </div>
+        
+        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
+          <p style="font-size: 16px; color: ${textColor}; margin-bottom: 20px;">
+            Hi ${data.customerName},
+          </p>
+          
+          <p style="font-size: 16px; color: ${textColor}; margin-bottom: 25px;">
+            Your appointment has been canceled. If you paid, the business will handle refunds directly.
+          </p>
+          
+          <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid ${primaryColor}; margin-bottom: 25px;">
+            <h3 style="margin: 0 0 15px 0; color: ${textColor}; font-size: 18px;">Cancelled Appointment Details</h3>
+            <p style="margin: 8px 0; color: ${secondaryColor}; font-size: 14px;"><strong style="color: ${textColor};">Service:</strong> ${data.appointmentType} (${data.appointmentDuration} minutes)</p>
+            <p style="margin: 8px 0; color: ${secondaryColor}; font-size: 14px;"><strong style="color: ${textColor};">Date & Time:</strong> ${data.appointmentDate} at ${data.appointmentTime}</p>
+            <p style="margin: 8px 0; color: ${secondaryColor}; font-size: 14px;"><strong style="color: ${textColor};">Business:</strong> ${data.businessName}</p>
+          </div>
+          
+          <p style="font-size: 14px; color: ${secondaryColor}; margin-bottom: 20px;">
+            If you have any questions about this cancellation or need to reschedule, please contact ${data.businessName} directly.
+          </p>
+          ${platformBadge}
+        </div>
+      </div>
+    `,
+  });
+}
+
 // Send verification emails
 export async function sendVerificationEmail(email: string, name: string, verificationUrl: string): Promise<boolean> {
   return await handleEmailSend('Email Verification', {

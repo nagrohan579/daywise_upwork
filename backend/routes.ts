@@ -25,7 +25,7 @@ import { toSlug, ensureUniqueSlug, generateBusinessIdentifiers } from "./lib/slu
 import { googleCalendarService } from "./lib/google-calendar";
 import { z } from "zod";
 import sharp from 'sharp';
-import { sendCustomerConfirmation, sendBusinessNotification, sendRescheduleConfirmation, sendRescheduleBusinessNotification, sendCancellationConfirmation, sendCancellationBusinessNotification, sendFeedbackEmail, sendEmailChangeOtp, sendPasswordChangeOtp } from "./email";
+import { sendCustomerConfirmation, sendBusinessNotification, sendRescheduleConfirmation, sendRescheduleBusinessNotification, sendCancellationConfirmation, sendCancellationBusinessNotification, sendBusinessCancellationConfirmation, sendFeedbackEmail, sendEmailChangeOtp, sendPasswordChangeOtp } from "./email";
 import { FeatureGate } from "./featureGating";
 import { uploadFile, deleteFile, isSpacesUrl, moveIntakeFormFiles } from "./services/spaces";
 import PDFDocument from "pdfkit";
@@ -3111,9 +3111,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               appointmentTime: formatTimeForEmail(booking.appointmentDate, businessTimezone),
             };
 
-          // Check if booking was cancelled
+          // Check if booking was cancelled by business
           if (existingBooking.status !== 'cancelled' && booking.status === 'cancelled') {
-            await sendCancellationConfirmation(customerEmailData);
+            // Send email to customer when business cancels
+            await sendBusinessCancellationConfirmation(customerEmailData);
+            // Send notification to business owner
             await sendCancellationBusinessNotification(businessEmailData);
           }
           // Check if booking was rescheduled (date/time changed)
@@ -4373,12 +4375,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!validation.success) {
         console.error('Validation error:', validation.error.issues);
+        console.error('Request body:', JSON.stringify(req.body, null, 2));
         return res.status(400).json({ 
           message: "Invalid appointment type data", 
           errors: validation.error.issues 
         });
       }
       
+      console.log('Creating appointment type with data:', JSON.stringify(validation.data, null, 2));
       const appointmentType = await storage.createAppointmentType(validation.data);
       res.json({ message: "Appointment type created successfully", appointmentType });
     } catch (error) {

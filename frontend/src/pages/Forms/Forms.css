@@ -176,6 +176,28 @@
   margin: 0;
   color: #121212;
 }
+.forms-page .forms-card-list .bottom {
+  margin-top: 16px;
+}
+.forms-page .forms-card-list .bottom .wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.forms-page .forms-card-list .bottom .wrap:last-child {
+  margin-bottom: 0;
+}
+.forms-page .forms-card-list .bottom .wrap span {
+  font-family: Inter;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: middle;
+  color: #64748b;
+}
 
 /* Grayed out forms */
 .forms-grayed-out {

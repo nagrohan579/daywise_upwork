@@ -306,19 +306,28 @@
 .service-page .servies-card-list .cardd .top {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
 }
 .service-page .servies-card-list .top .wrap {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
+  flex: 1;
+  min-width: 0;
 }
 .service-page .servies-card-list .top .wrap span {
   display: inline-block;
   width: 11px;
   height: 11px;
+  min-width: 11px;
+  min-height: 11px;
+  max-width: 11px;
+  max-height: 11px;
   background-color: #f19b11;
   border-radius: 50%;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
+  margin-top: 8px;
 }
 .service-page .servies-card-list .top .wrap h2 {
   font-family: Inter, sans-serif;
@@ -327,9 +336,13 @@
   font-size: 18px;
   line-height: 28px;
   letter-spacing: 0%;
-  vertical-align: middle;
   margin: 0;
   color: #121212;
+  text-align: left;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  flex: 1;
+  min-width: 0;
 }
 .service-page .servies-card-list .bottom {
   margin-top: 16px;

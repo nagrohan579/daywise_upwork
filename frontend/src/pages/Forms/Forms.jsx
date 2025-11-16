@@ -477,7 +477,7 @@ const Forms = () => {
                 </svg>
               </div>
               <p className="forms-warning-text">
-                You've switched to the Free Plan. All intake forms are inactive. Activate one intake form to continue accepting bookings.
+                You've switched to the Free Plan. All intake forms have been set to inactive. Activate one intake form to continue using intake forms. Other features like services, branding, and payments are limited while on the Free Plan.
               </p>
             </div>
             <button

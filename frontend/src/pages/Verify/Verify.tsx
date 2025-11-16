@@ -19,9 +19,9 @@ const VerifyPage = () => {
         setStatus("success");
         setMessage("Your email has been verified successfully! You're now logged in.");
         
-        // Redirect to bookings page after 2 seconds
+        // Redirect to onboarding page after 2 seconds
         setTimeout(() => {
-          navigate("/booking");
+          navigate("/onboarding");
         }, 2000);
         return;
       }
@@ -63,9 +63,9 @@ const VerifyPage = () => {
         setStatus("success");
         setMessage("Your email has been verified successfully! You're now logged in.");
         
-        // Redirect to bookings page after 2 seconds
+        // Redirect to onboarding page after 2 seconds
         setTimeout(() => {
-          navigate("/booking");
+          navigate("/onboarding");
         }, 2000);
       } catch (error: any) {
         console.error("Verification error:", error);

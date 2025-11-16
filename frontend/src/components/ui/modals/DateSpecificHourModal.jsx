@@ -12,6 +12,7 @@ const DateSpecificHourModal = ({
   showDateSpecificHour,
   setShowDateSpecificHour,
   mode = "create",
+  editData = null,
   onSuccess,
 }) => {
   const isEdit = mode === "edit";
@@ -70,21 +71,88 @@ const DateSpecificHourModal = ({
     return monthIndex < currentMonth;
   };
 
-  // Reset form to default values when modal opens in create mode
+  // Reset form to default values when modal opens in create mode, or populate when in edit mode
   useEffect(() => {
-    if (showDateSpecificHour && !isEdit) {
-      setSelectedDate("");
-      setSelectedType("Unavailable");
-      setReason("");
-      setStartTime("");
-      setEndTime("");
-      setStartDate("");
-      setEndDate("");
-      setSelectedMonths([]);
-      setSelectedService("All services");
-      setSelectedYear(currentYear);
+    if (showDateSpecificHour) {
+      if (!isEdit || !editData) {
+        // Reset to defaults for create mode
+        setSelectedDate("");
+        setSelectedType("Unavailable");
+        setReason("");
+        setStartTime("");
+        setEndTime("");
+        setStartDate("");
+        setEndDate("");
+        setSelectedMonths([]);
+        setSelectedService("All services");
+        setSelectedYear(currentYear);
+      } else {
+        // Populate form with edit data
+        if (editData.type === 'closed_months' || (editData.year && editData.items)) {
+          // Handle closed months - editData can be either a single exception or a grouped object
+          try {
+            let year, monthNumbers;
+            if (editData.year && editData.items) {
+              // Grouped closed months (from Availability page)
+              year = parseInt(editData.year);
+              monthNumbers = editData.items.map(item => item.month);
+            } else {
+              // Single exception
+              const schedule = JSON.parse(editData.customSchedule || '{}');
+              year = schedule.year || currentYear;
+              monthNumbers = [schedule.month];
+            }
+            setSelectedType("Closed Months");
+            setSelectedYear(year);
+            // Convert month numbers to month names
+            const monthNames = monthNumbers.map(monthNum => months[monthNum]);
+            setSelectedMonths(monthNames);
+          } catch (e) {
+            console.error('Error parsing closed months schedule:', e);
+          }
+        } else if (editData.startDate && editData.endDate) {
+          // Handle blocked dates (booking windows)
+          setSelectedType("Booking Window");
+          // Handle both timestamp (number) and date string formats
+          const startDateObj = typeof editData.startDate === 'number' 
+            ? new Date(editData.startDate) 
+            : new Date(editData.startDate);
+          const endDateObj = typeof editData.endDate === 'number' 
+            ? new Date(editData.endDate) 
+            : new Date(editData.endDate);
+          setStartDate(startDateObj.toISOString().split('T')[0]);
+          setEndDate(endDateObj.toISOString().split('T')[0]);
+        } else {
+          // Handle regular exceptions (unavailable, custom_hours, special_availability)
+          // Handle both timestamp (number) and date string formats
+          const dateObj = typeof editData.date === 'number' 
+            ? new Date(editData.date) 
+            : new Date(editData.date);
+          setSelectedDate(dateObj.toISOString().split('T')[0]);
+          
+          if (editData.type === 'unavailable') {
+            setSelectedType("Unavailable");
+          } else if (editData.type === 'custom_hours') {
+            setSelectedType("Custom Hours");
+          } else if (editData.type === 'special_availability') {
+            setSelectedType("Special Availability");
+          }
+          
+          if (editData.startTime) setStartTime(editData.startTime);
+          if (editData.endTime) setEndTime(editData.endTime);
+          if (editData.reason) setReason(editData.reason);
+          
+          // Set selected service for special_availability or unavailable with appointmentTypeId
+          if (editData.appointmentTypeId) {
+            // We'll need to fetch services and find the matching one
+            // For now, we'll set it after services are loaded
+          } else {
+            setSelectedService("All services");
+          }
+        }
+      }
     }
-  }, [showDateSpecificHour, isEdit]);
+  }, [showDateSpecificHour, isEdit, editData]);
 
   // Fetch services when modal opens
   useEffect(() => {
@@ -92,6 +160,18 @@ const DateSpecificHourModal = ({
       fetchServices();
     }
   }, [showDateSpecificHour]);
+
+  // Set selected service after services are loaded (for edit mode)
+  useEffect(() => {
+    if (isEdit && editData && editData.appointmentTypeId && services.length > 0) {
+      const service = services.find(s => s._id === editData.appointmentTypeId);
+      if (service) {
+        setSelectedService(service.name);
+      } else {
+        setSelectedService("All services");
+      }
+    }
+  }, [services, isEdit, editData]);
 
   // Close year dropdown when clicking outside
   useEffect(() => {
@@ -173,6 +253,24 @@ const DateSpecificHourModal = ({
         }
       }
 
+      // Determine original type from editData
+      let originalType = null;
+      let originalId = null;
+      if (isEdit && editData) {
+        if (editData.startDate && editData.endDate) {
+          originalType = "Booking Window";
+          originalId = editData._id;
+        } else if (editData.type === 'closed_months' || (editData.year && editData.items)) {
+          originalType = "Closed Months";
+          originalId = editData.year ? null : editData._id; // For grouped closed months, we'll delete all
+        } else {
+          originalType = editData.type === 'unavailable' ? "Unavailable" :
+                        editData.type === 'custom_hours' ? "Custom Hours" :
+                        editData.type === 'special_availability' ? "Special Availability" : null;
+          originalId = editData._id;
+        }
+      }
+
       // TYPE-SPECIFIC SUBMISSION LOGIC
       if (selectedType === "Closed Months") {
         // Map month names to numbers (0-11)
@@ -189,6 +287,21 @@ const DateSpecificHourModal = ({
         
         const meData = await meResponse.json();
         const currentUserId = meData.user.id;
+
+        // If editing and original type was different, delete the old entry
+        if (isEdit && originalType !== "Closed Months" && originalId) {
+          if (originalType === "Booking Window") {
+            await fetch(`${apiUrl}/api/blocked-dates/${originalId}`, {
+              method: 'DELETE',
+              credentials: 'include',
+            });
+          } else {
+            await fetch(`${apiUrl}/api/availability-exceptions/${originalId}`, {
+              method: 'DELETE',
+              credentials: 'include',
+            });
+          }
+        }
 
         // Delete existing closed_months exceptions for the selected year
         const existingExceptionsResponse = await fetch(`${apiUrl}/api/availability-exceptions`, {
@@ -255,23 +368,59 @@ const DateSpecificHourModal = ({
           throw new Error('Invalid date range');
         }
 
-        const response = await fetch(`${apiUrl}/api/blocked-dates`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            startDate: startDateObj.toISOString(),
-            endDate: endDateObj.toISOString(),
-            isAllDay: true,
-          }),
-        });
+        // If editing and original type was Booking Window, update it
+        if (isEdit && originalType === "Booking Window" && originalId) {
+          const response = await fetch(`${apiUrl}/api/blocked-dates/${originalId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              startDate: startDateObj.toISOString(),
+              endDate: endDateObj.toISOString(),
+              isAllDay: true,
+            }),
+          });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to create booking window');
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to update booking window');
+          }
+
+          toast.success('Booking window updated successfully!');
+        } else {
+          // If original type was different or creating new, delete old if exists and create new
+          if (isEdit && originalType !== "Booking Window" && originalId) {
+            // Delete old exception if it was a different type
+            if (originalType === "Closed Months") {
+              // For closed months, delete all for the year (handled above in closed months section)
+            } else {
+              // Delete old exception
+              await fetch(`${apiUrl}/api/availability-exceptions/${originalId}`, {
+                method: 'DELETE',
+                credentials: 'include',
+              });
+            }
+          }
+
+          // Create new booking window
+          const response = await fetch(`${apiUrl}/api/blocked-dates`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              startDate: startDateObj.toISOString(),
+              endDate: endDateObj.toISOString(),
+              isAllDay: true,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to create booking window');
+          }
+
+          toast.success(isEdit ? 'Booking window updated successfully!' : 'Booking window added successfully!');
         }
-
-        toast.success('Booking window added successfully!');
       }
       else {
         // Unavailable, Custom Hours, Special Availability - all use availability exceptions
@@ -280,29 +429,68 @@ const DateSpecificHourModal = ({
           throw new Error('Invalid date selected');
         }
 
+        const newType = selectedType === "Unavailable" ? "unavailable" :
+                       selectedType === "Custom Hours" ? "custom_hours" : "special_availability";
+
         let exceptionData = {
           date: dateObj.toISOString(),
-          type: selectedType === "Unavailable" ? "unavailable" :
-                selectedType === "Custom Hours" ? "custom_hours" : "special_availability",
+          type: newType,
           reason: reason || undefined,
           startTime: showTimeInputs ? startTime : undefined,
           endTime: showTimeInputs ? endTime : undefined,
           appointmentTypeId: appointmentTypeId || undefined,
         };
 
-        const response = await fetch(`${apiUrl}/api/availability-exceptions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(exceptionData),
-        });
+        // If editing and same type, update it
+        if (isEdit && originalType === selectedType && originalId && originalType !== "Closed Months" && originalType !== "Booking Window") {
+          const response = await fetch(`${apiUrl}/api/availability-exceptions/${originalId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(exceptionData),
+          });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to create exception');
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to update exception');
+          }
+
+          toast.success(`${selectedType} updated successfully!`);
+        } else {
+          // If type changed or creating new, delete old if exists and create new
+          if (isEdit && originalId) {
+            if (originalType === "Booking Window") {
+              // Delete old blocked date
+              await fetch(`${apiUrl}/api/blocked-dates/${originalId}`, {
+                method: 'DELETE',
+                credentials: 'include',
+              });
+            } else if (originalType === "Closed Months") {
+              // For closed months, already deleted above
+            } else {
+              // Delete old exception
+              await fetch(`${apiUrl}/api/availability-exceptions/${originalId}`, {
+                method: 'DELETE',
+                credentials: 'include',
+              });
+            }
+          }
+
+          // Create new exception
+          const response = await fetch(`${apiUrl}/api/availability-exceptions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(exceptionData),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to create exception');
+          }
+
+          toast.success(isEdit ? `${selectedType} updated successfully!` : `${selectedType} added successfully!`);
         }
-
-        toast.success(`${selectedType} added successfully!`);
       }
 
       setShowDateSpecificHour(false);

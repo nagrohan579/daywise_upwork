@@ -6,7 +6,6 @@ import {
   DateSpecificHourModal,
   EditIcon,
   InfoIcon,
-  PlusIcon,
   Select,
   WeekTimeRange,
 } from "../../components";
@@ -24,6 +23,7 @@ const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "frida
 const Availability = () => {
   const [showDateSpecificHour, setShowDateSpecificHour] = useState(false);
   const [modalMode, setModalMode] = useState("create");
+  const [editData, setEditData] = useState(null);
   const isMobile = useMobile(991);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -267,6 +267,7 @@ const Availability = () => {
     setShowDateSpecificHour(true);
   };
   const handleAddClick = () => {
+    setEditData(null);
     setModalMode("create");
     setShowDateSpecificHour(true);
   };
@@ -341,8 +342,9 @@ const Availability = () => {
   };
 
   const handleEditException = (exception) => {
-    // For now, just show a message that edit is not implemented
-    toast.info('Edit functionality will be implemented in the next phase');
+    setEditData(exception);
+    setModalMode("edit");
+    setShowDateSpecificHour(true);
   };
 
   // Get timezone options from custom timezone utilities
@@ -478,7 +480,10 @@ const Availability = () => {
                                       </button>
                                     </div>
                                   </div>
-                                  <PlusIcon />
+                                  <EditIcon onClick={() => {
+                                    // For closed months, pass all items so we can edit all months for that year
+                                    handleEditException({ type: 'closed_months', year, items });
+                                  }} />
                                 </div>
                               );
                             })}
@@ -530,10 +535,9 @@ const Availability = () => {
                                           'All Services'
                                       )}
                                     </button>
-                                    <EditIcon onClick={() => handleEditException(exception)} />
                                   </div>
                                 </div>
-                                <PlusIcon />
+                                <EditIcon onClick={() => handleEditException(exception)} />
                               </div>
                             ))}
                           </>
@@ -581,7 +585,7 @@ const Availability = () => {
                                 </button>
                               </div>
                             </div>
-                            <PlusIcon />
+                            <EditIcon onClick={() => handleEditException(blocked)} />
                           </div>
                         );
                       })}
@@ -598,7 +602,9 @@ const Availability = () => {
         showDateSpecificHour={showDateSpecificHour}
         setShowDateSpecificHour={setShowDateSpecificHour}
         mode={modalMode}
+        editData={editData}
         onSuccess={() => {
+          setEditData(null);
           fetchDateExceptions();
           fetchBlockedDates();
         }}

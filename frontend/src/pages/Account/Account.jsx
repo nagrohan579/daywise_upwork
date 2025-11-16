@@ -109,27 +109,12 @@ const Account = () => {
 
   const handleCountryChange = (countryName) => {
     const countryCode = getCountryCode(countryName);
-    const country = ct.getCountry(countryCode);
-
-    if (country && country.timezones && country.timezones.length > 0) {
-      // Auto-select the first (primary) timezone for this country
-      const primaryTimezone = country.timezones[0];
-      const timezoneLabel = getTimezoneLabel(primaryTimezone);
-
-      setUserData(prev => ({
-        ...prev,
-        country: countryCode,
-        timezone: primaryTimezone
-      }));
-
-      toast.success(`Timezone automatically set to ${timezoneLabel}`);
-    } else {
-      // If no timezone found, just update country
-      setUserData(prev => ({
-        ...prev,
-        country: countryCode
-      }));
-    }
+    
+    // Just update the country, don't change timezone
+    setUserData(prev => ({
+      ...prev,
+      country: countryCode
+    }));
   };
 
   const handleSaveChanges = async (e) => {

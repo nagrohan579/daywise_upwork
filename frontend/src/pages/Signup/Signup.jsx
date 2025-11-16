@@ -41,6 +41,7 @@ const SignupPage = () => {
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [passwordValue, setPasswordValue] = useState("");
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   // Calculate password strength
   const calculatePasswordStrength = (password) => {
@@ -121,6 +122,12 @@ const SignupPage = () => {
   }, [passwordValue]);
 
   const onSubmit = async (data) => {
+    // Check if terms are accepted
+    if (!acceptedTerms) {
+      toast.error('Please accept the Terms of Service and Privacy Policy by checking the box');
+      return;
+    }
+
     try {
       // Detect user's timezone and country automatically
       const location = detectUserLocation();
@@ -154,11 +161,6 @@ const SignupPage = () => {
       setSignupSuccess(true);
       toast.success('Account created successfully! Please check your email to verify your account.');
 
-      // Redirect to onboarding after a delay
-      setTimeout(() => {
-        navigate('/onboarding');
-      }, 2000);
-
     } catch (error) {
       console.error('Signup error:', error);
       toast.error('An error occurred during signup. Please try again.');
@@ -166,6 +168,12 @@ const SignupPage = () => {
   };
 
   const handleGoogleSignup = () => {
+    // Check if terms are accepted
+    if (!acceptedTerms) {
+      toast.error('Please accept the Terms of Service and Privacy Policy by checking the box');
+      return;
+    }
+
     // Detect user's timezone and country automatically
     const location = detectUserLocation();
 
@@ -291,6 +299,27 @@ const SignupPage = () => {
               )}
             </div>
           )}
+
+          <div className={`terms-checkbox-container ${isPasswordFocused && passwordValue ? 'with-password-strength' : ''}`}>
+            <input
+              type="checkbox"
+              id="terms-checkbox"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              className="terms-checkbox"
+            />
+            <label htmlFor="terms-checkbox" className="terms-label">
+              By creating an account, you agree to our{" "}
+              <Link to="/terms" className="terms-link" target="_blank">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link to="/privacy-policy" className="terms-link" target="_blank">
+                Privacy Policy
+              </Link>
+              .
+            </label>
+          </div>
 
           <button
             type="submit"

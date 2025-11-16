@@ -1170,8 +1170,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                            ? '' // Same domain in production
                            : 'http://localhost:5173'; // Frontend dev server
 
-      // Redirect to frontend booking page with verified flag
-      res.redirect(`${frontendUrl}/booking?verified=true`);
+      // Redirect to frontend onboarding page with verified flag
+      res.redirect(`${frontendUrl}/verify?verified=true`);
       
     } catch (error) {
       console.error('Email verification error:', error);
@@ -4276,6 +4276,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Closed months updated successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to update closed months", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.put("/api/blocked-dates/:id", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const blockedDates = await storage.getBlockedDatesByUser(userId);
+      const blockedDate = blockedDates.find(b => b._id === req.params.id);
+      
+      if (!blockedDate) {
+        return res.status(404).json({ message: "Blocked date not found" });
+      }
+
+      const updates = insertBlockedDateSchema.partial().parse(req.body);
+      // Strip userId to prevent ownership changes
+      delete (updates as any).userId;
+      
+      const updatedBlockedDate = await storage.updateBlockedDate(req.params.id, updates);
+      
+      if (!updatedBlockedDate) {
+        return res.status(404).json({ message: "Blocked date not found" });
+      }
+      
+      res.json({ message: "Blocked date updated successfully", blockedDate: updatedBlockedDate });
+    } catch (error) {
+      res.status(400).json({ message: "Invalid blocked date data", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 

@@ -249,7 +249,7 @@ const Service = () => {
                 </svg>
               </div>
               <p className="service-warning-text">
-                You've switched to the Free Plan. All services are inactive. Activate one service to continue accepting bookings.
+                You've switched to the Free Plan. All services have been set to inactive. Activate one service to continue using services. Other features like forms, branding, and payments are limited while on the Free Plan.
               </p>
             </div>
             <button

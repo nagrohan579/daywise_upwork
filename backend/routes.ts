@@ -1347,12 +1347,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('================================');
       
       // Return comprehensive user data for account page
-      res.json({ 
-        user: { 
-          id: user._id, 
-          email: user.email, 
-          name: user.name, 
-          picture: user.picture, 
+      res.json({
+        user: {
+          id: user._id,
+          email: user.email,
+          name: user.name,
+          picture: user.picture,
           isAdmin: user.isAdmin,
           businessName: user.businessName,
           welcomeMessage: user.welcomeMessage,
@@ -1364,8 +1364,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           slug: user.slug,
           googleId: user.googleId,
           emailVerified: user.emailVerified,
+          accountStatus: user.accountStatus || 'active', // Default to 'active' for existing users
           googleCalendarConnected: googleCalendarConnected // ✅ Fresh from DB, never cached
-        } 
+        }
       });
     } catch (error) {
       console.error('❌ /api/auth/me error:', error);
@@ -6619,12 +6620,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      await storage.updateUserSubscription(userSubscription.userId, {
+      const updates: any = {
         status: subscription.status,
-        stripeSubscriptionId: subscription._id,
+        stripeSubscriptionId: subscription.id || subscription._id,
         renewsAt: subscription.current_period_end ? subscription.current_period_end * 1000 : undefined,
         cancelAt: subscription.cancel_at ? subscription.cancel_at * 1000 : undefined,
-      });
+      };
+
+      // Store start date from Stripe (created timestamp)
+      if (subscription.created && !userSubscription.startDate) {
+        updates.startDate = subscription.created * 1000;
+      }
+
+      await storage.updateUserSubscription(userSubscription.userId, updates);
 
       console.log(`Updated subscription for user ${userSubscription.userId}: ${subscription.status}`);
     } catch (error) {
@@ -6847,6 +6855,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: user.name || 'No Name', // User's actual name
           businessName: user.businessName || '', // Keep business name for reference if needed
           email: user.email,
+          industry: user.industry || null, // Industry from onboarding
           plan: planDisplayName,
           bookingCount: userBookings.length,
           joinDate: user._creationTime ? new Date(user._creationTime).toLocaleDateString() : new Date().toLocaleDateString(),
@@ -6857,6 +6866,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(usersWithDetails);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch users", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  // Admin get user subscription endpoint
+  app.get("/api/admin/users/:id/subscription", requireAdmin, async (req, res) => {
+    try {
+      const userId = req.params.id;
+      const subscription = await storage.getUserSubscription(userId);
+      
+      if (!subscription) {
+        // Return default values if subscription doesn't exist
+        return res.json({
+          plan: "Free",
+          startDate: null,
+          nextBillingDate: null,
+          lifetimeSpend: 0,
+        });
+      }
+
+      // Format the response
+      // Use _creationTime as fallback for startDate if not set
+      const startDate = subscription.startDate || (subscription as any)._creationTime || null;
+      
+      const response = {
+        plan: subscription.planId === "pro" ? "Pro" : "Free",
+        startDate: startDate,
+        nextBillingDate: subscription.renewsAt || null,
+        lifetimeSpend: subscription.lifetimeSpend || 0,
+      };
+
+      res.json(response);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch subscription", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  // Admin update user subscription endpoint
+  app.put("/api/admin/users/:id/subscription", requireAdmin, async (req, res) => {
+    try {
+      const userId = req.params.id;
+      const { plan } = req.body;
+
+      if (!plan || !["Free", "Pro", "free", "pro"].includes(plan)) {
+        return res.status(400).json({ message: "Invalid plan. Must be 'Free' or 'Pro'" });
+      }
+
+      const planId = plan.toLowerCase();
+      const subscription = await storage.getUserSubscription(userId);
+
+      if (!subscription) {
+        // Create new subscription if it doesn't exist
+        await storage.createUserSubscription({
+          userId,
+          planId,
+          status: planId === "pro" ? "active" : "active",
+          isAnnual: false,
+        });
+      } else {
+        // Update existing subscription
+        await storage.updateUserSubscription(userId, {
+          planId,
+          status: planId === "pro" ? "active" : "active",
+        });
+      }
+
+      res.json({ message: "Subscription updated successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update subscription", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -6884,6 +6961,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to update user status", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  // Admin update user profile endpoint
+  app.put("/api/admin/users/:id", requireAdmin, async (req, res) => {
+    try {
+      const userId = req.params.id;
+      const { name, email, status } = req.body;
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Prepare update object
+      const updateData: any = {};
+      if (name !== undefined) updateData.name = name;
+      if (email !== undefined) updateData.email = email;
+      if (status !== undefined) {
+        // Map "Active"/"Inactive" to "active"/"inactive"
+        updateData.accountStatus = status.toLowerCase();
+      }
+
+      // Update user profile
+      const updatedUser = await storage.updateUser(userId, updateData);
+
+      res.json({
+        message: "User updated successfully",
+        user: updatedUser
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update user", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 

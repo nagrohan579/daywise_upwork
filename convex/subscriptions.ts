@@ -112,6 +112,8 @@ export const createUserSubscription = mutation({
     renewsAt: v.optional(v.number()),
     cancelAt: v.optional(v.number()),
     isAnnual: v.optional(v.boolean()),
+    startDate: v.optional(v.number()),
+    lifetimeSpend: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("userSubscriptions", {
@@ -123,6 +125,8 @@ export const createUserSubscription = mutation({
       renewsAt: args.renewsAt,
       cancelAt: args.cancelAt,
       isAnnual: args.isAnnual ?? false,
+      startDate: args.startDate,
+      lifetimeSpend: args.lifetimeSpend ?? 0,
       updatedAt: Date.now(),
     });
   },

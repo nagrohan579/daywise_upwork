@@ -9,6 +9,7 @@ import {
   ImageCropEditor,
   ColorPicker,
 } from "../../components";
+import HowThisWorksButton from "../../components/HowThisWorksButton";
 import { RiDeleteBin5Line } from "react-icons/ri";
 import { toast } from "sonner";
 import { EditIconBranding } from "../../components/SVGICONS/Svg";
@@ -1411,6 +1412,7 @@ const Branding = () => {
         }}
         onSave={cropEditorType === 'logo' ? handleLogoCropSave : handleProfileCropSave}
       />
+      <HowThisWorksButton title="How Branding Works" />
     </AppLayout>
   );
 };

@@ -668,15 +668,6 @@ const Onboarding = () => {
                           </span>
                         </div>
                       ))}
-                      <span
-                        className="onboarding-step2-add-icon"
-                        onClick={() => {
-                          const newRanges = [...timeRanges, { start: "09:00", end: "17:00" }];
-                          handleDayChange(dayName, newRanges);
-                        }}
-                      >
-                        <PlusIcon />
-                      </span>
                     </>
                   ) : (
                     <>

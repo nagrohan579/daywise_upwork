@@ -9,6 +9,7 @@ import {
   Select,
   WeekTimeRange,
 } from "../../components";
+import HowThisWorksButton from "../../components/HowThisWorksButton";
 import DeleteConfirmationModal from "../../components/ui/modals/DeleteConfirmationModal";
 import { useMobile } from "../../hooks";
 import { toast } from "sonner";
@@ -621,6 +622,7 @@ const Availability = () => {
             : "Date-specific hour"
         }
       />
+      <HowThisWorksButton title="How Availability Works" />
     </AppLayout>
   );
 };

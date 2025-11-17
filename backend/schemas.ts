@@ -171,6 +171,8 @@ export const insertUserSubscriptionSchema = z.object({
   renewsAt: z.coerce.date().optional(),
   cancelAt: z.coerce.date().optional(),
   isAnnual: z.boolean().optional(),
+  startDate: z.coerce.date().optional(),
+  lifetimeSpend: z.number().optional(),
 });
 
 // Branding schemas

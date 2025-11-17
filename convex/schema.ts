@@ -32,6 +32,7 @@ export default defineSchema({
     industry: v.optional(v.string()),
     onboardingCompleted: v.optional(v.boolean()),
     isAdmin: v.boolean(),
+    accountStatus: v.optional(v.string()), // "active" or "inactive", defaults to "active"
     // Stripe Connect fields
     stripeAccountId: v.optional(v.string()),
     stripeAccessToken: v.optional(v.string()),
@@ -170,6 +171,8 @@ export default defineSchema({
     renewsAt: v.optional(v.number()),
     cancelAt: v.optional(v.number()),
     isAnnual: v.boolean(),
+    startDate: v.optional(v.number()), // Subscription start date (timestamp)
+    lifetimeSpend: v.optional(v.number()), // Total amount spent (in cents)
     updatedAt: v.number(),
   })
     .index("by_userId", ["userId"])

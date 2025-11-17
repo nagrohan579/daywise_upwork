@@ -297,3 +297,17 @@ export const deleteUser = mutation({
     return { success: true };
   },
 });
+
+// Update account status (for admin)
+export const updateAccountStatus = mutation({
+  args: {
+    id: v.id("users"),
+    accountStatus: v.string(), // "active" or "inactive"
+  },
+  handler: async (ctx, { id, accountStatus }) => {
+    await ctx.db.patch(id, {
+      accountStatus,
+    });
+    return await ctx.db.get(id);
+  },
+});

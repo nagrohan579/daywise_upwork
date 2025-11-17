@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { FaRegCopy } from "react-icons/fa6";
 import { toast } from "sonner";
 import { AppLayout, Button, Input } from "../../components";
+import HowThisWorksButton from "../../components/HowThisWorksButton";
 import "./MyLink.css";
 
 const MyLink = () => {
@@ -109,6 +110,7 @@ const MyLink = () => {
           </div>
         </div>
       </div>
+      <HowThisWorksButton title="How My Link Works" />
     </AppLayout>
   );
 };

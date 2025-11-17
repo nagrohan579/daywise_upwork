@@ -7,6 +7,7 @@ import { Modal } from "react-bootstrap";
 import { useMobile } from "../../hooks";
 import { toast } from "sonner";
 import { ActionMenu, AppLayout, Button, Input, Textarea, Checkbox, Select } from "../../components";
+import HowThisWorksButton from "../../components/HowThisWorksButton";
 import "../../components/ui/modals/modal.css";
 import "./Forms.css";
 
@@ -1924,6 +1925,7 @@ const Forms = () => {
           </div>
         </Modal.Body>
       </Modal>
+      <HowThisWorksButton title="How Forms Works" />
     </AppLayout>
   );
 };

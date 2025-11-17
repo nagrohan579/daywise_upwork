@@ -143,6 +143,52 @@
   height: 250px;
 }
 
+/* Custom tooltip styling - replace red colors with #0053F1 */
+.recharts-tooltip-wrapper {
+  z-index: 1000;
+}
+
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: #FFFFFF !important;
+  border: 1px solid #E5E7EB !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-label {
+  color: #111827 !important;
+  font-weight: 600 !important;
+}
+
+.recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-item {
+  color: #0053F1 !important;
+}
+
+.recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-item-name {
+  color: #0053F1 !important;
+}
+
+.recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-item-value {
+  color: #0053F1 !important;
+}
+
+.recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-item-separator {
+  color: #0053F1 !important;
+}
+
+/* Override any red colors in tooltip */
+.recharts-tooltip-wrapper .recharts-tooltip-item-list li {
+  color: #0053F1 !important;
+}
+
+.recharts-tooltip-wrapper .recharts-tooltip-item-list li .recharts-tooltip-item-name {
+  color: #0053F1 !important;
+}
+
+.recharts-tooltip-wrapper .recharts-tooltip-item-list li .recharts-tooltip-item-value {
+  color: #0053F1 !important;
+}
+
 /* Subscription Section */
 .subscription-section {
   background: white;
@@ -441,15 +487,22 @@
   outline: none;
 }
 
-.action-menu-btn:hover {
+.action-menu-btn:hover:not(:disabled) {
   background-color: #F3F4F6;
 }
 
-.action-menu-btn:focus,
-.action-menu-btn:active {
+.action-menu-btn:focus:not(:disabled),
+.action-menu-btn:active:not(:disabled) {
   outline: none !important;
   border: none !important;
   box-shadow: none !important;
+}
+
+.action-menu-btn.disabled,
+.action-menu-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .action-menu-dropdown {
@@ -1802,9 +1855,10 @@ body:has(.action-menu-dropdown) .users-table tbody tr:not(:has(.menu-open)) td:h
   width: 100%;
 }
 
-/* Ensure Name and Email fields take full width */
+/* Ensure Name, Email, and Industry fields take full width */
 .view-user-form-content > .view-user-field-group:first-child,
-.view-user-form-content > .view-user-field-group:nth-child(2) {
+.view-user-form-content > .view-user-field-group:nth-child(2),
+.view-user-form-content > .view-user-field-group:nth-child(3) {
   width: 100%;
 }
 

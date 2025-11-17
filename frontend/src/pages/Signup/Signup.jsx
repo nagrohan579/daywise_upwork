@@ -202,7 +202,6 @@ const SignupPage = () => {
             </svg>
             <h2 className="title" style={{ marginTop: '1rem' }}>Check your email!</h2>
             <p className="subtitle">We've sent you a verification link. Please check your email and click the link to verify your account.</p>
-            <p className="subtitle" style={{ marginTop: '1rem' }}>Redirecting to onboarding...</p>
           </div>
         </div>
       </div>

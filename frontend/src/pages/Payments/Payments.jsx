@@ -3,6 +3,7 @@ import AppLayout from "../../components/Sidebar/Sidebar";
 import { IoAdd } from "react-icons/io5";
 import { PremiumIcon, StripeIcon, ConnectedCheckIcon } from "../../components/SVGICONS/Svg";
 import { toast } from "sonner";
+import HowThisWorksButton from "../../components/HowThisWorksButton";
 import "./Payments.css";
 
 const Payments = () => {
@@ -191,6 +192,7 @@ const Payments = () => {
         </div>
         )}
       </div>
+      <HowThisWorksButton title="How Payments Works" />
     </AppLayout>
   );
 };

@@ -46,13 +46,14 @@ const navItems = [
   { name: "Billing", path: "/billing", icon: <BiilingIcon /> },
 ];
 
-const Sidebar = ({ isOpen, toggleSidebar }) => {
+const Sidebar = ({ isOpen, toggleSidebar, accountStatus }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [userTimezone, setUserTimezone] = useState('Etc/UTC'); // Default to UTC
+  const isInactive = accountStatus === 'inactive';
 
   // Fetch user timezone on mount
   useEffect(() => {
@@ -237,8 +238,14 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                   to={item.path}
                   className={`nav-link ${
                     location.pathname === item.path ? "is-active" : ""
-                  }`}
-                  onClick={toggleSidebar}
+                  } ${isInactive ? "disabled" : ""}`}
+                  onClick={(e) => {
+                    if (isInactive) {
+                      e.preventDefault();
+                      return;
+                    }
+                    toggleSidebar();
+                  }}
                 >
                   <Icon>{item.icon}</Icon>
                   {item.name}
@@ -249,7 +256,15 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         </nav>
 
         <div className="logout-container">
-          <Link to="/feedback" className="leave-feedback-button">
+          <Link
+            to="/feedback"
+            className={`leave-feedback-button ${isInactive ? "disabled" : ""}`}
+            onClick={(e) => {
+              if (isInactive) {
+                e.preventDefault();
+              }
+            }}
+          >
             Leave Feedback
           </Link>
           <div className="logout-wrapper">
@@ -259,7 +274,15 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               </Icon>
               Logout
             </button>
-            <div className="notification-bell" onClick={handleBellClick}>
+            <div
+              className={`notification-bell ${isInactive ? "disabled" : ""}`}
+              onClick={(e) => {
+                if (isInactive) {
+                  return;
+                }
+                handleBellClick(e);
+              }}
+            >
               <BellIcon />
               {unreadCount > 0 && (
                 <span className="notification-badge">{unreadCount}</span>
@@ -286,7 +309,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   );
 };
 
-const AppLayout = ({ children }) => {
+const AppLayout = ({ children, accountStatus }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const toggleSidebar = () => {
@@ -350,7 +373,7 @@ const AppLayout = ({ children }) => {
         )}
       </button>
 
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} accountStatus={accountStatus} />
 
       <main className="main-content-area">{children}</main>
     </div>

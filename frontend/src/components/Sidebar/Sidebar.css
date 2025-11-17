@@ -131,6 +131,12 @@
   font-weight: 600;
 }
 
+.sidebar-nav .nav-link.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
 .sidebar-container .logout-container {
   padding: 20px 24px;
   display: flex;
@@ -166,6 +172,12 @@
 
 .sidebar-container .leave-feedback-button:hover {
   background-color: #F0F4FF;
+}
+
+.sidebar-container .leave-feedback-button.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
 }
 
 .sidebar-container .logout-wrapper {
@@ -221,6 +233,12 @@
 
 .sidebar-container .notification-bell:hover {
   background-color: #D0D9FE;
+}
+
+.sidebar-container .notification-bell.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
 }
 
 .sidebar-container .notification-badge {

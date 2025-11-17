@@ -1,0 +1,67 @@
+/* Inactive Account Warning Banner */
+.inactive-account-banner {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 30px;
+  gap: 6px;
+  isolation: isolate;
+  position: fixed;
+  width: 100vw;
+  height: auto;
+  min-height: 36px;
+  left: 0px;
+  top: 0px;
+  background: rgba(202, 65, 65, 1);
+  z-index: 1000;
+  box-sizing: border-box;
+}
+
+.inactive-account-warning-content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.inactive-account-warning-icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  flex-shrink: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+}
+
+.inactive-account-warning-text {
+  width: auto;
+  height: auto;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  text-align: center;
+  z-index: 1;
+  margin: 0;
+}
+
+.inactive-account-email-link {
+  color: #FFFFFF;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.inactive-account-email-link:hover {
+  color: #F0F0F0;
+}

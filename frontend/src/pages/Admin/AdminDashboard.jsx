@@ -4,6 +4,30 @@ import { toast } from "sonner";
 import { FaUsers, FaUserCheck, FaDollarSign, FaPercent, FaPlus, FaEllipsisV, FaTimes } from "react-icons/fa";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ViewIcon, EditIconAdmin, ManageSubscriptionIcon, SuspendIcon, UserGrowthIcon, BookingTrendsIcon, DeleteIcon, CalendarIcon } from "../../components/SVGICONS/Svg";
+
+// Custom Tooltip component to replace red colors with #0053F1
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{
+        backgroundColor: '#FFFFFF',
+        border: '1px solid #E5E7EB',
+        borderRadius: '8px',
+        padding: '12px',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+      }}>
+        <p style={{ margin: '0 0 8px 0', fontWeight: 600, color: '#111827' }}>{label}</p>
+        {payload.map((entry, index) => (
+          <p key={index} style={{ margin: '4px 0', color: '#0053F1', fontSize: '14px' }}>
+            <span style={{ color: '#0053F1' }}>●</span> {entry.name}: {entry.value}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
 import { Input } from "../../components/index";
 import Select from "../../components/ui/Input/Select";
 import "./AdminDashboard.css";
@@ -276,13 +300,13 @@ const AdminDashboard = () => {
                     tick={{ fontSize: 12, fill: '#6B7280' }}
                     axisLine={{ stroke: '#E5E7EB' }}
                   />
-                  <Tooltip />
+                  <Tooltip content={<CustomTooltip />} />
                   <Line
                     type="monotone"
                     dataKey="users"
-                    stroke="#EF4444"
+                    stroke="#0053F1"
                     strokeWidth={2}
-                    dot={{ fill: '#EF4444', r: 4 }}
+                    dot={{ fill: '#0053F1', r: 4 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -310,10 +334,10 @@ const AdminDashboard = () => {
                     tick={{ fontSize: 12, fill: '#6B7280' }}
                     axisLine={{ stroke: '#E5E7EB' }}
                   />
-                  <Tooltip />
+                  <Tooltip content={<CustomTooltip />} />
                   <Bar
                     dataKey="bookings"
-                    fill="#EF4444"
+                    fill="#0053F1"
                     radius={[4, 4, 0, 0]}
                   />
                 </BarChart>
@@ -421,12 +445,17 @@ const AdminDashboard = () => {
                     <td>
                       <div className={`action-menu-wrapper ${showUserMenu === user.id ? 'menu-open' : ''}`}>
                         <button
-                          className="action-menu-btn"
-                          onClick={() => setShowUserMenu(showUserMenu === user.id ? null : user.id)}
+                          className={`action-menu-btn ${user.status === 'Admin' ? 'disabled' : ''}`}
+                          onClick={() => {
+                            if (user.status !== 'Admin') {
+                              setShowUserMenu(showUserMenu === user.id ? null : user.id);
+                            }
+                          }}
+                          disabled={user.status === 'Admin'}
                         >
                           <FaEllipsisV />
                         </button>
-                        {showUserMenu === user.id && (
+                        {showUserMenu === user.id && user.status !== 'Admin' && (
                           <div 
                             ref={dropdownRef}
                             className="action-menu-dropdown"
@@ -1371,6 +1400,14 @@ const ViewUserModal = ({ user, onClose }) => {
               <label className="view-user-label">Email</label>
               <div className="view-user-display-field">
                 <span>{user.email || 'N/A'}</span>
+              </div>
+            </div>
+
+            {/* Industry */}
+            <div className="view-user-field-group">
+              <label className="view-user-label">Industry</label>
+              <div className="view-user-display-field">
+                <span>{user.industry || '<Null>'}</span>
               </div>
             </div>
 

@@ -5,6 +5,7 @@ import {
   Button,
   GoogleButton,
 } from "../../components";
+import InactiveAccountBanner from "../../components/InactiveAccountBanner";
 import { FaPlus } from "react-icons/fa6";
 import { FaTimes } from "react-icons/fa";
 import { MessageIcon, FormIcon, DownloadIcon, ViewIcon, EditIconAdmin, DeleteIcon, CancelIcon } from "../../components/SVGICONS/Svg";
@@ -16,6 +17,7 @@ import { toast } from "sonner";
 import CalendarApp from "../../components/Calendar/CalendarTest";
 import { getTimeComponents, formatDate, formatTime, toLocalDateString } from "../../utils/dateFormatting";
 import { Modal } from "react-bootstrap";
+import HowThisWorksButton from "../../components/HowThisWorksButton";
 
 const BookingsPage = () => {
   const [showBookingList, setShowBookingList] = useState(true);
@@ -49,6 +51,7 @@ const BookingsPage = () => {
   const [bookingLimit, setBookingLimit] = useState(null); // null = unlimited
   const [userTimezone, setUserTimezone] = useState('Etc/UTC'); // Default to UTC
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' or 'past'
+  const [accountStatus, setAccountStatus] = useState('active'); // 'active' or 'inactive'
 
   const isMobile = useMobile(991);
 
@@ -70,6 +73,10 @@ const BookingsPage = () => {
           // Set user timezone
           if (data.user && data.user.timezone) {
             setUserTimezone(data.user.timezone);
+          }
+          // Set account status
+          if (data.user && data.user.accountStatus) {
+            setAccountStatus(data.user.accountStatus);
           }
         } else {
           console.error('Booking - Failed to fetch user, status:', response.status);
@@ -97,6 +104,12 @@ const BookingsPage = () => {
   // Fetch bookings and user features together
   const fetchBookings = async () => {
     if (!userId) return;
+
+    // Don't fetch bookings if account is inactive
+    if (accountStatus === 'inactive') {
+      setIsLoadingData(false);
+      return;
+    }
     
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -542,7 +555,8 @@ const BookingsPage = () => {
   }, [bookings, userTimezone]);
 
   return (
-    <AppLayout>
+    <AppLayout accountStatus={accountStatus}>
+      {accountStatus === 'inactive' && <InactiveAccountBanner />}
       <div className="booking-page ">
         <div className="top-con">
           <div className="content-main-wrapper">
@@ -893,7 +907,7 @@ const BookingsPage = () => {
                       ))
                     ) : (
                       <div className="no-bookings-message">
-                        <p>No upcoming bookings found.</p>
+                        <p>{accountStatus === 'inactive' ? 'This booking page is currently unavailable.' : 'No upcoming bookings found.'}</p>
                       </div>
                     )}
                   </>
@@ -1030,7 +1044,7 @@ const BookingsPage = () => {
                       ))
                     ) : (
                       <div className="no-bookings-message">
-                        <p>No past bookings found.</p>
+                        <p>{accountStatus === 'inactive' ? 'This booking page is currently unavailable.' : 'No past bookings found.'}</p>
                       </div>
                     )}
                   </>
@@ -1483,6 +1497,8 @@ const BookingsPage = () => {
           </div>
         </Modal.Body>
       </Modal>
+
+      <HowThisWorksButton title="How Bookings Works" />
     </AppLayout>
   );
 };

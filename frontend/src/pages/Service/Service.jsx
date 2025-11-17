@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { DollarIcon } from "../../components/SVGICONS/Svg";
 
 import { ActionMenu, AppLayout, Button, ServicesModal } from "../../components";
+import HowThisWorksButton from "../../components/HowThisWorksButton";
 import "./Service.css";
 
 const Service = () => {
@@ -597,6 +598,7 @@ const Service = () => {
           </div>
         </div>
       )}
+      <HowThisWorksButton title="How Services Works" />
     </AppLayout>
   );
 };

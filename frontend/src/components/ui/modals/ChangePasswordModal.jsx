@@ -238,7 +238,7 @@ const ChangePasswordModal = ({
       <Modal.Header>
         <div className="content-wrap">
           <Modal.Title>Change Password</Modal.Title>
-          <p>Verify your email with the OTP sent to your email address, then set a new password</p>
+          <p>To keep your account secure, we'll send a one-time code to your email.<br />Enter the code, then you'll set your new password.</p>
         </div>
         <button className="close-btn" onClick={onClose}>
           <IoClose size={20} color="#64748B" />
@@ -260,7 +260,7 @@ const ChangePasswordModal = ({
                 }}
               />
               <Button
-                text={sendingOtp ? "Sending..." : "Send OTP"}
+                text={sendingOtp ? "Sending..." : "Send Code"}
                 type="button"
                 onClick={handleSendOtp}
                 disabled={sendingOtp || countdown > 0}

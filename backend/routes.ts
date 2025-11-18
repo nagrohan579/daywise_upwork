@@ -5189,15 +5189,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId = session.userId;
       }
       
+      // Default colors
+      const DEFAULT_PRIMARY = '#0053F1';
+      const DEFAULT_SECONDARY = '#64748B';
+      const DEFAULT_ACCENT = '#121212';
+      
       let branding = await storage.getBranding(userId);
       if (!branding) {
         // Create default branding if none exists (only for authenticated requests)
         if (!queryUserId) {
           branding = await storage.createBranding({
             userId,
-            primary: '#0053F1',
-            secondary: '#64748B',
-            accent: '#121212', // Text color maps to accent
+            primary: DEFAULT_PRIMARY,
+            secondary: DEFAULT_SECONDARY,
+            accent: DEFAULT_ACCENT, // Text color maps to accent
             logoUrl: undefined,
             profilePictureUrl: undefined,
             displayName: undefined,
@@ -5209,9 +5214,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // For public requests, return default branding values without saving
           return res.json({
             userId,
-            primary: '#0053F1',
-            secondary: '#64748B',
-            accent: '#121212', // Text color maps to accent
+            primary: DEFAULT_PRIMARY,
+            secondary: DEFAULT_SECONDARY,
+            accent: DEFAULT_ACCENT, // Text color maps to accent
             logoUrl: undefined,
             profilePictureUrl: undefined,
             displayName: undefined,
@@ -5223,11 +5228,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Check if user is on free plan and enforce free plan restrictions
+      // This handles downgrades - free users shouldn't have custom colors or logos
+      if (branding) {
+        const features = await getUserFeatures(userId);
+        if (!features.customBranding) {
+          // User is on free plan
+          let needsUpdate = false;
+          const updates: any = {};
+          
+          // Reset colors to defaults if they're different
+          const needsColorReset = 
+            (branding.primary && branding.primary !== DEFAULT_PRIMARY) ||
+            (branding.secondary && branding.secondary !== DEFAULT_SECONDARY) ||
+            (branding.accent && branding.accent !== DEFAULT_ACCENT);
+          
+          if (needsColorReset) {
+            updates.primary = DEFAULT_PRIMARY;
+            updates.secondary = DEFAULT_SECONDARY;
+            updates.accent = DEFAULT_ACCENT;
+            needsUpdate = true;
+            console.log('BACKEND - Reset branding colors to defaults for free user:', userId);
+          }
+          
+          // Remove logo if it exists (free users can't have logos)
+          if (branding.logoUrl) {
+            console.log('BACKEND - Free user has logo, deleting it:', branding.logoUrl);
+            
+            // Delete logo from Digital Ocean Spaces if it's a Spaces URL
+            if (isSpacesUrl(branding.logoUrl)) {
+              try {
+                await deleteFile(branding.logoUrl);
+                console.log('BACKEND - Deleted logo file from Digital Ocean Spaces');
+              } catch (error) {
+                console.error('BACKEND - Error deleting logo file from Spaces:', error);
+                // Continue with database cleanup even if file deletion fails
+              }
+            }
+            
+            // Clear logo from database
+            await storage.clearBrandingField(userId, 'logoUrl');
+            console.log('BACKEND - Cleared logo from database for free user');
+            
+            // Re-fetch branding to get updated state
+            branding = await storage.getBranding(userId);
+          }
+          
+          // Ensure Daywise branding toggle is ON (usePlatformBranding = true)
+          // Check again after potential logo deletion and re-fetch
+          if (branding && branding.usePlatformBranding !== true) {
+            updates.usePlatformBranding = true;
+            needsUpdate = true;
+            console.log('BACKEND - Enabled Daywise branding toggle for free user:', userId);
+          }
+          
+          // Apply any remaining updates (colors and usePlatformBranding)
+          if (needsUpdate && branding) {
+            branding = await storage.updateBranding(userId, updates);
+          }
+        }
+      }
+
       console.log('BACKEND - GET /api/branding returning:', {
-        logoUrl: branding.logoUrl,
-        logoCropData: branding.logoCropData,
-        profilePictureUrl: branding.profilePictureUrl,
-        profileCropData: branding.profileCropData
+        logoUrl: branding?.logoUrl,
+        logoCropData: branding?.logoCropData,
+        profilePictureUrl: branding?.profilePictureUrl,
+        profileCropData: branding?.profileCropData
       });
       res.json(branding);
     } catch (error) {

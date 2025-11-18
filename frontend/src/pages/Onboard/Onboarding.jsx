@@ -355,6 +355,8 @@ const Onboarding = () => {
 
       // Success - navigate to booking page
       toast.success('Setup completed successfully!');
+      // Set flag to show onboarding video modal on booking page
+      sessionStorage.setItem('showOnboardingVideo', 'true');
       navigate('/booking');
 
     } catch (error) {

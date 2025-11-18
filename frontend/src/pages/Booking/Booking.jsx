@@ -18,6 +18,7 @@ import CalendarApp from "../../components/Calendar/CalendarTest";
 import { getTimeComponents, formatDate, formatTime, toLocalDateString } from "../../utils/dateFormatting";
 import { Modal } from "react-bootstrap";
 import HowThisWorksButton from "../../components/HowThisWorksButton";
+import VideoModal from "../../components/ui/modals/VideoModal";
 
 const BookingsPage = () => {
   const [showBookingList, setShowBookingList] = useState(true);
@@ -52,8 +53,12 @@ const BookingsPage = () => {
   const [userTimezone, setUserTimezone] = useState('Etc/UTC'); // Default to UTC
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' or 'past'
   const [accountStatus, setAccountStatus] = useState('active'); // 'active' or 'inactive'
+  const [showOnboardingVideo, setShowOnboardingVideo] = useState(false);
 
   const isMobile = useMobile(991);
+  
+  // Video URL for onboarding (same as HowThisWorks for now)
+  const onboardingVideoUrl = "https://jumpshare.com/embed/iWcB5XN8SpKmvEKiGWFR";
 
   // Fetch current user and timezone
   const [userId, setUserId] = useState(null);
@@ -86,6 +91,19 @@ const BookingsPage = () => {
       }
     };
     fetchUser();
+  }, []);
+
+  // Check if we should show onboarding video modal (only once after onboarding)
+  useEffect(() => {
+    const shouldShowVideo = sessionStorage.getItem('showOnboardingVideo');
+    if (shouldShowVideo === 'true') {
+      // Clear the flag immediately so it never shows again
+      sessionStorage.removeItem('showOnboardingVideo');
+      // Show the modal after a short delay to ensure page is loaded
+      setTimeout(() => {
+        setShowOnboardingVideo(true);
+      }, 500);
+    }
   }, []);
 
   // Helper function to get current month bookings count
@@ -1499,6 +1517,14 @@ const BookingsPage = () => {
       </Modal>
 
       <HowThisWorksButton title="How Bookings Works" />
+      
+      {/* Onboarding Video Modal - Shows once after onboarding completion */}
+      <VideoModal
+        show={showOnboardingVideo}
+        onClose={() => setShowOnboardingVideo(false)}
+        title="Welcome to DayWise!"
+        embedUrl={onboardingVideoUrl}
+      />
     </AppLayout>
   );
 };

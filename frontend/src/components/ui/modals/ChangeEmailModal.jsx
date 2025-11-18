@@ -138,7 +138,7 @@ const ChangeEmailModal = ({
       <Modal.Header>
         <div className="content-wrap">
           <Modal.Title>Change Email Address</Modal.Title>
-          <p>Enter your new email address and verify it with the OTP sent to your email</p>
+          <p>Enter your new email below. We'll send you a one-time code to verify it.</p>
         </div>
         <button className="close-btn" onClick={onClose}>
           <IoClose size={20} color="#64748B" />
@@ -199,7 +199,7 @@ const ChangeEmailModal = ({
             />
             {!otpSent ? (
               <Button
-                text={sendingOtp ? "Sending..." : "Send OTP"}
+                text={sendingOtp ? "Sending..." : "Send Code"}
                 type="button"
                 onClick={handleSendOtp}
                 disabled={sendingOtp || !newEmail || countdown > 0}

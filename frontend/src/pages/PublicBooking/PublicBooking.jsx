@@ -1351,7 +1351,11 @@ const PublicBooking = () => {
                   <Link to="/privacy-policy">Privacy Notice</Link>.
                 </p>
                 <Button 
-                  text={submitting ? "Booking..." : "Complete Booking"} 
+                  text={
+                    submitting 
+                      ? (selectedAppointmentType?.requirePayment ? "Continuing to Payment..." : "Booking...")
+                      : (selectedAppointmentType?.requirePayment ? "Continue to Payment" : "Complete Booking")
+                  } 
                   disabled={submitting}
                   type="submit"
                 />

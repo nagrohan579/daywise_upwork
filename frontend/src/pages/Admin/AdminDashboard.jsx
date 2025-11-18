@@ -1201,12 +1201,10 @@ const EditUserModal = ({ user, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     name: user.name || '',
     email: user.email || '',
-    plan: user.plan || 'Free',
     status: user.status || 'Active',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const planOptions = ['Free', 'Pro'];
   const statusOptions = ['Active', 'Inactive'];
 
   const handleInputChange = (e) => {
@@ -1230,13 +1228,15 @@ const EditUserModal = ({ user, onClose, onSuccess }) => {
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      // Remove plan from request body - plan is managed in ManageSubscription modal
+      const { plan, ...dataToSend } = formData;
       const response = await fetch(`${apiUrl}/api/admin/users/${user.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dataToSend),
       });
 
       if (!response.ok) {
@@ -1296,29 +1296,15 @@ const EditUserModal = ({ user, onClose, onSuccess }) => {
               onChange={handleInputChange}
             />
 
-            {/* Plan & Status Row */}
-            <div className="edit-user-row">
-              <div className="edit-user-field-group">
-                <Select
-                  label="Plan"
-                  name="plan"
-                  placeholder="Plan type"
-                  value={formData.plan}
-                  onChange={(value) => handleSelectChange(value, 'plan')}
-                  options={planOptions}
-                />
-              </div>
-              <div className="edit-user-field-group">
-                <Select
-                  label="Status"
-                  name="status"
-                  placeholder="Status here"
-                  value={formData.status}
-                  onChange={(value) => handleSelectChange(value, 'status')}
-                  options={statusOptions}
-                />
-              </div>
-            </div>
+            {/* Status */}
+            <Select
+              label="Status"
+              name="status"
+              placeholder="Status here"
+              value={formData.status}
+              onChange={(value) => handleSelectChange(value, 'status')}
+              options={statusOptions}
+            />
 
             {/* Joined Date & Total Bookings Row */}
             <div className="edit-user-row">

@@ -2021,6 +2021,14 @@ body:has(.action-menu-dropdown) .users-table tbody tr:not(:has(.menu-open)) td:h
   padding: 40px;
   text-align: center;
   color: #64748B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 200px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
 }
 
 .manage-subscription-modal-header {

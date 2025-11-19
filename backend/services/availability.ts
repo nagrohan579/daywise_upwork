@@ -76,8 +76,13 @@ export async function getAvailableSlots({
   if (dateException && dateException.type === 'unavailable') return [];
 
   // Existing bookings for that calendar date in user's timezone
+  // Exclude cancelled and deleted bookings - they don't block time slots
   const allBookings = await storage.getBookingsByUser(userId);
   const dateBookings = allBookings.filter((b: any) => {
+    // Only check active bookings (not cancelled or deleted)
+    if (b.status === 'cancelled' || b.status === 'deleted') {
+      return false;
+    }
     if (excludeBookingId && b._id === excludeBookingId) return false;
     // Convert booking time to user's timezone and compare dates
     const bookingInUserTz = dayjs.utc(b.appointmentDate).tz(userTimezone);

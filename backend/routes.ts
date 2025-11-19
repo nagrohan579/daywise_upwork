@@ -1983,9 +1983,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Re-check availability at booking time to prevent race conditions
+      // Exclude cancelled and deleted bookings - they don't block time slots
       const existingUserBookings = await storage.getBookingsByUser(userId);
       const dateStr = appointmentDate.toISOString().split('T')[0];
       const sameDay = existingUserBookings.filter(booking => {
+        // Only check active bookings (not cancelled or deleted)
+        if (booking.status === 'cancelled' || booking.status === 'deleted') {
+          return false;
+        }
         const bookingDate = new Date(booking.appointmentDate).toISOString().split('T')[0];
         return bookingDate === dateStr;
       });
@@ -2243,7 +2248,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Authentication required" });
       }
       
-      const bookings = await storage.getBookingsByUser(session.userId);
+      const allBookings = await storage.getBookingsByUser(session.userId);
+      // Filter out deleted bookings - keep cancelled bookings for display in past bookings
+      const bookings = allBookings.filter((booking: any) => booking.status !== 'deleted');
       res.json(bookings);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch bookings", error: error instanceof Error ? error.message : "Unknown error" });
@@ -2834,9 +2841,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Delete the booking from Convex (not just update status)
-      await storage.deleteBooking(existingBooking._id);
-      console.log(`✅ Booking ${existingBooking._id} deleted from database`);
+      // Update booking status to "cancelled" instead of deleting
+      await storage.updateBooking(existingBooking._id, { 
+        status: 'cancelled',
+        googleCalendarEventId: null // Clear calendar event ID since event is deleted
+      });
+      console.log(`✅ Booking ${existingBooking._id} marked as cancelled`);
 
       // Send cancellation confirmation emails
       try {
@@ -3186,6 +3196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const formSubmissionResult = await storage.deleteFormSubmissionByBooking(req.params.id);
         if (formSubmissionResult.fileUrls && formSubmissionResult.fileUrls.length > 0) {
+          const { deleteMultipleFiles } = await import("./services/spaces");
           await deleteMultipleFiles(formSubmissionResult.fileUrls);
           console.log(`✅ Deleted ${formSubmissionResult.fileUrls.length} intake form files`);
         }
@@ -3194,10 +3205,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue with booking deletion even if file deletion fails
       }
 
-      const success = await storage.deleteBooking(req.params.id);
-      if (!success) {
-        return res.status(500).json({ message: "Failed to delete booking" });
+      // Update booking status to "deleted" instead of deleting
+      const updatedBooking = await storage.updateBooking(req.params.id, { 
+        status: 'deleted',
+        googleCalendarEventId: null // Clear calendar event ID since event is deleted
+      });
+      
+      if (!updatedBooking) {
+        return res.status(500).json({ message: "Failed to update booking status" });
       }
+      
+      console.log(`✅ Booking ${req.params.id} marked as deleted`);
       res.json({ message: "Booking deleted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete booking", error: error instanceof Error ? error.message : "Unknown error" });
@@ -3496,8 +3514,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get existing bookings for this date to check for conflicts
       // Filter bookings that fall on the selected date in the user's timezone
+      // Exclude cancelled and deleted bookings - they don't block time slots
       const allBookings = await storage.getBookingsByUser(userId as string);
       const dateBookings = allBookings.filter(booking => {
+        // Only check active bookings (not cancelled or deleted)
+        if (booking.status === 'cancelled' || booking.status === 'deleted') {
+          return false;
+        }
         // Convert booking UTC time to user's timezone and check if it's on the same date
         const bookingInUserTz = dayjs.utc(booking.appointmentDate).tz(userTimezone);
         const bookingDateStr = bookingInUserTz.format('YYYY-MM-DD');
@@ -4172,6 +4195,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const userId = req.params.id;
+
+      // Get user info before deletion to check for Google connections
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Revoke Google Calendar access before deleting user data
+      // This ensures Google forgets the calendar connection
+      try {
+        await googleCalendarService.disconnect(userId);
+        console.log(`✅ Google Calendar access revoked for user: ${userId}`);
+      } catch (error) {
+        console.error('Error revoking Google Calendar access:', error);
+        // Continue with account deletion even if calendar revocation fails
+      }
+
+      // For Google login OAuth, we don't store access tokens, so we can't directly revoke
+      // However, deleting the user account will effectively break the connection
+      // Users can manually revoke app access in their Google Account settings if needed
+      if (user.googleId) {
+        console.log(`ℹ️ User has Google login (googleId: ${user.googleId}). Note: Google login tokens are not stored, so manual revocation may be needed in Google Account settings.`);
+      }
 
       // Before deleting from Convex, delete Digital Ocean images if they exist
       try {
@@ -6340,6 +6386,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Disconnect Stripe Connect account
+  app.post("/api/stripe/disconnect", async (req, res) => {
+    try {
+      const session = req.session as any;
+      const userId = session?.userId;
+
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      // Get user to retrieve Stripe account ID
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (!user.stripeAccountId) {
+        return res.status(400).json({ message: "Stripe account not connected" });
+      }
+
+      // Deauthorize the Stripe Connect account to revoke access
+      try {
+        const clientId = process.env.STRIPE_CONNECT_CLIENT_ID;
+        if (clientId) {
+          await stripe.oauth.deauthorize({
+            client_id: clientId,
+            stripe_user_id: user.stripeAccountId,
+          });
+          console.log(`✅ Stripe account deauthorized: ${user.stripeAccountId}`);
+        } else {
+          console.warn('⚠️ STRIPE_CONNECT_CLIENT_ID not configured, skipping deauthorization');
+        }
+      } catch (deauthError: any) {
+        console.warn(`⚠️ Failed to deauthorize Stripe account (${deauthError.message}), continuing with disconnect`);
+        // Continue with disconnect even if deauthorize fails
+      }
+
+      // Clear Stripe credentials from user
+      await storage.updateUser(user._id, {
+        stripeAccountId: undefined,
+        stripeAccessToken: undefined,
+        stripeRefreshToken: undefined,
+        stripeScope: undefined,
+      });
+
+      console.log(`✅ Stripe credentials cleared for user: ${userId}`);
+      res.json({ success: true, message: "Stripe account disconnected successfully" });
+    } catch (error: any) {
+      console.error('Error disconnecting Stripe:', error);
+      res.status(500).json({ message: "Failed to disconnect Stripe account", error: error.message });
+    }
+  });
+
   // Get Stripe Connect status for current user
   app.get("/api/stripe/status", requireAuth, async (req, res) => {
     try {
@@ -6513,9 +6612,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Exclude cancelled and deleted bookings - they don't block time slots
       const existingUserBookings = await storage.getBookingsByUser(userId);
       const dateStr = appointmentDate.toISOString().split('T')[0];
       const sameDay = existingUserBookings.filter(booking => {
+        // Only check active bookings (not cancelled or deleted)
+        if (booking.status === 'cancelled' || booking.status === 'deleted') {
+          return false;
+        }
         const bookingDate = new Date(booking.appointmentDate).toISOString().split('T')[0];
         return bookingDate === dateStr;
       });

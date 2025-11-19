@@ -78,7 +78,7 @@ export async function sendCustomerConfirmation(data: BookingEmailData): Promise<
     </div>` : '';
   const platformBadge = data.usePlatformBranding ? `
     <div style="text-align: center; margin-top: 20px;">
-      <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by DayWise</span>
+      <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by Daywise</span>
     </div>` : '';
   const bookingButton = data.bookingUrl ? `
     <div style="text-align: center; margin: 25px 0;">
@@ -171,7 +171,7 @@ export async function sendBusinessNotification(data: BookingEmailData): Promise<
     </div>` : '';
   const platformBadge = data.usePlatformBranding ? `
     <div style="text-align: center; margin-top: 20px;">
-      <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by DayWise</span>
+      <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by Daywise</span>
     </div>` : '';
   
   return await handleEmailSend('Business Notification', {
@@ -231,7 +231,7 @@ export async function sendAppointmentReminder(data: BookingEmailData): Promise<b
     </div>` : '';
   const platformBadge = data.usePlatformBranding ? `
     <div style="text-align: center; margin-top: 20px;">
-      <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by DayWise</span>
+      <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by Daywise</span>
     </div>` : '';
   
   return await handleEmailSend('Appointment Reminder', {
@@ -294,7 +294,7 @@ export async function sendRescheduleConfirmation(data: BookingEmailData & {
     </div>` : '';
   const platformBadge = data.usePlatformBranding ? `
     <div style="text-align: center; margin-top: 20px;">
-      <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by DayWise</span>
+      <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by Daywise</span>
     </div>` : '';
   
   return await handleEmailSend('Reschedule Confirmation', {
@@ -361,7 +361,7 @@ export async function sendRescheduleBusinessNotification(data: BookingEmailData 
     </div>` : '';
   const platformBadge = data.usePlatformBranding ? `
     <div style="text-align: center; margin-top: 20px;">
-      <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by DayWise</span>
+      <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by Daywise</span>
     </div>` : '';
   
   return await handleEmailSend('Reschedule Business Notification', {
@@ -414,7 +414,7 @@ export async function sendCancellationConfirmation(data: BookingEmailData): Prom
     </div>` : '';
   const platformBadge = data.usePlatformBranding ? `
     <div style="text-align: center; margin-top: 20px;">
-      <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by DayWise</span>
+      <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by Daywise</span>
     </div>` : '';
   
   return await handleEmailSend('Cancellation Confirmation', {
@@ -469,7 +469,7 @@ export async function sendCancellationBusinessNotification(data: BookingEmailDat
     </div>` : '';
   const platformBadge = data.usePlatformBranding ? `
     <div style="text-align: center; margin-top: 20px;">
-      <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by DayWise</span>
+      <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by Daywise</span>
     </div>` : '';
   
   return await handleEmailSend('Cancellation Business Notification', {
@@ -523,7 +523,7 @@ export async function sendBusinessCancellationConfirmation(data: BookingEmailDat
     </div>` : '';
   const platformBadge = data.usePlatformBranding ? `
     <div style="text-align: center; margin-top: 20px;">
-      <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by DayWise</span>
+      <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by Daywise</span>
     </div>` : '';
   
   return await handleEmailSend('Business Cancellation Confirmation', {

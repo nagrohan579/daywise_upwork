@@ -416,38 +416,61 @@ const Account = () => {
               <div style={{ textAlign: 'center', marginBottom: '24px' }}>
                 <div
                   style={{
-                    width: '64px',
-                    height: '64px',
+                    width: '72px',
+                    height: '72px',
                     borderRadius: '50%',
                     backgroundColor: '#FEE2E2',
-                    margin: '0 auto 16px',
+                    margin: '0 auto 20px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
                   <svg
-                    width="32"
-                    height="32"
-                    viewBox="0 0 24 24"
+                    width="46"
+                    height="46"
+                    viewBox="0 0 48 48"
                     fill="none"
-                    stroke="#DC2626"
-                    strokeWidth="2"
+                    xmlns="http://www.w3.org/2000/svg"
                   >
-                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    <path
+                      d="M24 6L43 40H5L24 6Z"
+                      fill="#FFEAEA"
+                      stroke="#DC2626"
+                      strokeWidth="2"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M24 17v11"
+                      stroke="#DC2626"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                    />
+                    <circle cx="24" cy="32" r="1.6" fill="#DC2626" />
                   </svg>
                 </div>
                 <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '8px', color: '#1F2937' }}>
                   Delete Account
                 </h2>
-                <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '24px' }}>
+                <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '16px', textAlign: 'left' }}>
                   This action cannot be undone. This will permanently delete your account and remove all your data including:
                 </p>
-                <ul style={{ textAlign: 'left', fontSize: '14px', color: '#6B7280', marginLeft: '20px', marginBottom: '24px' }}>
-                  <li>All appointment types and bookings</li>
-                  <li>Availability schedules and patterns</li>
-                  <li>Google Calendar integration</li>
-                  <li>Branding and customization settings</li>
+                <ul
+                  style={{
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    color: '#6B7280',
+                    marginLeft: '12px',
+                    marginBottom: '24px',
+                    paddingLeft: '18px',
+                    listStyleType: 'disc',
+                    listStylePosition: 'outside',
+                  }}
+                >
+                  <li style={{ marginBottom: '6px' }}>All appointment types and bookings</li>
+                  <li style={{ marginBottom: '6px' }}>Availability schedules and patterns</li>
+                  <li style={{ marginBottom: '6px' }}>Google Calendar integration</li>
+                  <li style={{ marginBottom: '6px' }}>Branding and customization settings</li>
                   <li>All other associated data</li>
                 </ul>
                 <div

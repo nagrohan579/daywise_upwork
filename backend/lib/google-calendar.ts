@@ -467,7 +467,36 @@ export class GoogleCalendarService {
 
   async disconnect(userId: string) {
     try {
+      // First, get the credentials to revoke the token with Google
+      const credentials = await convex.query(api.googleCalendarCredentials.getByUserId, { userId: userId as any });
+      
+      // Revoke the access token with Google if credentials exist
+      if (credentials && credentials.accessToken) {
+        try {
+          const revokeUrl = `https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(credentials.accessToken)}`;
+          const revokeResponse = await fetch(revokeUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+          });
+          
+          if (revokeResponse.ok) {
+            console.log(`✅ Google access token revoked for user: ${userId}`);
+          } else {
+            console.warn(`⚠️ Failed to revoke Google access token (status: ${revokeResponse.status}), continuing with disconnect`);
+            // Continue with disconnect even if revoke fails (token might already be invalid)
+          }
+        } catch (revokeError) {
+          console.error('Error revoking Google access token:', revokeError);
+          // Continue with disconnect even if revoke fails
+        }
+      }
+      
+      // Delete credentials from Convex
       await convex.mutation(api.googleCalendarCredentials.deleteByUserId, { userId: userId as any });
+      console.log(`✅ Google Calendar credentials deleted for user: ${userId}`);
+      
       return { success: true };
     } catch (error) {
       console.error('Error disconnecting Google Calendar:', error);

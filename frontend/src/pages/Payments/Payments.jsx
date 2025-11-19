@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import AppLayout from "../../components/Sidebar/Sidebar";
 import { IoAdd } from "react-icons/io5";
-import { PremiumIcon, StripeIcon, ConnectedCheckIcon } from "../../components/SVGICONS/Svg";
+import { PremiumIcon, StripeIcon, ConnectedCheckIcon, CrossIcon } from "../../components/SVGICONS/Svg";
 import { toast } from "sonner";
 import HowThisWorksButton from "../../components/HowThisWorksButton";
 import "./Payments.css";
@@ -12,6 +12,7 @@ const Payments = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [stripeAccountId, setStripeAccountId] = useState(null);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
 
   // Check for OAuth return params
   useEffect(() => {
@@ -94,6 +95,33 @@ const Payments = () => {
     } else {
       // Fallback to generic dashboard
       window.open("https://dashboard.stripe.com", "_blank");
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (isDisconnecting) return;
+
+    setIsDisconnecting(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/stripe/disconnect`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        setIsConnected(false);
+        setStripeAccountId(null);
+        toast.success('Stripe account disconnected successfully');
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to disconnect Stripe account');
+      }
+    } catch (error: any) {
+      console.error('Error disconnecting Stripe:', error);
+      toast.error(error.message || 'Failed to disconnect Stripe account');
+    } finally {
+      setIsDisconnecting(false);
     }
   };
 
@@ -186,6 +214,14 @@ const Payments = () => {
                     <span>Visit Stripe Dashboard</span>
                   </button>
                 </div>
+                <button 
+                  className="stripe-disconnect-button"
+                  onClick={handleDisconnect}
+                  disabled={isDisconnecting}
+                >
+                  <CrossIcon />
+                  <span>{isDisconnecting ? 'Disconnecting...' : 'Disconnect from Stripe'}</span>
+                </button>
               </>
             )}
           </div>

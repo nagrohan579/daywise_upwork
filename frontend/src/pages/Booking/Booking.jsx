@@ -8,7 +8,7 @@ import {
 import InactiveAccountBanner from "../../components/InactiveAccountBanner";
 import { FaPlus } from "react-icons/fa6";
 import { FaTimes } from "react-icons/fa";
-import { MessageIcon, FormIcon, DownloadIcon, ViewIcon, EditIconAdmin, DeleteIcon, CancelIcon } from "../../components/SVGICONS/Svg";
+import { MessageIcon, FormIcon, DownloadIcon, ViewIcon, EditIconAdmin, DeleteIcon, CancelIcon, CrossIcon } from "../../components/SVGICONS/Svg";
 import "./Booking.css";
 import React, { useState, useEffect } from "react";
 import { useMobile } from "../../hooks";
@@ -49,6 +49,7 @@ const BookingsPage = () => {
   const [downloadState, setDownloadState] = useState('idle');
   const [isCalendarConnected, setIsCalendarConnected] = useState(false);
   const [isCheckingCalendarStatus, setIsCheckingCalendarStatus] = useState(true);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [bookingLimit, setBookingLimit] = useState(null); // null = unlimited
   const [userTimezone, setUserTimezone] = useState('Etc/UTC'); // Default to UTC
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' or 'past'
@@ -328,8 +329,14 @@ const BookingsPage = () => {
   useEffect(() => {
     console.log('Booking - Transforming events - bookings:', bookings?.length || 0);
 
+    // Filter out cancelled and deleted bookings from calendar view
+    // Only show confirmed and pending bookings in calendar
+    const activeBookings = (bookings || []).filter(booking => 
+      booking.status !== 'cancelled' && booking.status !== 'deleted'
+    );
+
     // ALWAYS show Convex bookings - they are the source of truth
-    const transformedBookings = (bookings || []).map((booking, index) => {
+    const transformedBookings = activeBookings.map((booking, index) => {
       // Get hours and minutes in user's timezone
       const { hours, minutes } = getTimeComponents(booking.appointmentDate, userTimezone);
 
@@ -364,6 +371,13 @@ const BookingsPage = () => {
     const dayView = searchParams.get('dayView');
 
     if (calendarConnected) {
+      // Remove the parameter immediately to prevent duplicate toasts on re-renders
+      setSearchParams(prev => {
+        const newParams = new URLSearchParams(prev);
+        newParams.delete('calendar_connected');
+        return newParams;
+      });
+      
       toast.success('Google Calendar connected successfully!');
       // Immediately update the connection state
       setIsCalendarConnected(true);
@@ -373,6 +387,13 @@ const BookingsPage = () => {
     }
 
     if (calendarError) {
+      // Remove the parameter immediately to prevent duplicate toasts on re-renders
+      setSearchParams(prev => {
+        const newParams = new URLSearchParams(prev);
+        newParams.delete('calendar_error');
+        return newParams;
+      });
+      
       toast.error('Failed to connect Google Calendar');
     }
 
@@ -403,16 +424,6 @@ const BookingsPage = () => {
         });
       }, 100);
     }
-
-    if (calendarConnected || calendarError) {
-      // Remove the parameters from URL
-      setSearchParams(prev => {
-        const newParams = new URLSearchParams(prev);
-        newParams.delete('calendar_connected');
-        newParams.delete('calendar_error');
-        return newParams;
-      });
-    }
   }, [searchParams, setSearchParams, bookings, isLoadingData]);
 
   // Manual refresh handler
@@ -426,6 +437,35 @@ const BookingsPage = () => {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
     // Redirect to backend OAuth endpoint which will redirect to Google
     window.location.href = `${apiUrl}/api/google-calendar/auth`;
+  };
+
+  // Google Calendar disconnect handler
+  const handleDisconnectGoogleCalendar = async () => {
+    if (isDisconnecting) return;
+    
+    setIsDisconnecting(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/google-calendar/disconnect`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        setIsCalendarConnected(false);
+        setCalendarEvents([]);
+        setCombinedEvents([]);
+        toast.success('Google Calendar disconnected successfully');
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to disconnect calendar');
+      }
+    } catch (error) {
+      console.error('Error disconnecting Google Calendar:', error);
+      toast.error(error.message || 'Failed to disconnect Google Calendar');
+    } finally {
+      setIsDisconnecting(false);
+    }
   };
 
   // Show delete confirmation modal
@@ -539,8 +579,11 @@ const BookingsPage = () => {
 
     const now = new Date().getTime();
 
+    // Filter out deleted bookings - they should not appear anywhere
+    const activeBookings = (bookings || []).filter(booking => booking.status !== 'deleted');
+
     // ALWAYS show Convex bookings - they are the source of truth
-    const mappedBookings = (bookings || []).map(booking => {
+    const mappedBookings = activeBookings.map(booking => {
       // Get appointment type name for display
       const appointmentTypeName = booking.appointmentType?.name || 'Appointment';
 
@@ -563,8 +606,14 @@ const BookingsPage = () => {
     });
 
     // Separate upcoming and past bookings
-    const upcomingBookings = sortedBookings.filter(booking => !booking.isPast);
-    const pastBookings = sortedBookings.filter(booking => booking.isPast);
+    // Upcoming: not past AND not cancelled (cancelled bookings go to past)
+    // Past: is past OR is cancelled (cancelled bookings show in past section)
+    const upcomingBookings = sortedBookings.filter(booking => 
+      !booking.isPast && booking.status !== 'cancelled'
+    );
+    const pastBookings = sortedBookings.filter(booking => 
+      booking.isPast || booking.status === 'cancelled'
+    );
 
     return {
       upcoming: upcomingBookings,
@@ -583,18 +632,47 @@ const BookingsPage = () => {
               <p>View and manage your upcoming appointments</p>
             </div>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <GoogleButton
-                text={
-                  isCheckingCalendarStatus 
-                    ? (isMobile ? "..." : "Checking...")
-                    : isCalendarConnected 
-                      ? (isMobile ? "Connected" : "Calendar Connected")
-                      : (isMobile ? "Calendar" : "Sync to Google Calendar")
-                }
-                style={{ width: isMobile ? "110px" : "240px" }}
-                onClick={handleConnectGoogleCalendar}
-                disabled={isCalendarConnected || isCheckingCalendarStatus}
-              />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <GoogleButton
+                  text={
+                    isDisconnecting
+                      ? (isMobile ? "Disconnecting..." : "Disconnecting...")
+                      : isCheckingCalendarStatus 
+                        ? (isMobile ? "..." : "Checking...")
+                        : isCalendarConnected 
+                          ? (isMobile ? "Connected" : "Calendar Connected")
+                          : (isMobile ? "Calendar" : "Sync to Google Calendar")
+                  }
+                  style={{ width: isMobile ? "110px" : "240px" }}
+                  onClick={handleConnectGoogleCalendar}
+                  disabled={isCalendarConnected || isCheckingCalendarStatus || isDisconnecting}
+                />
+                {isCalendarConnected && !isDisconnecting && (
+                  <button
+                    onClick={handleDisconnectGoogleCalendar}
+                    disabled={isDisconnecting}
+                    style={{
+                      position: 'absolute',
+                      right: '8px',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#64748B',
+                      opacity: 0.7,
+                      transition: 'opacity 0.2s',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                    onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
+                    title="Disconnect Google Calendar"
+                  >
+                    <CrossIcon />
+                  </button>
+                )}
+              </div>
               <button
                 onClick={handleManualRefresh}
                 disabled={isRefreshing || isLoadingCalendar}
@@ -796,7 +874,7 @@ const BookingsPage = () => {
                     )}
                     {bookingsForList.upcoming && bookingsForList.upcoming.length > 0 ? (
                       bookingsForList.upcoming.map((booking, index) => (
-                      <div className="booking-card" key={`upcoming-${booking._id || index}`}>
+                      <div className={`booking-card ${booking.status === 'cancelled' ? 'booking-cancelled' : ''}`} key={`upcoming-${booking._id || index}`}>
                     <div className="left">
                       <div className="top">
                         <span style={{ backgroundColor: booking.color }} />
@@ -857,6 +935,9 @@ const BookingsPage = () => {
                             />
                           </svg>
                           <span>{booking.time}</span>
+                          {booking.status === 'cancelled' && (
+                            <span className="booking-cancelled-label">Cancelled</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -943,7 +1024,7 @@ const BookingsPage = () => {
                     )}
                     {bookingsForList.past && bookingsForList.past.length > 0 ? (
                       bookingsForList.past.map((booking, index) => (
-                      <div className="booking-card" key={`past-${booking._id || index}`}>
+                      <div className={`booking-card ${booking.status === 'cancelled' ? 'booking-cancelled' : ''}`} key={`past-${booking._id || index}`}>
                     <div className="left">
                       <div className="top">
                         <span style={{ backgroundColor: booking.color }} />
@@ -1004,6 +1085,9 @@ const BookingsPage = () => {
                             />
                           </svg>
                           <span>{booking.time}</span>
+                          {booking.status === 'cancelled' && (
+                            <span className="booking-cancelled-label">Cancelled</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1373,25 +1457,37 @@ const BookingsPage = () => {
             <div style={{ textAlign: 'center', marginBottom: '24px' }}>
               <div
                 style={{
-                  width: '64px',
-                  height: '64px',
+                  width: '72px',
+                  height: '72px',
                   borderRadius: '50%',
                   backgroundColor: '#FEE2E2',
-                  margin: '0 auto 16px',
+                  margin: '0 auto 20px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
                 <svg
-                  width="32"
-                  height="32"
-                  viewBox="0 0 24 24"
+                  width="46"
+                  height="46"
+                  viewBox="0 0 48 48"
                   fill="none"
-                  stroke="#DC2626"
-                  strokeWidth="2"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
-                  <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  <path
+                    d="M24 6L43 40H5L24 6Z"
+                    fill="#FFEAEA"
+                    stroke="#DC2626"
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M24 17v11"
+                    stroke="#DC2626"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                  />
+                  <circle cx="24" cy="33" r="1.5" fill="#DC2626" />
                 </svg>
               </div>
               <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '12px', color: '#1F2937' }}>
@@ -1418,7 +1514,7 @@ const BookingsPage = () => {
                 </p>
               </div>
               <p style={{ fontSize: '13px', color: '#DC2626', marginTop: '16px', fontWeight: '500' }}>
-                This action cannot be undone. The appointment will be removed from both your system and Google Calendar.
+                This action cannot be undone. The appointment will be permanently removed and will still count toward your monthly limit.
               </p>
             </div>
 
@@ -1485,9 +1581,12 @@ const BookingsPage = () => {
             </button>
             
             <div className="cancel-modal-text">
-              <h3>Are you sure you want to cancel this booking?</h3>
+              <h3>Cancel Booking</h3>
               <p className="cancel-modal-info">
-                This action can't be undone.
+                Are you sure you want to cancel this booking?
+              </p>
+              <p className="cancel-modal-info" style={{ marginTop: '0' }}>
+                It will move to Past Bookings but will still count toward your monthly limit.
               </p>
             </div>
             

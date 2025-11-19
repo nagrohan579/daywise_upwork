@@ -318,6 +318,62 @@
   }
 }
 
+/* Stripe Disconnect Button */
+.payments-page .stripe-disconnect-button {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 11px;
+  gap: 6px;
+  width: 198px;
+  height: 40px;
+  border-radius: 50px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  flex: none;
+  order: 2;
+  flex-grow: 0;
+  margin-top: 8px;
+}
+
+.payments-page .stripe-disconnect-button:hover:not(:disabled) {
+  opacity: 0.7;
+}
+
+.payments-page .stripe-disconnect-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.payments-page .stripe-disconnect-button svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  order: 0;
+  flex-grow: 0;
+  color: #64748B;
+}
+
+.payments-page .stripe-disconnect-button span {
+  width: 152px;
+  height: 20px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #64748B;
+  flex: none;
+  order: 1;
+  flex-grow: 0;
+}
+
 @media (max-width: 768px) {
   .payments-page .payments-header h1 {
     font-size: 20px;

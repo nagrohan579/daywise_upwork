@@ -54,7 +54,7 @@ export default defineSchema({
     customerTimezone: v.optional(v.string()),
     appointmentDate: v.number(), // timestamp
     duration: v.optional(v.number()), // Duration in minutes - optional for internal bookings
-    status: v.string(), // "confirmed", "pending", "cancelled"
+    status: v.string(), // "confirmed", "pending", "cancelled", "deleted"
     notes: v.optional(v.string()),
     bookingToken: v.string(),
     eventUrl: v.optional(v.string()), // Unique shareable event link for customer

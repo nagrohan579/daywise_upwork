@@ -117,9 +117,9 @@ const Payments = () => {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to disconnect Stripe account');
       }
-    } catch (error: any) {
-      console.error('Error disconnecting Stripe:', error);
-      toast.error(error.message || 'Failed to disconnect Stripe account');
+      } catch (error) {
+        console.error('Error disconnecting Stripe:', error);
+        toast.error(error?.message || 'Failed to disconnect Stripe account');
     } finally {
       setIsDisconnecting(false);
     }

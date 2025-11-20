@@ -37,6 +37,10 @@
   background-color: #f9faff;
   transition: border-color 0.2s ease-in-out;
   box-sizing: border-box;
+  text-align: left; /* Default left alignment */
+  text-align-last: left; /* Safari/iOS fix */
+  -webkit-text-align: left; /* Safari/iOS fix */
+  -webkit-text-align-last: left; /* Safari/iOS fix */
 }
 
 .input-group-comp .input-field::placeholder {

@@ -125,8 +125,8 @@ const Sidebar = ({ isOpen, toggleSidebar, accountStatus }) => {
       // it's likely being covered by browser UI
       if (distanceFromBottom < 5) {
         // Calculate how much padding we need to push it above the browser UI
-        // Add minimal padding just enough to clear the browser UI (typically 35-40px)
-        const neededPadding = Math.max(38 - distanceFromBottom, 0);
+        // Add minimal padding just enough to clear the browser UI (reduced from 38px to 30px)
+        const neededPadding = Math.max(30 - distanceFromBottom, 0);
         sidebarContainerRef.current.style.setProperty('--bottom-ui-bar-height', `${neededPadding}px`);
       } else {
         // Logout container is visible, no extra padding needed

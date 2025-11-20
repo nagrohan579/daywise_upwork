@@ -647,6 +647,11 @@
 .addAppointmentModal.view-mode .modal-dialog {
   max-width: 480px; /* Slightly smaller for view mode */
 }
+/* Force left alignment for all inputs in view mode */
+.addAppointmentModal.view-mode .input-group-comp input,
+.addAppointmentModal.view-mode .input-group-comp .input-field {
+  text-align: left !important;
+}
 .addAppointmentModal .content-wrap {
   max-width: 390px;
 }
@@ -693,6 +698,11 @@
   align-items: center;
   margin-bottom: 16px; /* Add vertical spacing between fields */
 }
+/* Ensure all inputs in addAppointmentModal are left-aligned */
+.addAppointmentModal .input-wrap .input-group-comp input,
+.addAppointmentModal .input-wrap .input-group-comp .input-field {
+  text-align: left !important;
+}
 .addAppointmentModal .input-wrap:last-of-type {
   margin-bottom: 0; /* Remove spacing after last field */
 }
@@ -706,6 +716,7 @@
 }
 .addAppointmentModal .input-wrap .input-group-comp .input-field {
   margin: 0; /* Remove any margin that might affect alignment */
+  text-align: left; /* Ensure left alignment by default */
 }
 .addAppointmentModal .input-wrap .input-group-comp input::placeholder {
   color: var(--text-color);
@@ -1244,6 +1255,46 @@
   }
   .addAppointmentModal .input-wrap.view-wrap .input-group-comp {
     margin-bottom: 0px;
+  }
+  /* Ensure date and time inputs are left-aligned in view mode on mobile */
+  /* Safari/iOS specific fixes */
+  .addAppointmentModal .input-wrap.view-wrap .input-group-comp input[type="date"],
+  .addAppointmentModal .input-wrap.view-wrap .input-group-comp input[type="time"],
+  .addAppointmentModal .input-wrap.view-wrap .input-group-comp .input-field[type="date"],
+  .addAppointmentModal .input-wrap.view-wrap .input-group-comp .input-field[type="time"],
+  .addAppointmentModal.view-mode .input-wrap .input-group-comp input[type="date"],
+  .addAppointmentModal.view-mode .input-wrap .input-group-comp input[type="time"],
+  .addAppointmentModal.view-mode .input-wrap .input-group-comp .input-field[type="date"],
+  .addAppointmentModal.view-mode .input-wrap .input-group-comp .input-field[type="time"],
+  .addAppointmentModal .input-wrap.view-wrap input[type="date"],
+  .addAppointmentModal .input-wrap.view-wrap input[type="time"],
+  .addAppointmentModal.view-mode input[type="date"],
+  .addAppointmentModal.view-mode input[type="time"] {
+    text-align: left !important;
+    -webkit-text-align: left !important;
+    text-align-last: left !important;
+    -webkit-text-align-last: left !important;
+    direction: ltr !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+}
+
+/* iOS Safari specific fix for date/time inputs */
+@supports (-webkit-touch-callout: none) {
+  .addAppointmentModal .input-wrap.view-wrap .input-group-comp input[type="date"],
+  .addAppointmentModal .input-wrap.view-wrap .input-group-comp input[type="time"],
+  .addAppointmentModal.view-mode .input-wrap .input-group-comp input[type="date"],
+  .addAppointmentModal.view-mode .input-wrap .input-group-comp input[type="time"] {
+    text-align: left !important;
+    text-align-last: left !important;
+    -webkit-text-align: left !important;
+    -webkit-text-align-last: left !important;
+    direction: ltr !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
   }
 }
 

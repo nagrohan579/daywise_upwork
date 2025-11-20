@@ -345,6 +345,7 @@ const AddAppointmentModal = ({
                 border: isView ? "none" : "",
                 backgroundColor: isView ? "transparent" : "",
                 pointerEvents: isView ? "none" : "auto",
+                textAlign: "left",
               }}
             />
           </div>
@@ -359,6 +360,7 @@ const AddAppointmentModal = ({
                 border: isView ? "none" : "",
                 backgroundColor: isView ? "transparent" : "",
                 pointerEvents: isView ? "none" : "auto",
+                textAlign: "left",
               }}
             />
           </div>

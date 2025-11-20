@@ -28,7 +28,7 @@
   position: fixed;
   top: 0;
   left: 0;
-  height: 100vh;
+  height: 100vh; /* Use standard viewport height for mobile, padding handles browser UI */
   width: var(--sidebar-width-mobile);
   background-color: #f9faff;
   z-index: 50;
@@ -138,7 +138,7 @@
 }
 
 .sidebar-container .logout-container {
-  padding: 20px 24px;
+  padding: 16px 24px 8px 24px; /* Reduced bottom padding from 20px to 8px */
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -271,13 +271,11 @@
   
   .sidebar-header {
     margin-top: 40px;
+    padding: 0px;
+    padding-bottom: 20px; /* Reduced from 30px */
   }
   .main-content-area {
     padding: 20px;
-  }
-  .sidebar-header {
-    padding: 0px;
-    padding-bottom: 30px;
   }
   .sidebar-header a {
     display: none;
@@ -286,9 +284,15 @@
     padding: 0 16px;
   }
   
-  /* Dynamic bottom padding for logout container to account for browser UI bars */
+  /* Reduce logout container padding on mobile */
   .sidebar-container .logout-container {
-    padding-bottom: calc(20px + var(--bottom-ui-bar-height, 0px));
+    padding: 12px 24px 4px 24px; /* Reduced padding: top 12px, bottom 4px (will be overridden by calc below) */
+  }
+  
+  /* Dynamic bottom padding for logout container to account for browser UI bars */
+  /* Primary: Use CSS env() for iOS safe area, fallback JS will add extra if needed */
+  .sidebar-container .logout-container {
+    padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px) + var(--bottom-ui-bar-height, 0px));
   }
 }
 /* ========================================================================= */
@@ -302,7 +306,7 @@
     left: 0;
 
     /* Ensure it takes the full viewport height */
-    height: 100vh;
+    height: 100dvh; /* Use dynamic viewport height */
 
     /* Keep other desktop styles */
     transform: translateX(0);

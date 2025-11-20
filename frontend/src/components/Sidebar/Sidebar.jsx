@@ -55,6 +55,7 @@ const Sidebar = ({ isOpen, toggleSidebar, accountStatus }) => {
   const [userTimezone, setUserTimezone] = useState('Etc/UTC'); // Default to UTC
   const isInactive = accountStatus === 'inactive';
   const sidebarContainerRef = useRef(null);
+  const logoutContainerRef = useRef(null);
 
   // Fetch user timezone on mount
   useEffect(() => {
@@ -96,66 +97,76 @@ const Sidebar = ({ isOpen, toggleSidebar, accountStatus }) => {
     };
   }, []);
 
-  // Detect mobile device and bottom UI bar (like Safari's URL bar)
+  // Fallback: Measure logout container position to detect if it's being covered by browser UI
+  // This only runs for browsers where CSS env() and dvh don't work correctly
   useEffect(() => {
-    const detectBottomUIBar = () => {
+    const measureLogoutPosition = () => {
       // First check if we're on a mobile device
       const isMobile = window.innerWidth < 992;
       
-      if (!isMobile || !sidebarContainerRef.current) {
-        // Not on mobile or ref not ready, reset padding
+      if (!isMobile || !sidebarContainerRef.current || !logoutContainerRef.current) {
+        // Not on mobile or refs not ready, reset fallback padding
         if (sidebarContainerRef.current) {
           sidebarContainerRef.current.style.setProperty('--bottom-ui-bar-height', '0px');
         }
         return;
       }
 
-      // Measure viewport height vs window height
-      const windowHeight = window.innerHeight;
-      const viewportHeight = window.visualViewport?.height || document.documentElement.clientHeight;
+      // Get the logout container's bounding rectangle
+      const logoutRect = logoutContainerRef.current.getBoundingClientRect();
       
-      // Calculate the difference
-      const heightDifference = windowHeight - viewportHeight;
+      // Get the viewport height (visible area)
+      const viewportHeight = window.visualViewport?.height || window.innerHeight;
       
-      // If difference is significant (>50px), assume a bottom UI bar is present
-      if (heightDifference > 50) {
-        // Set padding to account for the bottom UI bar (add some extra for safety)
-        const bottomBarHeight = Math.min(heightDifference + 20, 100); // Cap at 100px
-        sidebarContainerRef.current.style.setProperty('--bottom-ui-bar-height', `${bottomBarHeight}px`);
+      // Calculate how far the logout container is from the bottom of the viewport
+      const distanceFromBottom = viewportHeight - logoutRect.bottom;
+      
+      // If the logout container is too close to or below the viewport bottom (< 5px),
+      // it's likely being covered by browser UI
+      if (distanceFromBottom < 5) {
+        // Calculate how much padding we need to push it above the browser UI
+        // Add minimal padding just enough to clear the browser UI (typically 35-40px)
+        const neededPadding = Math.max(38 - distanceFromBottom, 0);
+        sidebarContainerRef.current.style.setProperty('--bottom-ui-bar-height', `${neededPadding}px`);
       } else {
-        // No bottom UI bar detected, reset padding
+        // Logout container is visible, no extra padding needed
         sidebarContainerRef.current.style.setProperty('--bottom-ui-bar-height', '0px');
       }
     };
 
     // Debounce function to avoid excessive calculations
     let debounceTimer;
-    const debouncedDetect = () => {
+    const debouncedMeasure = () => {
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(detectBottomUIBar, 100);
+      debounceTimer = setTimeout(measureLogoutPosition, 150);
     };
 
-    // Initial detection
-    detectBottomUIBar();
+    // Initial measurement after a short delay to ensure DOM is ready
+    const initialTimer = setTimeout(measureLogoutPosition, 200);
 
     // Listen for resize and orientation change events
-    window.addEventListener('resize', debouncedDetect);
-    window.addEventListener('orientationchange', debouncedDetect);
+    window.addEventListener('resize', debouncedMeasure);
+    window.addEventListener('orientationchange', debouncedMeasure);
+    window.addEventListener('scroll', debouncedMeasure);
     
     // Also listen to visual viewport changes if available
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', debouncedDetect);
+      window.visualViewport.addEventListener('resize', debouncedMeasure);
+      window.visualViewport.addEventListener('scroll', debouncedMeasure);
     }
 
     return () => {
+      clearTimeout(initialTimer);
       clearTimeout(debounceTimer);
-      window.removeEventListener('resize', debouncedDetect);
-      window.removeEventListener('orientationchange', debouncedDetect);
+      window.removeEventListener('resize', debouncedMeasure);
+      window.removeEventListener('orientationchange', debouncedMeasure);
+      window.removeEventListener('scroll', debouncedMeasure);
       if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', debouncedDetect);
+        window.visualViewport.removeEventListener('resize', debouncedMeasure);
+        window.visualViewport.removeEventListener('scroll', debouncedMeasure);
       }
     };
-  }, []);
+  }, [isOpen]); // Re-run when sidebar opens/closes
 
   const fetchNotifications = async () => {
     try {
@@ -317,7 +328,7 @@ const Sidebar = ({ isOpen, toggleSidebar, accountStatus }) => {
           </ul>
         </nav>
 
-        <div className="logout-container">
+        <div ref={logoutContainerRef} className="logout-container">
           <Link
             to="/feedback"
             className={`leave-feedback-button ${isInactive ? "disabled" : ""}`}

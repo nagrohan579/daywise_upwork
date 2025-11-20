@@ -428,7 +428,7 @@ const Availability = () => {
 
                 <div className="show-date-specific-hour">
                   {dateExceptions.length === 0 && blockedDates.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '20px', color: '#64748B' }}>
+                    <div className="no-date-specific-hours-message">
                       No date-specific hours set
                     </div>
                   ) : (

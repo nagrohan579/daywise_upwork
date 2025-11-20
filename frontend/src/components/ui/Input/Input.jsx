@@ -29,15 +29,22 @@ const Input = forwardRef(({
     }
   }, [value, isFocused]);
 
-  // For date/time inputs → show placeholder by default (text type)
+  // For date/time inputs → always keep as date/time type on mobile to allow native picker
   const handleFocus = (e) => {
     setIsFocused(true);
     if ((type === "date" || type === "time") && !readOnly) {
+      // Always set to date/time type, never text
       setInputType(type);
-      // Trigger native picker on mobile
+      // Trigger native picker on mobile - use longer timeout for iOS
       setTimeout(() => {
-        e.target.showPicker?.();
-      }, 0);
+        if (e.target && e.target.showPicker) {
+          e.target.showPicker();
+        } else if (e.target && e.target.type === type) {
+          // Fallback: ensure type is set and try click
+          e.target.type = type;
+          e.target.click();
+        }
+      }, 100);
     }
     
     // For number inputs, store the local value for editing
@@ -46,10 +53,29 @@ const Input = forwardRef(({
     }
   };
 
+  // Handle click for date/time inputs to ensure picker opens
+  const handleClick = (e) => {
+    if ((type === "date" || type === "time") && !readOnly) {
+      // Ensure type is set before click
+      setInputType(type);
+      // Small delay to ensure type is updated
+      setTimeout(() => {
+        if (e.target && e.target.showPicker) {
+          e.target.showPicker();
+        }
+      }, 50);
+    }
+  };
+
   const handleBlur = (e) => {
     setIsFocused(false);
+    // Don't change type to text on mobile - keep as date/time to allow picker
+    // Only change to text on desktop if no value (for placeholder display)
     if ((type === "date" || type === "time") && !value) {
-      setInputType("text");
+      const isMobile = window.innerWidth <= 991;
+      if (!isMobile) {
+        setInputType("text");
+      }
     }
     
     // For number inputs, ensure the value is properly formatted
@@ -133,8 +159,10 @@ const Input = forwardRef(({
   };
 
   // Show placeholder text when no value and not focused
+  // On mobile, always use date/time type to allow native picker
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 991;
   const shouldShowPlaceholder =
-    (type === "date" || type === "time") && !value && !isFocused;
+    (type === "date" || type === "time") && !value && !isFocused && !isMobile;
   const displayType = shouldShowPlaceholder ? "text" : inputType;
   
   // For number inputs, use local value while focused
@@ -158,6 +186,7 @@ const Input = forwardRef(({
         placeholder={placeholder}
         value={displayValue}
         onFocus={handleFocus}
+        onClick={handleClick}
         onBlur={handleBlur}
         onChange={handleChange}
         onWheel={type === "number" ? handleWheel : props.onWheel}

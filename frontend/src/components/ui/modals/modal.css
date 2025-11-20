@@ -40,8 +40,8 @@
   line-height: 20px;
   letter-spacing: 0%;
   color: var(--secondary-color);
-  margin-top: 2px;
-  margin-bottom: 16px;
+  margin-top: 0px; /* No top margin to match spacing between fields */
+  margin-bottom: 16px; /* Same as input-group-comp and select-group */
 }
 
 .serviceModal .close-btn {
@@ -628,6 +628,15 @@
   
   .dateSpecificHour .closed-months-grid {
     grid-template-columns: repeat(3, 1fr);
+  }
+  
+  /* Prevent iOS Safari zoom on date/time inputs - font-size must be at least 16px */
+  .dateSpecificHour .input-group-comp input[type="date"],
+  .dateSpecificHour .input-group-comp input[type="time"],
+  .dateSpecificHour .input-group-comp .input-field[type="date"],
+  .dateSpecificHour .input-group-comp .input-field[type="time"] {
+    font-size: 16px !important; /* Prevent iOS zoom (requires 16px or larger) */
+    -webkit-text-size-adjust: 100%; /* Prevent text size adjustment */
   }
 }
 
@@ -1236,6 +1245,15 @@
   .dateSpecificHour .input-wrap {
     flex-direction: column;
     gap: 0px;
+  }
+  
+  /* Ensure modals appear above hamburger button (1300), sidebar (1200), and "How this Works" button (1100) on mobile */
+  .modal {
+    z-index: 1500 !important; /* Higher than all other elements */
+  }
+  
+  .modal-backdrop {
+    z-index: 1499 !important; /* Just below modal */
   }
 }
 @media (max-width: 768px) {

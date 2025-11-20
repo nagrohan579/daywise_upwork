@@ -43,6 +43,17 @@
   -webkit-text-align-last: left; /* Safari/iOS fix */
 }
 
+/* On mobile, ensure date/time inputs have 16px font to prevent zoom */
+@media (max-width: 991px) {
+  .input-group-comp .input-field[type="date"],
+  .input-group-comp .input-field[type="time"],
+  .input-group-comp input[type="date"],
+  .input-group-comp input[type="time"] {
+    font-size: 16px !important;
+    -webkit-text-size-adjust: 100% !important;
+  }
+}
+
 .input-group-comp .input-field::placeholder {
   color: var(--secondary-color);
 }
@@ -378,5 +389,17 @@ input:checked + .slider:before {
   input[type="date"]::-ms-clear,
   input[type="time"]::-ms-clear {
     display: none;
+  }
+  
+  /* Prevent iOS Safari zoom on date/time inputs - font-size must be at least 16px */
+  .input-group-comp input[type="date"],
+  .input-group-comp input[type="time"],
+  .input-group-comp .input-field[type="date"],
+  .input-group-comp .input-field[type="time"],
+  input[type="date"],
+  input[type="time"] {
+    font-size: 16px !important; /* Prevent iOS zoom (requires 16px or larger) */
+    -webkit-text-size-adjust: 100% !important; /* Prevent text size adjustment */
+    min-height: 44px; /* Ensure touch target is large enough */
   }
 }

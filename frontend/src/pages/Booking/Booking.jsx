@@ -135,7 +135,7 @@ const BookingsPage = () => {
       
       // Fetch both in parallel
       const [bookingsResponse, featuresResponse] = await Promise.all([
-        fetch(`${apiUrl}/api/bookings`, {
+        fetch(`${apiUrl}/api/bookings?includeDeleted=true`, {
           credentials: 'include',
         }),
         fetch(`${apiUrl}/api/user-subscriptions/me`, {
@@ -994,11 +994,6 @@ const BookingsPage = () => {
                             icon: <CancelIcon />,
                             onClick: () => handleCancelClick(booking),
                           },
-                          {
-                            label: "Delete",
-                            icon: <DeleteIcon />,
-                            onClick: () => handleDeleteClick(booking),
-                          },
                         ]}
                       />
                     </div>
@@ -1138,6 +1133,11 @@ const BookingsPage = () => {
                               setModalMode("edit");
                               setShowAddAppointmentModal(true);
                             },
+                          },
+                          {
+                            label: "Delete",
+                            icon: <DeleteIcon />,
+                            onClick: () => handleDeleteClick(booking),
                           },
                         ]}
                       />

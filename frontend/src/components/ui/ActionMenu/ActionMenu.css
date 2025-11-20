@@ -5,6 +5,10 @@
   isolation: isolate;
 }
 
+.action-menu.is-open {
+  z-index: 1100;
+}
+
 .action-trigger {
   background: transparent;
   border: none;

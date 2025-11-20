@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { GiHamburgerMenu } from "react-icons/gi";
 import { IoMdClose } from "react-icons/io";
@@ -54,6 +54,7 @@ const Sidebar = ({ isOpen, toggleSidebar, accountStatus }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [userTimezone, setUserTimezone] = useState('Etc/UTC'); // Default to UTC
   const isInactive = accountStatus === 'inactive';
+  const sidebarContainerRef = useRef(null);
 
   // Fetch user timezone on mount
   useEffect(() => {
@@ -92,6 +93,67 @@ const Sidebar = ({ isOpen, toggleSidebar, accountStatus }) => {
 
     return () => {
       window.removeEventListener('timezoneChanged', handleTimezoneChange);
+    };
+  }, []);
+
+  // Detect mobile device and bottom UI bar (like Safari's URL bar)
+  useEffect(() => {
+    const detectBottomUIBar = () => {
+      // First check if we're on a mobile device
+      const isMobile = window.innerWidth < 992;
+      
+      if (!isMobile || !sidebarContainerRef.current) {
+        // Not on mobile or ref not ready, reset padding
+        if (sidebarContainerRef.current) {
+          sidebarContainerRef.current.style.setProperty('--bottom-ui-bar-height', '0px');
+        }
+        return;
+      }
+
+      // Measure viewport height vs window height
+      const windowHeight = window.innerHeight;
+      const viewportHeight = window.visualViewport?.height || document.documentElement.clientHeight;
+      
+      // Calculate the difference
+      const heightDifference = windowHeight - viewportHeight;
+      
+      // If difference is significant (>50px), assume a bottom UI bar is present
+      if (heightDifference > 50) {
+        // Set padding to account for the bottom UI bar (add some extra for safety)
+        const bottomBarHeight = Math.min(heightDifference + 20, 100); // Cap at 100px
+        sidebarContainerRef.current.style.setProperty('--bottom-ui-bar-height', `${bottomBarHeight}px`);
+      } else {
+        // No bottom UI bar detected, reset padding
+        sidebarContainerRef.current.style.setProperty('--bottom-ui-bar-height', '0px');
+      }
+    };
+
+    // Debounce function to avoid excessive calculations
+    let debounceTimer;
+    const debouncedDetect = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(detectBottomUIBar, 100);
+    };
+
+    // Initial detection
+    detectBottomUIBar();
+
+    // Listen for resize and orientation change events
+    window.addEventListener('resize', debouncedDetect);
+    window.addEventListener('orientationchange', debouncedDetect);
+    
+    // Also listen to visual viewport changes if available
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', debouncedDetect);
+    }
+
+    return () => {
+      clearTimeout(debounceTimer);
+      window.removeEventListener('resize', debouncedDetect);
+      window.removeEventListener('orientationchange', debouncedDetect);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', debouncedDetect);
+      }
     };
   }, []);
 
@@ -223,7 +285,7 @@ const Sidebar = ({ isOpen, toggleSidebar, accountStatus }) => {
 
   return (
     <>
-      <div className={`sidebar-container ${isOpen ? "is-open" : ""}`}>
+      <div ref={sidebarContainerRef} className={`sidebar-container ${isOpen ? "is-open" : ""}`}>
         <div className="sidebar-header">
           <Link to={"/booking"}>
             <img src="/assets/images/logo.svg" alt="Daywise Logo" />

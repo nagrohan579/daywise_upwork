@@ -285,6 +285,11 @@
   .sidebar-nav .nav-item {
     padding: 0 16px;
   }
+  
+  /* Dynamic bottom padding for logout container to account for browser UI bars */
+  .sidebar-container .logout-container {
+    padding-bottom: calc(20px + var(--bottom-ui-bar-height, 0px));
+  }
 }
 /* ========================================================================= */
 /* 3. Desktop View (Media Query) - FIX APPLIED HERE */

@@ -281,6 +281,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+  overflow: visible;
+  z-index: 1;
+}
+
+.booking-page .booking-detail-con .booking-card.booking-card-menu-open {
+  z-index: 25;
 }
 .booking-page .booking-detail-con .booking-card .top {
   display: flex;

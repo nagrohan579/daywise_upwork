@@ -2248,9 +2248,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Authentication required" });
       }
       
+      const includeDeleted = req.query.includeDeleted === 'true';
       const allBookings = await storage.getBookingsByUser(session.userId);
-      // Filter out deleted bookings - keep cancelled bookings for display in past bookings
-      const bookings = allBookings.filter((booking: any) => booking.status !== 'deleted');
+      // Filter out deleted bookings unless explicitly included
+      const bookings = includeDeleted
+        ? allBookings
+        : allBookings.filter((booking: any) => booking.status !== 'deleted');
       res.json(bookings);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch bookings", error: error instanceof Error ? error.message : "Unknown error" });
@@ -2844,7 +2847,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update booking status to "cancelled" instead of deleting
       await storage.updateBooking(existingBooking._id, { 
         status: 'cancelled',
-        googleCalendarEventId: null // Clear calendar event ID since event is deleted
+        googleCalendarEventId: undefined // Clear calendar event ID since event is deleted
       });
       console.log(`✅ Booking ${existingBooking._id} marked as cancelled`);
 
@@ -2984,7 +2987,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (deleteResult.success) {
               console.log(`✅ Google Calendar event deleted: ${existingBooking.googleCalendarEventId}`);
               // Clear the googleCalendarEventId from booking
-              await storage.updateBooking(req.params.id, { googleCalendarEventId: null });
+              await storage.updateBooking(req.params.id, { googleCalendarEventId: undefined });
             }
           }
           // Update the Google Calendar event if any booking details changed
@@ -3024,7 +3027,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             } else if (updateResult.notFound) {
               // Event was deleted from Google Calendar - clear the ID and try to create a new one
               console.log('⚠️ Calendar event not found (deleted by user), creating new event');
-              await storage.updateBooking(req.params.id, { googleCalendarEventId: null });
+              await storage.updateBooking(req.params.id, { googleCalendarEventId: undefined });
               
               // Create new calendar event
               const customEventId = `daywise_${booking._id}`.replace(/[^a-v0-9]/g, '').substring(0, 64);
@@ -3208,7 +3211,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update booking status to "deleted" instead of deleting
       const updatedBooking = await storage.updateBooking(req.params.id, { 
         status: 'deleted',
-        googleCalendarEventId: null // Clear calendar event ID since event is deleted
+        googleCalendarEventId: undefined // Clear calendar event ID since event is deleted
       });
       
       if (!updatedBooking) {

@@ -1964,6 +1964,119 @@
   background: #F9FAFF;
 }
 
+/* Stripe Disconnect Modal */
+.stripe-disconnect-modal .modal-content {
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+}
+
+.stripe-disconnect-content {
+  width: 346px;
+  height: 180px;
+  background: #F9FAFF;
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 30px;
+  position: relative;
+  isolation: isolate;
+}
+
+.stripe-disconnect-close-btn {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  right: 13px;
+  top: 13px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.stripe-disconnect-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.stripe-disconnect-text h3 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  color: #121212;
+  margin: 0;
+}
+
+.stripe-disconnect-text p {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+  color: #121212;
+  margin: 0;
+  width: 100%;
+}
+
+.stripe-disconnect-buttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  width: 256px;
+}
+
+.stripe-disconnect-buttons button {
+  width: 122px;
+  height: 40px;
+  border-radius: 50px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stripe-disconnect-confirm {
+  background: #FA5151;
+  color: #FFFFFF;
+  border: none;
+}
+
+.stripe-disconnect-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.stripe-disconnect-cancel {
+  background: #FFFFFF;
+  border: 1px solid #E0E9FE;
+  color: #64748B;
+}
+
+.stripe-disconnect-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Preview Form Modal */
 .previewFormModal .modal-header {
   display: flex;

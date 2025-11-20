@@ -4,6 +4,7 @@ import { IoAdd } from "react-icons/io5";
 import { PremiumIcon, StripeIcon, ConnectedCheckIcon, CrossIcon } from "../../components/SVGICONS/Svg";
 import { toast } from "sonner";
 import HowThisWorksButton from "../../components/HowThisWorksButton";
+import StripeDisconnectModal from "../../components/ui/modals/StripeDisconnectModal";
 import "./Payments.css";
 
 const Payments = () => {
@@ -13,6 +14,7 @@ const Payments = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [stripeAccountId, setStripeAccountId] = useState(null);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
 
   // Check for OAuth return params
   useEffect(() => {
@@ -122,6 +124,7 @@ const Payments = () => {
         toast.error(error?.message || 'Failed to disconnect Stripe account');
     } finally {
       setIsDisconnecting(false);
+      setShowDisconnectModal(false);
     }
   };
 
@@ -216,7 +219,7 @@ const Payments = () => {
                 </div>
                 <button 
                   className="stripe-disconnect-button"
-                  onClick={handleDisconnect}
+                  onClick={() => setShowDisconnectModal(true)}
                   disabled={isDisconnecting}
                 >
                   <CrossIcon />
@@ -229,6 +232,16 @@ const Payments = () => {
         )}
       </div>
       <HowThisWorksButton title="How Payments Works" />
+      <StripeDisconnectModal
+        show={showDisconnectModal}
+        onClose={() => {
+          if (!isDisconnecting) {
+            setShowDisconnectModal(false);
+          }
+        }}
+        onConfirm={handleDisconnect}
+        isDisconnecting={isDisconnecting}
+      />
     </AppLayout>
   );
 };

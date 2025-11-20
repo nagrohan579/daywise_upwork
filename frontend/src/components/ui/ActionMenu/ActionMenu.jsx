@@ -24,8 +24,21 @@ const ActionMenu = ({ items = [], isOpen: controlledIsOpen, onOpenChange }) => {
     return () => document.removeEventListener("mousedown", handler);
   }, [open, setOpen]);
 
+  useEffect(() => {
+    const card = menuRef.current?.closest(".booking-card");
+    if (!card) return;
+    if (open) {
+      card.classList.add("booking-card-menu-open");
+    } else {
+      card.classList.remove("booking-card-menu-open");
+    }
+    return () => {
+      card.classList.remove("booking-card-menu-open");
+    };
+  }, [open]);
+
   return (
-    <div className="action-menu" ref={menuRef}>
+    <div className={`action-menu ${open ? "is-open" : ""}`} ref={menuRef}>
       <button className="action-trigger" onClick={() => setOpen(!open)}>
         <BsThreeDotsVertical size={18} color="#64748B" />
       </button>

@@ -631,12 +631,51 @@
   }
   
   /* Prevent iOS Safari zoom on date/time inputs - font-size must be at least 16px */
+  /* Also ensure font-family and all styling matches other inputs exactly */
+  /* Match the styling approach from Week Hours section which works perfectly */
   .dateSpecificHour .input-group-comp input[type="date"],
   .dateSpecificHour .input-group-comp input[type="time"],
   .dateSpecificHour .input-group-comp .input-field[type="date"],
   .dateSpecificHour .input-group-comp .input-field[type="time"] {
+    /* Font styling to match regular inputs - must match Week Hours exactly */
     font-size: 16px !important; /* Prevent iOS zoom (requires 16px or larger) */
-    -webkit-text-size-adjust: 100%; /* Prevent text size adjustment */
+    -webkit-text-size-adjust: 100% !important; /* Prevent text size adjustment */
+    font-family: Inter, sans-serif !important;
+    font-weight: 400 !important;
+    font-style: normal !important;
+    line-height: 20px !important;
+    letter-spacing: 0% !important;
+    color: var(--text-color) !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    /* Appearance reset - critical for iOS */
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: textfield !important;
+    /* Ensure all other properties match .input-field */
+    padding: 12px 14px !important;
+    height: 44px !important;
+    border-radius: 12px !important;
+    background-color: #f9faff !important;
+    text-align: left !important;
+    text-align-last: left !important;
+    -webkit-text-align: left !important;
+    -webkit-text-align-last: left !important;
+    /* Hide calendar picker indicator but keep functionality */
+    cursor: pointer !important;
+  }
+  
+  /* Hide calendar picker indicator visually but keep functionality - like Week Hours */
+  .dateSpecificHour .input-group-comp input[type="date"]::-webkit-calendar-picker-indicator,
+  .dateSpecificHour .input-group-comp input[type="time"]::-webkit-calendar-picker-indicator,
+  .dateSpecificHour .input-group-comp .input-field[type="date"]::-webkit-calendar-picker-indicator,
+  .dateSpecificHour .input-group-comp .input-field[type="time"]::-webkit-calendar-picker-indicator {
+    opacity: 0 !important;
+    position: absolute !important;
+    right: 0 !important;
+    width: 100% !important;
+    cursor: pointer !important;
+    -webkit-appearance: none !important;
   }
 }
 
@@ -2034,14 +2073,24 @@
 }
 
 /* Stripe Disconnect Modal */
+.stripe-disconnect-modal .modal-dialog {
+  max-width: 346px;
+  margin: 1.5rem auto;
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - 3rem);
+}
+
 .stripe-disconnect-modal .modal-content {
   border-radius: 12px;
   border: none;
   background: transparent;
+  width: 100%;
 }
 
 .stripe-disconnect-content {
-  width: 346px;
+  width: 100%;
+  max-width: 346px;
   height: 180px;
   background: #F9FAFF;
   border: 1px solid rgba(100, 116, 139, 0.2);
@@ -2055,6 +2104,7 @@
   gap: 30px;
   position: relative;
   isolation: isolate;
+  margin: 0 auto;
 }
 
 .stripe-disconnect-close-btn {
@@ -2144,6 +2194,151 @@
 .stripe-disconnect-cancel:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Google Calendar Disconnect Modal */
+.google-calendar-disconnect-modal .modal-dialog {
+  max-width: 346px;
+  margin: 1.5rem auto;
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - 3rem);
+}
+
+.google-calendar-disconnect-modal .modal-content {
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  width: 100%;
+}
+
+.google-calendar-disconnect-content {
+  width: 100%;
+  max-width: 346px;
+  min-height: 180px;
+  background: #F9FAFF;
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 30px;
+  position: relative;
+  isolation: isolate;
+  margin: 0 auto;
+}
+
+.google-calendar-disconnect-close-btn {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  right: 13px;
+  top: 13px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.google-calendar-disconnect-close-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.google-calendar-disconnect-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.google-calendar-disconnect-text h3 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  color: #121212;
+  margin: 0;
+}
+
+.google-calendar-disconnect-text p {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+  color: #121212;
+  margin: 0;
+  width: 100%;
+}
+
+.google-calendar-disconnect-buttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  width: 256px;
+}
+
+.google-calendar-disconnect-buttons button {
+  width: 122px;
+  height: 40px;
+  border-radius: 50px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.google-calendar-disconnect-confirm {
+  background: #FA5151;
+  color: #FFFFFF;
+  border: none;
+}
+
+.google-calendar-disconnect-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.google-calendar-disconnect-cancel {
+  background: #FFFFFF;
+  border: 1px solid #E0E9FE;
+  color: #64748B;
+}
+
+.google-calendar-disconnect-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Mobile responsive for Google Calendar Disconnect Modal */
+@media (max-width: 768px) {
+  .google-calendar-disconnect-modal .modal-dialog {
+    max-width: calc(100% - 32px);
+    margin: 1rem auto;
+    min-height: calc(100% - 2rem);
+  }
+
+  .google-calendar-disconnect-content {
+    width: 100%;
+    max-width: 100%;
+    padding: 20px;
+  }
 }
 
 /* Preview Form Modal */

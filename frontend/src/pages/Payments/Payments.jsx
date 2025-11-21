@@ -153,11 +153,11 @@ const Payments = () => {
           </div>
         ) : (
           <div 
-            className="stripe-card-container"
+            className={`stripe-card-container ${!hasCustomBranding && isConnected ? 'stripe-card-grayed-out' : ''}`}
             style={{
-              opacity: !hasCustomBranding && !isConnected ? 0.6 : 1,
-              pointerEvents: !hasCustomBranding && !isConnected ? "none" : "auto",
-              cursor: !hasCustomBranding && !isConnected ? "not-allowed" : "pointer",
+              opacity: !hasCustomBranding ? 0.6 : 1,
+              pointerEvents: !hasCustomBranding ? "none" : "auto",
+              cursor: !hasCustomBranding ? "not-allowed" : "pointer",
             }}
           >
           <div className="stripe-card-content">
@@ -213,6 +213,7 @@ const Payments = () => {
                   <button 
                     className="stripe-visit-dashboard-button"
                     onClick={handleVisitDashboard}
+                    disabled={!hasCustomBranding}
                   >
                     <span>Visit Stripe Dashboard</span>
                   </button>
@@ -220,7 +221,7 @@ const Payments = () => {
                 <button 
                   className="stripe-disconnect-button"
                   onClick={() => setShowDisconnectModal(true)}
-                  disabled={isDisconnecting}
+                  disabled={isDisconnecting || !hasCustomBranding}
                 >
                   <CrossIcon />
                   <span>{isDisconnecting ? 'Disconnecting...' : 'Disconnect from Stripe'}</span>

@@ -27,6 +27,8 @@ const Forms = () => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const formNameRef = useRef(null);
   const fieldTypeSectionRef = useRef(null);
+  const headerActionsRef = useRef(null);
+  const saveButtonRef = useRef(null);
   const isMobile = useMobile(991);
   const [userId, setUserId] = useState(null);
   const [forms, setForms] = useState([]);
@@ -39,6 +41,7 @@ const Forms = () => {
   const [showTopWarning, setShowTopWarning] = useState(true); // For dismissing top warning banner
   const [togglingFormId, setTogglingFormId] = useState(null); // Track which form is being toggled
   const [openMenuId, setOpenMenuId] = useState(null); // Track which menu is open
+  const [showMobileActionBar, setShowMobileActionBar] = useState(false);
 
   // Fetch current user
   useEffect(() => {
@@ -127,6 +130,33 @@ const Forms = () => {
       return () => clearTimeout(timer);
     }
   }, [showFieldTypeSelection]);
+
+  useEffect(() => {
+    if (!isMobile || !showFormBuilder) {
+      setShowMobileActionBar(false);
+      return;
+    }
+    const targets = [headerActionsRef.current, saveButtonRef.current].filter(Boolean);
+    if (!targets.length) return;
+
+    const visibilityMap = new Map();
+    targets.forEach((target) => visibilityMap.set(target, true));
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          visibilityMap.set(entry.target, entry.isIntersecting);
+        });
+        const anyVisible = Array.from(visibilityMap.values()).some(Boolean);
+        setShowMobileActionBar(!anyVisible);
+      },
+      { threshold: 0.1 }
+    );
+
+    targets.forEach((target) => observer.observe(target));
+
+    return () => observer.disconnect();
+  }, [isMobile, showFormBuilder]);
 
   const handleAddNew = () => {
     // Check if user has reached the limit
@@ -551,7 +581,7 @@ const Forms = () => {
                 </div>
               </div>
             )}
-            <div className="form-builder-header-top">
+            <div className="form-builder-header-top" ref={headerActionsRef}>
               <div className="form-name-header">
                 {isEditingFormName ? (
                   <Input
@@ -605,12 +635,14 @@ const Forms = () => {
                     marginRight: '12px',
                   }}
                 />
-                <Button
-                  text="Save Form"
-                  variant="primary"
-                  onClick={handleSaveForm}
-                  style={{ marginRight: '12px' }}
-                />
+                <div ref={saveButtonRef} style={{ display: 'flex' }}>
+                  <Button
+                    text="Save Form"
+                    variant="primary"
+                    onClick={handleSaveForm}
+                    style={{ marginRight: '12px' }}
+                  />
+                </div>
                 <button
                   onClick={handleCancelFormBuilder}
                   className="cancel-icon-btn"
@@ -1925,7 +1957,34 @@ const Forms = () => {
           </div>
         </Modal.Body>
       </Modal>
-      <HowThisWorksButton title="How Forms Works" />
+      {!showFormBuilder && <HowThisWorksButton title="How Forms Works" />}
+
+      {isMobile && showFormBuilder && (
+        <div className={`form-builder-mobile-toolbar ${showMobileActionBar ? 'visible' : ''}`}>
+          <button
+            type="button"
+            className="mobile-toolbar-btn secondary"
+            onClick={handleAddAnother}
+          >
+            Add field
+          </button>
+          <button
+            type="button"
+            className="mobile-toolbar-btn ghost"
+            onClick={() => setShowPreviewModal(true)}
+          >
+            Preview
+          </button>
+          <button
+            type="button"
+            className="mobile-toolbar-btn primary"
+            onClick={handleSaveForm}
+            disabled={savingForm}
+          >
+            {savingForm ? "Saving..." : "Save Form"}
+          </button>
+        </div>
+      )}
     </AppLayout>
   );
 };

@@ -1,5 +1,6 @@
-import { useState, useEffect, forwardRef } from "react";
+import { useState, useEffect, forwardRef, useRef } from "react";
 import "./Input.css";
+import React from "react";
 const Input = forwardRef(({
   label,
   type = "text",
@@ -161,38 +162,140 @@ const Input = forwardRef(({
   // Show placeholder text when no value and not focused
   // On mobile, always use date/time type to allow native picker
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 991;
-  const shouldShowPlaceholder =
-    (type === "date" || type === "time") && !value && !isFocused && !isMobile;
-  const displayType = shouldShowPlaceholder ? "text" : inputType;
+  
+  // For date/time inputs on mobile, always keep as date/time type for native picker
+  // On desktop, use text type when empty to show placeholder
+  let displayType = inputType;
+  if ((type === "date" || type === "time")) {
+    if (isMobile) {
+      // Always keep as date/time on mobile for native picker
+      displayType = type;
+    } else {
+      // On desktop, use text when empty to show placeholder
+      displayType = (!value && !isFocused) ? "text" : type;
+    }
+  }
   
   // For number inputs, use local value while focused
   const displayValue = (type === "number" && isFocused) ? localValue : value;
 
+  // Format date/time for display on mobile - show as readable text but keep native picker
+  const isMobileDevice = typeof window !== 'undefined' && window.innerWidth <= 991;
+  const isDateOrTime = (type === "date" || type === "time");
+  
+  // Format date/time value for display as readable text
+  let formattedDisplayValue = displayValue;
+  if (isMobileDevice && isDateOrTime && value) {
+    if (type === "date" && value) {
+      try {
+        // Parse ISO date (YYYY-MM-DD) and format as readable text
+        const date = new Date(value + 'T00:00:00');
+        if (!isNaN(date.getTime())) {
+          const day = date.getDate();
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          const month = monthNames[date.getMonth()];
+          const year = date.getFullYear();
+          formattedDisplayValue = `${day} ${month} ${year}`;
+        }
+      } catch (e) {
+        // Keep original if formatting fails
+      }
+    } else if (type === "time" && value) {
+      // Format time as readable text (e.g., "9:00 AM")
+      try {
+        const [hour, minute] = value.split(':');
+        const h = parseInt(hour, 10);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const formattedHour = h % 12 || 12;
+        formattedDisplayValue = `${formattedHour}:${minute} ${ampm}`;
+      } catch (e) {
+        // Keep original if formatting fails
+      }
+    }
+  }
+
+  // Create a ref for the hidden native input
+  const hiddenInputRef = React.useRef(null);
+
+  // Handle click on the visible input to trigger native picker
+  const handleVisibleClick = (e) => {
+    if (isMobileDevice && isDateOrTime && hiddenInputRef.current) {
+      e.preventDefault();
+      hiddenInputRef.current.focus();
+      setTimeout(() => {
+        if (hiddenInputRef.current && hiddenInputRef.current.showPicker) {
+          hiddenInputRef.current.showPicker();
+        } else {
+          hiddenInputRef.current.click();
+        }
+      }, 50);
+    } else {
+      handleClick(e);
+    }
+  };
+
   return (
-    <div className="input-group-comp">
+    <div className="input-group-comp" style={{ position: 'relative' }}>
       {label && (
         <label htmlFor={name} className="input-label">
           {label}
         </label>
       )}
 
-      <input
-        ref={ref}
-        id={name}
-        name={name}
-        type={displayType}
-        style={{ ...style }}
-        className={`input-field ${error ? "input-error" : ""}`}
-        placeholder={placeholder}
-        value={displayValue}
-        onFocus={handleFocus}
-        onClick={handleClick}
-        onBlur={handleBlur}
-        onChange={handleChange}
-        onWheel={type === "number" ? handleWheel : props.onWheel}
-        readOnly={readOnly}
-        {...props}
-      />
+      {/* On mobile, use a text input for display and hidden date/time input for picker */}
+      {isMobileDevice && isDateOrTime ? (
+        <>
+          <input
+            ref={ref}
+            id={name}
+            name={name}
+            type="text"
+            style={{ ...style }}
+            className={`input-field ${error ? "input-error" : ""}`}
+            placeholder={placeholder}
+            value={formattedDisplayValue || ''}
+            onClick={handleVisibleClick}
+            readOnly={true}
+            {...props}
+          />
+          <input
+            ref={hiddenInputRef}
+            type={type}
+            value={value || ''}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            style={{
+              position: 'absolute',
+              opacity: 0,
+              pointerEvents: 'none',
+              width: 0,
+              height: 0,
+              border: 'none',
+              padding: 0,
+              margin: 0,
+            }}
+            tabIndex={-1}
+          />
+        </>
+      ) : (
+        <input
+          ref={ref}
+          id={name}
+          name={name}
+          type={displayType}
+          style={{ ...style }}
+          className={`input-field ${error ? "input-error" : ""}`}
+          placeholder={placeholder}
+          value={displayValue}
+          onFocus={handleFocus}
+          onClick={handleClick}
+          onBlur={handleBlur}
+          onChange={handleChange}
+          onWheel={type === "number" ? handleWheel : props.onWheel}
+          readOnly={readOnly}
+          {...props}
+        />
+      )}
 
       {error && <p className="input-error-text">{error}</p>}
     </div>

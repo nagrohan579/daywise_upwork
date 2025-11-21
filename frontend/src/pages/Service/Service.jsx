@@ -62,17 +62,53 @@ const Service = () => {
         })
       ]);
       
+      let appointmentTypes = [];
       if (appointmentTypesResponse.ok) {
         const data = await appointmentTypesResponse.json();
-        setAppointmentTypes(data || []);
+        appointmentTypes = data || [];
+        setAppointmentTypes(appointmentTypes);
       } else {
         console.error('Failed to fetch appointment types');
         setAppointmentTypes([]);
       }
       
+      let hasCustomBranding = false;
       if (featuresResponse.ok) {
         const featuresData = await featuresResponse.json();
         setAppointmentTypeLimit(featuresData.features?.appointmentTypeLimit ?? null);
+        hasCustomBranding = featuresData.features?.customBranding || false;
+        
+        // If user is on free plan, disable requirePayment for all services that have it enabled
+        if (!hasCustomBranding && appointmentTypes.length > 0) {
+          const servicesWithPayment = appointmentTypes.filter(service => service.requirePayment === true);
+          if (servicesWithPayment.length > 0) {
+            // Update all services with requirePayment enabled to disable it
+            const updatePromises = servicesWithPayment.map(service =>
+              fetch(`${apiUrl}/api/appointment-types/${service._id}`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({ requirePayment: false }),
+              })
+            );
+            
+            try {
+              await Promise.all(updatePromises);
+              // Refresh appointment types after updates
+              const refreshedResponse = await fetch(`${apiUrl}/api/appointment-types`, {
+                credentials: 'include',
+              });
+              if (refreshedResponse.ok) {
+                const refreshedData = await refreshedResponse.json();
+                setAppointmentTypes(refreshedData || []);
+              }
+            } catch (updateError) {
+              console.error('Error updating services to disable payment:', updateError);
+            }
+          }
+        }
       } else {
         console.error('Failed to fetch features');
       }

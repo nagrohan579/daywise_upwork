@@ -52,6 +52,25 @@
   width: 477px;
   background: #F9FAFF;
   border-radius: 12px;
+  position: relative;
+}
+
+.payments-page .stripe-card-container.stripe-card-grayed-out::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 12px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.payments-page .stripe-card-container.stripe-card-grayed-out .stripe-card-content {
+  position: relative;
+  z-index: 0;
 }
 
 .payments-page .stripe-card-content {
@@ -246,8 +265,14 @@
   transition: background-color 0.2s;
 }
 
-.payments-page .stripe-visit-dashboard-button:hover {
+.payments-page .stripe-visit-dashboard-button:hover:not(:disabled) {
   background: #0041C7;
+}
+
+.payments-page .stripe-visit-dashboard-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .payments-page .stripe-visit-dashboard-button span {
@@ -372,6 +397,7 @@
   flex: none;
   order: 1;
   flex-grow: 0;
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {
@@ -383,6 +409,15 @@
   .payments-page .payments-header .wrap p {
     font-size: 13px;
     line-height: 18px;
+  }
+
+  .payments-page .stripe-disconnect-button {
+    width: auto;
+    min-width: 198px;
+  }
+
+  .payments-page .stripe-disconnect-button span {
+    width: auto;
   }
 }
 

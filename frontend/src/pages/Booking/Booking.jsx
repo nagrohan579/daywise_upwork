@@ -19,6 +19,7 @@ import { getTimeComponents, formatDate, formatTime, toLocalDateString } from "..
 import { Modal } from "react-bootstrap";
 import HowThisWorksButton from "../../components/HowThisWorksButton";
 import VideoModal from "../../components/ui/modals/VideoModal";
+import GoogleCalendarDisconnectModal from "../../components/ui/modals/GoogleCalendarDisconnectModal";
 
 const BookingsPage = () => {
   const [showBookingList, setShowBookingList] = useState(true);
@@ -50,6 +51,7 @@ const BookingsPage = () => {
   const [isCalendarConnected, setIsCalendarConnected] = useState(false);
   const [isCheckingCalendarStatus, setIsCheckingCalendarStatus] = useState(true);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [showGoogleCalendarDisconnectModal, setShowGoogleCalendarDisconnectModal] = useState(false);
   const [bookingLimit, setBookingLimit] = useState(null); // null = unlimited
   const [userTimezone, setUserTimezone] = useState('Etc/UTC'); // Default to UTC
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' or 'past'
@@ -455,6 +457,7 @@ const BookingsPage = () => {
         setIsCalendarConnected(false);
         setCalendarEvents([]);
         setCombinedEvents([]);
+        setShowGoogleCalendarDisconnectModal(false);
         toast.success('Google Calendar disconnected successfully');
       } else {
         const errorData = await response.json();
@@ -643,13 +646,18 @@ const BookingsPage = () => {
                           ? (isMobile ? "Connected" : "Calendar Connected")
                           : (isMobile ? "Calendar" : "Sync to Google Calendar")
                   }
-                  style={{ width: isMobile ? "110px" : "240px" }}
+                  style={{ 
+                    width: isMobile ? (isCalendarConnected ? "140px" : "110px") : "240px",
+                    paddingLeft: isMobile && isCalendarConnected ? "14px" : undefined,
+                    paddingRight: isMobile && isCalendarConnected ? "8px" : undefined,
+                    justifyContent: isMobile && isCalendarConnected ? "flex-start" : "center"
+                  }}
                   onClick={handleConnectGoogleCalendar}
                   disabled={isCalendarConnected || isCheckingCalendarStatus || isDisconnecting}
                 />
                 {isCalendarConnected && !isDisconnecting && (
                   <button
-                    onClick={handleDisconnectGoogleCalendar}
+                    onClick={() => setShowGoogleCalendarDisconnectModal(true)}
                     disabled={isDisconnecting}
                     style={{
                       position: 'absolute',
@@ -1623,6 +1631,18 @@ const BookingsPage = () => {
         onClose={() => setShowOnboardingVideo(false)}
         title="Welcome to DayWise!"
         embedUrl={onboardingVideoUrl}
+      />
+
+      {/* Google Calendar Disconnect Confirmation Modal */}
+      <GoogleCalendarDisconnectModal
+        show={showGoogleCalendarDisconnectModal}
+        onClose={() => {
+          if (!isDisconnecting) {
+            setShowGoogleCalendarDisconnectModal(false);
+          }
+        }}
+        onConfirm={handleDisconnectGoogleCalendar}
+        isDisconnecting={isDisconnecting}
       />
     </AppLayout>
   );

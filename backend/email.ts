@@ -621,7 +621,7 @@ export async function sendVerificationEmail(email: string, name: string, verific
         </div>
         
         <div style="text-align: center; margin-top: 24px; color: #9ca3af; font-size: 12px;">
-          <p>© ${new Date().getFullYear()} Booking Platform. All rights reserved.</p>
+          <p>© ${new Date().getFullYear()} Daywise Booking. All rights reserved.</p>
         </div>
         
       </body>

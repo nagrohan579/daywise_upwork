@@ -328,9 +328,44 @@ const PublicBooking = () => {
       if (typesResponse.ok) {
         const types = await typesResponse.json();
         const filteredTypes = types.filter(type => type.isActive !== false);
-        console.log('PublicBooking - Appointment types loaded:', filteredTypes);
-        console.log('PublicBooking - Appointment types with intakeFormId:', filteredTypes.filter(t => t.intakeFormId));
-        setAppointmentTypes(filteredTypes);
+        
+        // Check if business user is on free plan and disable requirePayment for all services
+        try {
+          const featuresResponse = await fetch(`${apiUrl}/api/user-features/${user.id}`);
+          if (featuresResponse.ok) {
+            const featuresData = await featuresResponse.json();
+            const hasCustomBranding = featuresData.customBranding || false;
+            
+            // If business user is on free plan, set requirePayment to false for all services
+            if (!hasCustomBranding) {
+              const updatedTypes = filteredTypes.map(type => ({
+                ...type,
+                requirePayment: false
+              }));
+              console.log('PublicBooking - Business user is on free plan, disabled requirePayment for all services');
+              setAppointmentTypes(updatedTypes);
+            } else {
+              console.log('PublicBooking - Appointment types loaded:', filteredTypes);
+              console.log('PublicBooking - Appointment types with intakeFormId:', filteredTypes.filter(t => t.intakeFormId));
+              setAppointmentTypes(filteredTypes);
+            }
+          } else {
+            // If we can't check features, assume free plan and disable payment
+            const updatedTypes = filteredTypes.map(type => ({
+              ...type,
+              requirePayment: false
+            }));
+            setAppointmentTypes(updatedTypes);
+          }
+        } catch (error) {
+          console.error('PublicBooking - Error checking user features:', error);
+          // On error, assume free plan and disable payment
+          const updatedTypes = filteredTypes.map(type => ({
+            ...type,
+            requirePayment: false
+          }));
+          setAppointmentTypes(updatedTypes);
+        }
       }
 
       setLoading(false);

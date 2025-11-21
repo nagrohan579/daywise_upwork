@@ -155,18 +155,25 @@
 /* Responsive Design */
 @media (max-width: 991px) {
   .feedback-page {
-    padding: 20px;
+    margin-top: 42px;
+  }
+  
+  .feedback-page .feedback-header {
+    flex-direction: column;
+    align-items: start;
+    margin-bottom: 30px;
+    padding-bottom: 16px;
   }
   
   .feedback-page .feedback-form-container {
-    padding: 20px;
+    padding: 0;
   }
 }
 
 @media (max-width: 768px) {
-  .feedback-page .feedback-header h1 {
-    font-size: 20px;
-    line-height: 28px;
+  .feedback-page .feedback-header .wrap h1 {
+    font-size: 18px;
+    line-height: 24px;
   }
   
   .feedback-page .feedback-header .wrap .feedback-description {

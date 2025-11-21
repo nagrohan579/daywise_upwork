@@ -13,10 +13,13 @@ const LoginPage = () => {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(loginSchema),
   });
+
+  const emailValue = watch("email");
 
   const onSubmit = async (data) => {
     try {
@@ -66,6 +69,63 @@ const LoginPage = () => {
     // Use redirect flow for now (popup has domain issues)
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
     window.location.href = `${apiUrl}/api/auth/google`;
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    
+    // Check if email is filled
+    if (!emailValue || !emailValue.trim()) {
+      toast.error("Please fill in your email address");
+      return;
+    }
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      
+      // First, check if email exists and if it's a Google-only account
+      const checkResponse = await fetch(`${apiUrl}/api/auth/check-email-for-reset`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: emailValue }),
+      });
+
+      const checkResult = await checkResponse.json();
+
+      // If email doesn't exist
+      if (!checkResult.exists) {
+        toast.error(checkResult.message || "Email doesn't exist");
+        return;
+      }
+
+      // If it's a Google-only account
+      if (checkResult.isGoogleOnly) {
+        toast.error(checkResult.message || "This is a Google login account. Please login through Google. No password required.");
+        return;
+      }
+
+      // Email exists and has password - proceed with password reset
+      const response = await fetch(`${apiUrl}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: emailValue }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success(result.message || "If an account exists with this email, a password reset link will be sent.");
+      } else {
+        toast.error(result.message || "Failed to send recovery email. Please try again.");
+      }
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      toast.error('An error occurred. Please try again.');
+    }
   };
 
   return (
@@ -149,9 +209,21 @@ const LoginPage = () => {
 
         <p className="google-info">
           I forgot my password. Please{" "}
-          <Link to="" className="login-link">
+          <button
+            type="button"
+            onClick={handleForgotPassword}
+            className="login-link"
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              font: 'inherit',
+              cursor: 'pointer',
+              textDecoration: 'none',
+            }}
+          >
             send me a recovery email &rarr;
-          </Link>
+          </button>
         </p>
       </div>
     </div>

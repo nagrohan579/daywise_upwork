@@ -51,15 +51,39 @@
 .crop-wrapper {
   position: relative;
   width: 100%;
-  height: 300px;
+  height: 240px;
   background: #f9faff;
   border-radius: 12px;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ensure the cropper container takes full width and height */
+.crop-wrapper .react-easy-crop_Container {
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+}
+
+/* Ensure the image shows full width with blank space on top/bottom if needed */
+.crop-wrapper .react-easy-crop_Image {
+  max-width: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+}
+
+/* Ensure the crop area respects the container */
+.crop-wrapper .react-easy-crop_CropArea {
+  border: 2px solid #0053F1 !important;
+  box-shadow: 0 0 0 9999em rgba(0, 0, 0, 0.5) !important;
 }
 
 @media (max-width: 768px) {
   .crop-wrapper {
-    height: 250px;
+    height: 240px;
   }
 }
 

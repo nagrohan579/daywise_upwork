@@ -1,3 +1,52 @@
+export const IPhoneShareIcon = (props) => (
+  <svg
+    width="11"
+    height="12"
+    viewBox="0 0 11 12"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    {...props}
+  >
+    <path
+      d="M9.77083 6.27083V8.89583C9.77083 10.6795 7.4375 10.6458 5.10417 10.6458C2.77083 10.6458 0.4375 10.6795 0.4375 8.89583V6.27083M5.10417 0.4375V7.4375M5.10417 0.4375L7.4375 2.77083M5.10417 0.4375L2.77083 2.77083"
+      stroke="#4E98FF"
+      strokeWidth="0.875"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export const AddIconIPhone = (props) => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 14 14"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    {...props}
+  >
+    <g clipPath="url(#clip0_6001_1006)">
+      <path
+        d="M1.16699 6.99984C1.16699 4.24997 1.16699 2.87505 2.02127 2.02078C2.87553 1.1665 4.25046 1.1665 7.00033 1.1665C9.75016 1.1665 11.1251 1.1665 11.9794 2.02078C12.8337 2.87505 12.8337 4.24997 12.8337 6.99984C12.8337 9.74967 12.8337 11.1246 11.9794 11.9789C11.1251 12.8332 9.75016 12.8332 7.00033 12.8332C4.25046 12.8332 2.87553 12.8332 2.02127 11.9789C1.16699 11.1246 1.16699 9.74967 1.16699 6.99984Z"
+        stroke="black"
+        strokeWidth="0.875"
+      />
+      <path
+        d="M8.75 7H7M7 7H5.25M7 7V5.25M7 7V8.75"
+        stroke="black"
+        strokeWidth="0.875"
+        strokeLinecap="round"
+      />
+    </g>
+    <defs>
+      <clipPath id="clip0_6001_1006">
+        <rect width="14" height="14" fill="white" />
+      </clipPath>
+    </defs>
+  </svg>
+);
+
 export const CalendarIcon = (props) => (
   <svg
     width="15"

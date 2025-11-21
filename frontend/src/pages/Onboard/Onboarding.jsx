@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input, Textarea, ColorPicker, Checkbox, Select } from "../../components";
-import { PlusIcon, ClockIcon, DollarIcon } from "../../components/SVGICONS/Svg";
+import { PlusIcon, ClockIcon, DollarIcon, IPhoneShareIcon, AddIconIPhone } from "../../components/SVGICONS/Svg";
 import { RxCross2 } from "react-icons/rx";
 import { FaRegCopy } from "react-icons/fa6";
 import { toast } from "sonner";
@@ -283,7 +283,13 @@ const Onboarding = () => {
     });
   };
   
-  const handleCompleteSetup = async () => {
+  const handleCompleteSetup = () => {
+    // Immediately go to step6 (Add to Home Screen page) without saving
+    setCurrentStep('step6');
+  };
+  
+  const handleDone = async () => {
+    // Now do all the backend saving when "Done" is clicked
     setIsSavingOnboarding(true);
 
     try {
@@ -364,10 +370,6 @@ const Onboarding = () => {
       toast.error('An error occurred. Please try again.');
       setIsSavingOnboarding(false);
     }
-  };
-  
-  const handleDone = () => {
-    navigate("/booking");
   };
   
   const handleTimezoneChange = (label) => {
@@ -898,9 +900,6 @@ const Onboarding = () => {
           </div>
 
           <div className="onboarding-step4-actions">
-            <button className="onboarding-step4-skip-button" onClick={handleStep4Skip}>
-              Skip Step
-            </button>
             <button
               className="onboarding-step4-continue-button"
               onClick={handleStep4Continue}
@@ -989,19 +988,13 @@ const Onboarding = () => {
             <div className="onboarding-step6-platform-options">
               <div className="onboarding-step6-platform-option">
                 <div className="onboarding-step6-platform-icon">
-                  <svg width="31" height="31" viewBox="0 0 31 31" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="31" height="31" rx="6" fill="#F9FAFF"/>
-                    <path d="M15.5 8V23M10 13H21" stroke="#121212" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
+                  <img src="/assets/images/iphone_icon.png" alt="iPhone" className="onboarding-step6-phone-icon" />
                 </div>
                 <span className="onboarding-step6-platform-text">iPhone</span>
               </div>
               <div className="onboarding-step6-platform-option">
                 <div className="onboarding-step6-platform-icon">
-                  <svg width="31" height="31" viewBox="0 0 31 31" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="31" height="31" rx="6" fill="#F9FAFF"/>
-                    <path d="M15.5 8V23M10 13H21" stroke="#121212" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
+                  <img src="/assets/images/android_phone_icon.png" alt="Android" className="onboarding-step6-phone-icon" />
                 </div>
                 <span className="onboarding-step6-platform-text">Android</span>
               </div>
@@ -1009,20 +1002,15 @@ const Onboarding = () => {
 
             <div className="onboarding-step6-instructions">
               <div className="onboarding-step6-instruction-item">
+                <span className="onboarding-step6-instruction-number">1.</span>
                 <span className="onboarding-step6-instruction-text">Tap on the</span>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" className="onboarding-step6-share-icon">
-                  <rect x="2" y="4" width="6" height="6" rx="1" stroke="#4E98FF" strokeWidth="0.875"/>
-                  <path d="M10 2L12 4L10 6" stroke="#4E98FF" strokeWidth="0.875" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M12 4H8" stroke="#4E98FF" strokeWidth="0.875" strokeLinecap="round"/>
-                </svg>
+                <IPhoneShareIcon className="onboarding-step6-share-icon" />
                 <span className="onboarding-step6-instruction-text">in the browser toolbar</span>
               </div>
               <div className="onboarding-step6-instruction-item">
+                <span className="onboarding-step6-instruction-number">2.</span>
                 <span className="onboarding-step6-instruction-text">Scroll down and select "Add to Home Screen"</span>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" className="onboarding-step6-add-icon">
-                  <rect x="1.17" y="1.17" width="11.66" height="11.66" rx="1" stroke="#000000" strokeWidth="0.875"/>
-                  <path d="M7 5.25V8.75M5.25 7H8.75" stroke="#000000" strokeWidth="0.875" strokeLinecap="round"/>
-                </svg>
+                <AddIconIPhone className="onboarding-step6-add-icon" />
               </div>
             </div>
           </div>

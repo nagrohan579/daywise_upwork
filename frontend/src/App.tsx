@@ -30,6 +30,7 @@ import RescheduleBookingPage from "./pages/RescheduleBooking/RescheduleBooking";
 import AdminLogin from "./pages/Admin/AdminLogin";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 import Onboarding from "./pages/Onboard/Onboarding";
+import ResetPasswordPage from "./pages/ResetPassword/ResetPassword";
 
 // Import slick carousel CSS for calendar/slider components
 import "slick-carousel/slick/slick.css";
@@ -53,6 +54,7 @@ function AppContent() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/verify/:token" element={<VerifyPage />} />
         <Route path="/verify-error" element={<VerifyPage />} />
         <Route path="/booking" element={<BookingsPage />} />

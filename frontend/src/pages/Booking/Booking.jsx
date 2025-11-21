@@ -57,6 +57,7 @@ const BookingsPage = () => {
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' or 'past'
   const [accountStatus, setAccountStatus] = useState('active'); // 'active' or 'inactive'
   const [showOnboardingVideo, setShowOnboardingVideo] = useState(false);
+  const [hasCustomBranding, setHasCustomBranding] = useState(false); // Track if user is on paid plan
 
   const isMobile = useMobile(991);
   
@@ -180,6 +181,7 @@ const BookingsPage = () => {
       if (featuresResponse.ok) {
         const featuresData = await featuresResponse.json();
         setBookingLimit(featuresData.features?.bookingLimit ?? null);
+        setHasCustomBranding(featuresData.features?.customBranding || false);
       } else {
         console.error('Failed to fetch features');
       }
@@ -1522,7 +1524,7 @@ const BookingsPage = () => {
                 </p>
               </div>
               <p style={{ fontSize: '13px', color: '#DC2626', marginTop: '16px', fontWeight: '500' }}>
-                This action cannot be undone. The appointment will be permanently removed and will still count toward your monthly limit.
+                This action cannot be undone. The appointment will be permanently removed{!hasCustomBranding && ' and will still count toward your monthly limit'}.
               </p>
             </div>
 
@@ -1594,7 +1596,7 @@ const BookingsPage = () => {
                 Are you sure you want to cancel this booking?
               </p>
               <p className="cancel-modal-info" style={{ marginTop: '0' }}>
-                It will move to Past Bookings but will still count toward your monthly limit.
+                It will move to Past Bookings{!hasCustomBranding && ' but will still count toward your monthly limit'}.
               </p>
             </div>
             

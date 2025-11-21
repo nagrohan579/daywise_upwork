@@ -504,17 +504,25 @@ const PublicBooking = () => {
     }
   };
 
-  const handleDateSelect = async (date) => {
+  const handleDateSelect = (date) => {
+    if (!selectedAppointmentType?._id) {
+      toast.error("Please select a service first");
+      return false;
+    }
+
     setSelectedDate(date);
     setSelectedTime(null);
     
     if (selectedAppointmentType?._id && userData) {
       console.log('Calling fetchAvailableTimeSlots for date change with:', { userId: userData.id, appointmentTypeId: selectedAppointmentType._id, date });
-      await fetchAvailableTimeSlots(userData.id, selectedAppointmentType._id, date);
-      // Note: fetchAvailableTimeSlots now sets availableTimeSlots internally
+      fetchAvailableTimeSlots(userData.id, selectedAppointmentType._id, date).catch((error) => {
+        console.error('Error fetching time slots:', error);
+      });
     } else {
       console.warn('Cannot fetch time slots for date change - missing appointment type or user data');
     }
+
+    return true;
   };
 
   const handleTimeSelect = (timeSlot) => {
@@ -865,21 +873,20 @@ const PublicBooking = () => {
         )}
 
         {step === 2 && isMobile && (
-          <div className="step-two-mobile">
-            <div className="containerr">
-              <div className="top">
-                <div className="back-arrow">
-                  <BackArrowIcon
-                    onClick={goToPrev}
-                    style={{ cursor: 'pointer' }}
-                    />
-                </div>
-                <div className="heading-con">
-                  {branding?.usePlatformBranding !== false && (
-                  <div className="daywise-branding">
-                    <button className="powered-by-button">Powered by Daywise</button>
+            <div className="step-two-mobile">
+              <div className="containerr">
+                <div className="top">
+                  <div className="top-row">
+                    <button className="back-arrow-btn" onClick={goToPrev}>
+                      <BackArrowIcon />
+                    </button>
+                    {branding?.usePlatformBranding !== false && (
+                      <div className="daywise-branding">
+                        <button className="powered-by-button">Powered by Daywise</button>
+                      </div>
+                    )}
                   </div>
-                  )}
+                  <div className="heading-con">
                   <h1 className="appoint-name">{selectedAppointmentType?.name || "30 Minute Appointment"}</h1>
                   <p>{formatDate(selectedDate)}</p>
                   <div style={{ marginTop: '10px' }}>
@@ -894,7 +901,7 @@ const PublicBooking = () => {
                       }}
                       options={timezoneOptions}
                       placeholder="Select timezone"
-                    style={{ backgroundColor: '#F9FAFF', borderRadius: '50px' }}
+                      style={{ borderRadius: '50px' }}
                     />
                   </div>
                 </div>

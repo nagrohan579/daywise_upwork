@@ -1919,7 +1919,7 @@
   justify-content: flex-end;
   align-items: center;
   padding: 0px;
-  gap: 37px;
+  gap: 0;
   width: 441px;
   height: 40px;
   flex: none;
@@ -2025,7 +2025,7 @@
 
   .onboarding-step4-actions {
     width: 100%;
-    gap: 37px;
+    gap: 0;
     justify-content: flex-end;
   }
 
@@ -2098,7 +2098,7 @@
 }
 
 .onboarding-step5-heading {
-  width: 223px;
+  width: auto;
   height: 36px;
   font-family: 'Inter';
   font-style: normal;
@@ -2112,6 +2112,7 @@
   order: 0;
   flex-grow: 0;
   margin: 0;
+  white-space: nowrap;
 }
 
 .onboarding-step5-subheading {
@@ -2372,6 +2373,7 @@
   width: 380px;
   height: auto;
   position: relative;
+  margin: 0 auto;
 }
 
 .onboarding-step6-header-section {
@@ -2498,7 +2500,7 @@
   flex-direction: row;
   align-items: center;
   padding: 0px;
-  gap: 10px;
+  gap: 6px;
   height: auto;
   flex: none;
   order: 0;
@@ -2511,11 +2513,25 @@
   flex: none;
   order: 0;
   flex-grow: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .onboarding-step6-platform-icon svg {
   width: 100%;
   height: 100%;
+}
+
+.onboarding-step6-phone-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.onboarding-step6-platform-option:nth-child(2) .onboarding-step6-phone-icon {
+  width: 85%;
+  height: 85%;
 }
 
 .onboarding-step6-platform-text {
@@ -2553,11 +2569,28 @@
   padding: 0px;
   gap: 4px;
   width: 100%;
-  height: 20px;
+  min-height: 20px;
+  height: auto;
   flex: none;
   order: 0;
   align-self: stretch;
   flex-grow: 0;
+  flex-wrap: wrap;
+}
+
+.onboarding-step6-instruction-number {
+  height: 20px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  color: #000000;
+  flex: none;
+  flex-grow: 0;
+  margin-right: 0;
 }
 
 .onboarding-step6-instruction-text {
@@ -2571,17 +2604,24 @@
   align-items: center;
   color: #000000;
   flex: none;
-  order: 0;
   flex-grow: 0;
+  white-space: nowrap;
 }
 
 .onboarding-step6-share-icon,
 .onboarding-step6-add-icon {
+  width: 11px;
+  height: 12px;
+  flex: none;
+  flex-grow: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.onboarding-step6-add-icon {
   width: 14px;
   height: 14px;
-  flex: none;
-  order: 1;
-  flex-grow: 0;
 }
 
 .onboarding-step6-share-icon svg,
@@ -2637,14 +2677,24 @@
 /* Mobile styles for step6 */
 @media screen and (max-width: 768px) {
   .onboarding-step6-container {
-    width: 350px;
+    width: calc(100% - 32px);
+    max-width: 380px;
     gap: 34px;
+    margin: 0 auto;
   }
 
-  .onboarding-step6-header-section,
-  .onboarding-step6-logo-wrapper,
+  .onboarding-step6-header-section {
+    width: 100%;
+    gap: 31px;
+  }
+
+  .onboarding-step6-logo-wrapper {
+    width: 100%;
+  }
+
   .onboarding-step6-text-section {
     width: 100%;
+    gap: 14px;
   }
 
   .onboarding-step6-heading {

@@ -38,17 +38,31 @@ const SingleCalendar = ({
     }
   }, [value]);
 
-  const handleDateChange = (date) => {
+  const handleDateChange = async (date) => {
     setSelectedDate(date);
     setSelectedTime(null);
 
     // Call the parent's handleDateSelect function to fetch time slots
+    let shouldProceed = true;
     if (typeof onDateSelect === "function") {
-      onDateSelect(date);
+      try {
+        const result = onDateSelect(date);
+        if (result instanceof Promise) {
+          const resolved = await result;
+          if (resolved === false) {
+            shouldProceed = false;
+          }
+        } else if (result === false) {
+          shouldProceed = false;
+        }
+      } catch (error) {
+        console.error("SingleCalendar - Error in onDateSelect:", error);
+        shouldProceed = false;
+      }
     }
 
-    // 👇 Automatically move to next step on mobile
-    if (isMobile && typeof onNext === "function") {
+    // 👇 Automatically move to next step on mobile only if allowed
+    if (isMobile && typeof onNext === "function" && shouldProceed) {
       onNext();
     }
   };

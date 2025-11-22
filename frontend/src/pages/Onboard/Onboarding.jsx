@@ -466,7 +466,7 @@ const Onboarding = () => {
   }
 
   return (
-    <div className={`onboarding-page ${currentStep === "step3" && showServiceForm ? "onboarding-page-scrollable" : ""}`}>
+    <div className="onboarding-page">
       {/* Full-screen loader while saving onboarding data */}
       {isSavingOnboarding && (
         <div className="onboarding-saving-loader">
@@ -1003,14 +1003,18 @@ const Onboarding = () => {
             <div className="onboarding-step6-instructions">
               <div className="onboarding-step6-instruction-item">
                 <span className="onboarding-step6-instruction-number">1.</span>
-                <span className="onboarding-step6-instruction-text">Tap on the</span>
-                <IPhoneShareIcon className="onboarding-step6-share-icon" />
-                <span className="onboarding-step6-instruction-text">in the browser toolbar</span>
+                <span className="onboarding-step6-instruction-text-wrapper">
+                  <span className="onboarding-step6-instruction-text">Tap on the</span>
+                  <IPhoneShareIcon className="onboarding-step6-share-icon" />
+                  <span className="onboarding-step6-instruction-text">in the browser toolbar</span>
+                </span>
               </div>
               <div className="onboarding-step6-instruction-item">
                 <span className="onboarding-step6-instruction-number">2.</span>
-                <span className="onboarding-step6-instruction-text">Scroll down and select "Add to Home Screen"</span>
-                <AddIconIPhone className="onboarding-step6-add-icon" />
+                <span className="onboarding-step6-instruction-text-wrapper">
+                  <span className="onboarding-step6-instruction-text">Scroll down and select "Add to Home Screen"</span>
+                  <AddIconIPhone className="onboarding-step6-add-icon" />
+                </span>
               </div>
             </div>
           </div>

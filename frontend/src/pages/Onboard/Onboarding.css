@@ -5,12 +5,29 @@
   justify-content: center;
   align-items: center;
   background-color: #FFFFFF;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
+  /* Hide scrollbar */
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.onboarding-page::-webkit-scrollbar {
+  display: none;
+}
+
+/* Center content when it fits, allow scrolling when it doesn't */
+.onboarding-container {
+  position: relative;
+  margin: auto;
+  max-width: 100%;
 }
 
 /* Saving loader - matches Booking/Service loader pattern */
@@ -50,21 +67,9 @@
   to { transform: rotate(360deg); }
 }
 
-/* Make page scrollable only for step3 */
+/* Legacy class - now all pages are scrollable */
 .onboarding-page-scrollable {
-  overflow-y: auto;
-  overflow-x: hidden;
-  align-items: flex-start;
-  padding: 20px 0;
-  min-height: 100vh;
-  height: auto;
-  /* Hide scrollbar */
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
-}
-
-.onboarding-page-scrollable::-webkit-scrollbar {
-  display: none;
+  /* No longer needed as all pages are scrollable */
 }
 
 .onboarding-container {
@@ -2565,7 +2570,7 @@
 .onboarding-step6-instruction-item {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-start;
   padding: 0px;
   gap: 4px;
   width: 100%;
@@ -2575,7 +2580,8 @@
   order: 0;
   align-self: stretch;
   flex-grow: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  box-sizing: border-box;
 }
 
 .onboarding-step6-instruction-number {
@@ -2586,37 +2592,41 @@
   font-size: 14px;
   line-height: 20px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   color: #000000;
   flex: none;
+  flex-shrink: 0;
   flex-grow: 0;
   margin-right: 0;
+  white-space: nowrap;
+  padding-top: 0;
+}
+
+.onboarding-step6-instruction-text-wrapper {
+  display: inline;
+  line-height: 20px;
 }
 
 .onboarding-step6-instruction-text {
-  height: 20px;
   font-family: 'Inter';
   font-style: normal;
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
-  display: flex;
-  align-items: center;
+  display: inline;
   color: #000000;
-  flex: none;
-  flex-grow: 0;
-  white-space: nowrap;
+  white-space: normal;
+  word-wrap: break-word;
 }
+
 
 .onboarding-step6-share-icon,
 .onboarding-step6-add-icon {
   width: 11px;
   height: 12px;
-  flex: none;
-  flex-grow: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 4px;
 }
 
 .onboarding-step6-add-icon {
@@ -2716,6 +2726,14 @@
 
   .onboarding-step6-instructions-box {
     width: 100%;
+  }
+
+  .onboarding-step6-instruction-item {
+    gap: 4px;
+  }
+
+  .onboarding-step6-instruction-text-wrapper {
+    display: inline;
   }
 
   .onboarding-step6-actions {

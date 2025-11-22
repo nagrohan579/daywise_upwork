@@ -413,6 +413,9 @@ input:checked + .slider:before {
 @media (max-width: 991px) {
   .input-group-comp .input-field {
     width: 100%;
+    /* Prevent iOS Safari auto-zoom by ensuring minimum 16px font-size */
+    font-size: 16px !important;
+    -webkit-text-size-adjust: 100% !important;
   }
 }
 

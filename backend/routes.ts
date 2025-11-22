@@ -1654,7 +1654,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Send password reset email
       try {
-        const resetUrl = `${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}`;
+        const frontendUrl = process.env.FRONTEND_URL ||
+                           (process.env.NODE_ENV === 'production'
+                             ? `${req.protocol}://${req.get('host')}`
+                             : 'http://localhost:5173');
+        const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
         await sendPasswordResetEmail(email, user.name, resetUrl);
         
         res.json({ message: "If an account exists with this email, a password reset link will be sent." });

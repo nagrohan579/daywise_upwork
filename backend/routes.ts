@@ -5509,13 +5509,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Apply crop using sharp with error handling
       let croppedBuffer;
       try {
-        // Auto-orient image first to fix EXIF orientation issues (especially for portrait images)
-        // This ensures the image is correctly oriented before cropping
-        // Note: sharp's rotate() without parameters auto-orients based on EXIF data
-        let sharpImage = sharp(imageBuffer).rotate(); // Auto-rotate based on EXIF orientation
-        
-        // Get image metadata to validate crop bounds (after auto-orientation)
-        // We need to get metadata from the auto-oriented image
+        // Load image preserving EXIF orientation data
+        // Browsers will handle the orientation correctly when displaying
+        let sharpImage = sharp(imageBuffer);
+
+        // Get image metadata to validate crop bounds
         const metadata = await sharpImage.metadata();
         const imageWidth = metadata.width || 0;
         const imageHeight = metadata.height || 0;
@@ -5717,26 +5715,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await deleteFile(existingBranding.logoUrl);
         }
 
-        // Auto-orient image to fix EXIF orientation issues (especially for portrait images)
-        let processedBuffer = file.buffer;
-        try {
-          // Use sharp to auto-orient the image based on EXIF data
-          // This ensures portrait images are displayed correctly
-          processedBuffer = await sharp(file.buffer)
-            .rotate() // Auto-rotate based on EXIF orientation
-            .toBuffer();
-        } catch (sharpError: any) {
-          console.warn('Failed to auto-orient image, using original:', sharpError.message);
-          // If sharp fails, use original buffer
-          processedBuffer = file.buffer;
-        }
-
         // Upload original image to Digital Ocean Spaces
+        // Note: Preserving EXIF orientation data so browsers can display portrait images correctly
         const ext = file.mimetype === "image/png" ? "png" : file.mimetype === "image/gif" ? "gif" : "jpg";
         const filename = `logo-${userId}-${Date.now()}.${ext}`;
 
         logoUrl = await uploadFile({
-          fileBuffer: processedBuffer,
+          fileBuffer: file.buffer,
           fileName: filename,
           folder: 'business_logos',
           contentType: file.mimetype,
@@ -5857,26 +5842,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await deleteFile(existingBranding.profilePictureUrl);
         }
 
-        // Auto-orient image to fix EXIF orientation issues (especially for portrait images)
-        let processedBuffer = file.buffer;
-        try {
-          // Use sharp to auto-orient the image based on EXIF data
-          // This ensures portrait images are displayed correctly
-          processedBuffer = await sharp(file.buffer)
-            .rotate() // Auto-rotate based on EXIF orientation
-            .toBuffer();
-        } catch (sharpError: any) {
-          console.warn('Failed to auto-orient profile image, using original:', sharpError.message);
-          // If sharp fails, use original buffer
-          processedBuffer = file.buffer;
-        }
-
         // Upload original image to Digital Ocean Spaces
+        // Note: Preserving EXIF orientation data so browsers can display portrait images correctly
         const ext = file.mimetype === "image/png" ? "png" : file.mimetype === "image/gif" ? "gif" : "jpg";
         const filename = `profile-${userId}-${Date.now()}.${ext}`;
 
         profilePictureUrl = await uploadFile({
-          fileBuffer: processedBuffer,
+          fileBuffer: file.buffer,
           fileName: filename,
           folder: 'profile_pictures',
           contentType: file.mimetype,

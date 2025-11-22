@@ -132,30 +132,12 @@ const Forms = () => {
   }, [showFieldTypeSelection]);
 
   useEffect(() => {
-    if (!isMobile || !showFormBuilder) {
+    // Always show the mobile action bar when on mobile and in form builder
+    if (isMobile && showFormBuilder) {
+      setShowMobileActionBar(true);
+    } else {
       setShowMobileActionBar(false);
-      return;
     }
-    const targets = [headerActionsRef.current, saveButtonRef.current].filter(Boolean);
-    if (!targets.length) return;
-
-    const visibilityMap = new Map();
-    targets.forEach((target) => visibilityMap.set(target, true));
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          visibilityMap.set(entry.target, entry.isIntersecting);
-        });
-        const anyVisible = Array.from(visibilityMap.values()).some(Boolean);
-        setShowMobileActionBar(!anyVisible);
-      },
-      { threshold: 0.1 }
-    );
-
-    targets.forEach((target) => observer.observe(target));
-
-    return () => observer.disconnect();
   }, [isMobile, showFormBuilder]);
 
   const handleAddNew = () => {

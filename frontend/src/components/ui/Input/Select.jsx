@@ -181,9 +181,11 @@ const Select = ({
       if (selectBox && dropdown) {
         // Check if this select is within an intake form field (should use absolute positioning)
         const isInIntakeForm = containerRef.current.closest('.intake-form-field');
+        // Check if this select is in step 1 of public booking page (should use absolute positioning)
+        const isInStepOne = containerRef.current.closest('.steps-one .left .select-con');
         
-        if (isInIntakeForm) {
-          // For intake forms, use absolute positioning relative to select-group
+        if (isInIntakeForm || isInStepOne) {
+          // For intake forms and step 1, use absolute positioning relative to select-group
           const rect = selectBox.getBoundingClientRect();
           dropdown.style.width = `${rect.width}px`;
           dropdown.style.position = 'absolute';

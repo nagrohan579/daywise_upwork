@@ -1857,6 +1857,23 @@
   background: #F9FAFF;
 }
 
+/* Mobile centering for Reschedule Confirmation Modal */
+@media (max-width: 768px) {
+  .reschedule-confirmation-modal .modal-dialog {
+    margin: 1.75rem auto !important;
+    max-width: 346px !important;
+    width: calc(100% - 36px) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  .reschedule-modal-content {
+    width: 100% !important;
+    max-width: 346px !important;
+  }
+}
+
 /* Cancel Confirmation Modal */
 .cancel-confirmation-modal .modal-dialog {
   max-width: 346px;
@@ -2423,4 +2440,93 @@
   line-height: 20px;
   color: #121212;
   margin: 0;
+}
+
+/* Checkbox styling in preview modal */
+.previewFormModal input[type="checkbox"] {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  /* Override device defaults */
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  /* Custom styling */
+  border: 2px solid var(--secondary-color) !important;
+  border-radius: 4px !important;
+  background-color: #FFFFFF !important;
+  position: relative;
+  flex-shrink: 0;
+  transition: all 0.2s ease-in-out;
+  opacity: 1 !important;
+}
+
+.previewFormModal input[type="checkbox"]:checked {
+  background-color: var(--main-color) !important;
+  border-color: var(--main-color) !important;
+}
+
+.previewFormModal input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 10px;
+  border: solid #FFFFFF;
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -60%) rotate(45deg);
+}
+
+.previewFormModal input[type="checkbox"]:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+}
+
+/* Radio button styling in preview modal */
+.previewFormModal input[type="radio"] {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  /* Override device defaults */
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  /* Custom styling */
+  border: 2px solid var(--secondary-color) !important;
+  border-radius: 50% !important;
+  background-color: #FFFFFF !important;
+  position: relative;
+  flex-shrink: 0;
+  transition: all 0.2s ease-in-out;
+  opacity: 1 !important;
+}
+
+.previewFormModal input[type="radio"]:checked {
+  border-color: var(--main-color) !important;
+}
+
+.previewFormModal input[type="radio"]:checked::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--main-color);
+  transform: translate(-50%, -50%);
+}
+
+.previewFormModal input[type="radio"]:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
 }

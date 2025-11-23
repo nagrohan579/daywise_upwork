@@ -19,6 +19,17 @@
   justify-content: center;
   padding: 60px 20px;
   text-align: center;
+  width: 100%;
+  min-height: 100%;
+}
+
+/* Ensure container is centered when showing loading/error states */
+.booking-steps-container:has(.loading-container),
+.booking-steps-container:has(.error-container) {
+  align-items: center !important;
+  justify-content: center !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
 }
 
 .booking-steps-container .spinner {
@@ -196,6 +207,20 @@
   line-height: 28px;
   vertical-align: middle;
   color: var(--text-color);
+}
+
+/* Ensure select-group in step 1 has relative positioning for dropdown */
+.steps-one .left .select-con .select-group {
+  position: relative;
+}
+
+/* Make dropdown use absolute positioning relative to select-group in step 1 */
+.steps-one .left .select-con .select-group .select-dropdown {
+  position: absolute !important;
+  top: calc(100% + 4px) !important;
+  left: 0 !important;
+  width: 100% !important;
+  margin-top: 0 !important;
 }
 .steps-one .left .description {
   color: var(--secondary-color);
@@ -542,6 +567,10 @@
   height: 25px;
 }
 
+.step-two-mobile .containerr .top .back-arrow-btn svg path {
+  stroke: var(--secondary-color) !important;
+}
+
 .step-two-mobile .containerr .top .top-row .daywise-branding {
   margin: 0 auto;
   flex-shrink: 0;
@@ -776,6 +805,15 @@
     margin: 0;
     padding: 20px;
   }
+  
+  /* Ensure loading/error states are centered on mobile */
+  .booking-steps-container:has(.loading-container),
+  .booking-steps-container:has(.error-container) {
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+  }
 }
 @media (max-width: 999px) {
 .booking-steps-container .main-wrapper.border-hide {
@@ -791,8 +829,23 @@
   /* Minimal horizontal padding on container, allow bottom spacing */
   .booking-steps-container {
     padding: 0 18px 48px 18px;
-    min-height: auto;
-    height: auto;
+    min-height: 100vh !important;
+    height: auto !important;
+  }
+  
+  /* Ensure step-two (form page) background covers full height */
+  .booking-steps-container:has(.step-two) {
+    min-height: 100vh !important;
+  }
+  
+  /* Ensure loading/error states are centered on mobile */
+  .booking-steps-container:has(.loading-container),
+  .booking-steps-container:has(.error-container) {
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    padding: 20px !important;
   }
   
   /* Override padding for step-two to add proper spacing */
@@ -1487,6 +1540,11 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .booking-steps-container {
+    min-height: 100vh !important;
+    height: auto !important;
+  }
+  
   .booking-steps-container .step-two {
     flex-direction: column;
   }
@@ -1495,9 +1553,22 @@
     border-right: none;
   }
   
+  .booking-steps-container .step-two .right {
+    min-height: auto;
+  }
+  
   .booking-steps-container .step-two .right h1 {
     margin-top: 0px;
     margin-bottom: 20px;
+  }
+  
+  /* Match input placeholder font size with textarea on mobile */
+  .booking-steps-container .step-two .right .input-group-comp .input-field {
+    font-size: 14px !important;
+  }
+  
+  .booking-steps-container .step-two .right .input-group-comp .input-field::placeholder {
+    font-size: 14px !important;
   }
 }
 
@@ -1621,13 +1692,50 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  position: relative;
 }
 
 .intake-form-checkbox input[type="checkbox"] {
   width: 20px;
   height: 20px;
+  min-width: 20px;
+  min-height: 20px;
   cursor: pointer;
-  accent-color: var(--main-color);
+  margin: 0;
+  padding: 0;
+  /* Override device defaults */
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  /* Custom styling */
+  border: 2px solid var(--secondary-color) !important;
+  border-radius: 4px !important;
+  background-color: #FFFFFF !important;
+  position: relative;
+  flex-shrink: 0;
+  transition: all 0.2s ease-in-out;
+}
+
+.intake-form-checkbox input[type="checkbox"]:checked {
+  background-color: var(--secondary-color) !important;
+  border-color: var(--secondary-color) !important;
+}
+
+.intake-form-checkbox input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 10px;
+  border: solid #FFFFFF;
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -60%) rotate(45deg);
+}
+
+.intake-form-checkbox input[type="checkbox"]:focus {
+  outline: 2px solid var(--secondary-color);
+  outline-offset: 2px;
 }
 
 .intake-form-checkbox label {
@@ -1637,6 +1745,7 @@
   color: var(--text-color);
   cursor: pointer;
   margin: 0;
+  user-select: none;
 }
 
 .intake-form-checkbox-list {
@@ -1656,13 +1765,66 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  position: relative;
 }
 
 .intake-form-yes-no input[type="radio"] {
-  width: 20px;
-  height: 20px;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
   cursor: pointer;
-  accent-color: var(--main-color);
+  margin: 0 !important;
+  padding: 0 !important;
+  /* Override device defaults */
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  /* Custom styling */
+  border: 2px solid var(--secondary-color) !important;
+  border-radius: 50% !important;
+  background-color: #FFFFFF !important;
+  position: relative;
+  flex-shrink: 0;
+  transition: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.intake-form-yes-no input[type="radio"]:checked {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+  border: 2px solid var(--secondary-color) !important;
+  background-color: #FFFFFF !important;
+  transition: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.intake-form-yes-no input[type="radio"]:checked::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50%;
+  background-color: var(--secondary-color);
+  transform: translate(-50%, -50%);
+  border: none !important;
+  box-sizing: border-box !important;
+}
+
+.intake-form-yes-no input[type="radio"]:focus {
+  outline: 2px solid var(--secondary-color);
+  outline-offset: 2px;
 }
 
 .intake-form-yes-no span {
@@ -1670,6 +1832,67 @@
   font-size: 14px;
   line-height: 20px;
   color: var(--text-color);
+  user-select: none;
+}
+
+/* General radio button styling for all intake form fields */
+.intake-form-field input[type="radio"] {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+  cursor: pointer;
+  margin: 0 !important;
+  padding: 0 !important;
+  /* Override device defaults */
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  /* Custom styling */
+  border: 2px solid var(--secondary-color) !important;
+  border-radius: 50% !important;
+  background-color: #FFFFFF !important;
+  position: relative;
+  flex-shrink: 0;
+  transition: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.intake-form-field input[type="radio"]:checked {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+  border: 2px solid var(--secondary-color) !important;
+  background-color: #FFFFFF !important;
+  transition: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.intake-form-field input[type="radio"]:checked::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50%;
+  background-color: var(--secondary-color);
+  transform: translate(-50%, -50%);
+  border: none !important;
+  box-sizing: border-box !important;
+}
+
+.intake-form-field input[type="radio"]:focus {
+  outline: 2px solid var(--secondary-color);
+  outline-offset: 2px;
 }
 
 /* File upload */

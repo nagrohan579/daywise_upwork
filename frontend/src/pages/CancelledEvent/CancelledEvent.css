@@ -319,44 +319,93 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+  .cancelled-event-page {
+    padding: 40px 18px;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+  }
+
+  /* Remove outer card styling - match Event page pattern */
   .cancelled-event-outer-container {
-    position: relative;
-    left: auto;
-    top: auto;
+    background: transparent !important;
+    border: none !important;
+    padding: 0;
+    gap: 20px;
     width: 100%;
-    max-width: 100%;
-    height: auto;
-    padding: 40px 20px;
+    max-width: none;
+    align-items: center;
   }
 
   .cancelled-event-inner-card {
     width: 100%;
-    max-width: 495px;
+    max-width: none;
     height: auto;
-    min-height: 400px;
+    min-height: auto;
   }
 
   .cancelled-event-content {
-    position: relative;
-    left: auto;
-    top: auto;
     width: 100%;
-    max-width: 392px;
+    max-width: none;
     height: auto;
+    gap: 20px;
+  }
+
+  /* Header stays outside card, centered */
+  .cancelled-event-header-wrapper {
+    width: 100%;
+    margin-bottom: 0;
+  }
+
+  .cancelled-event-header {
+    width: 100%;
+    text-align: center;
   }
 
   .cancelled-event-header h1 {
     font-size: 20px;
+    margin-bottom: 4px;
+  }
+
+  .cancelled-event-header p {
+    margin-bottom: 0;
+    width: 100%;
+    max-width: none;
+  }
+
+  /* Card wrapper */
+  .cancelled-event-card-wrapper {
+    width: 100%;
+    max-width: none;
+    padding: 20px 18px 20px 18px !important;
+  }
+
+  .cancelled-booking-details {
+    width: 100%;
+    max-width: none;
   }
 
   .cancelled-booking-details h2 {
     font-size: 18px;
+    width: 100%;
   }
 
-  .cancelled-event-actions {
-    flex-direction: column;
-    gap: 12px;
+  .details-list {
     width: 100%;
+    max-width: none;
+  }
+
+  .detail-row {
+    width: 100%;
+    max-width: none;
+  }
+
+  /* Buttons stay outside card */
+  .cancelled-event-actions {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+    margin-top: 0;
   }
 
   .cancelled-event-btn {

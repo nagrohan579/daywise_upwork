@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import SingleCalendar from "../../components/Calendar/SingleCalendar";
@@ -53,6 +53,7 @@ const PublicBooking = () => {
   const [formSessionId, setFormSessionId] = useState(null);
   const [uploadedFileUrls, setUploadedFileUrls] = useState({}); // Map of fieldId -> [fileUrls]
   const [submittingForm, setSubmittingForm] = useState(false);
+  const [weeklyAvailability, setWeeklyAvailability] = useState([]);
 
   // Get timezone options from utility (limited to 20 supported timezones)
   const timezoneOptions = useMemo(() => {
@@ -62,7 +63,7 @@ const PublicBooking = () => {
     // Return just the labels for the Select component
     return options.map(([label]) => label);
   }, []);
-  
+
   // Helper to get the actual step considering form
   const getActualStep = () => {
     const hasIntakeForm = selectedAppointmentType?.intakeFormId;
@@ -83,7 +84,7 @@ const PublicBooking = () => {
       toast.error("Please select an appointment type to continue");
       return;
     }
-    
+
     // If data is passed from SingleCalendar, extract date and time
     let timeFromData = null;
     let dateFromData = null;
@@ -97,11 +98,11 @@ const PublicBooking = () => {
         timeFromData = data.time;
       }
     }
-    
+
     // Check if we have date and time (from data param or state)
     const hasDate = dateFromData || selectedDate;
     const hasTime = timeFromData || selectedTime;
-    
+
     // On desktop: Step 1 has calendar + time slots, so after selecting time, go directly to step 3 (form or Enter Detail)
     // On mobile: Step 1 is service selection, Step 2 is time selection, Step 3 is form/Enter Detail
     let nextStep;
@@ -126,17 +127,17 @@ const PublicBooking = () => {
       nextStep = step + 1;
       console.log('Normal increment:', step, '->', nextStep);
     }
-    
+
     console.log('PublicBooking - Moving to step:', nextStep);
     console.log('PublicBooking - Has intake form?', !!intakeForm);
     console.log('PublicBooking - Intake form data:', intakeForm);
     console.log('PublicBooking - Selected appointment type:', selectedAppointmentType);
     console.log('PublicBooking - Intake form ID:', selectedAppointmentType?.intakeFormId);
     console.log('PublicBooking - Has date:', hasDate, 'Has time:', hasTime);
-    
+
     setStep(nextStep);
   };
-  
+
   const goToPrev = () => {
     // On desktop: Step 3 goes back to step 1 (skip step 2)
     // On mobile: Normal decrement
@@ -149,6 +150,8 @@ const PublicBooking = () => {
       setStep((prev) => prev - 1);
     }
   };
+
+  const abortControllerRef = useRef(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -275,7 +278,7 @@ const PublicBooking = () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       const userResponse = await fetch(`${apiUrl}/api/users/by-slug/${slug}`);
-      
+
       if (!userResponse.ok) {
         if (userResponse.status === 404) {
           toast.error("Booking page not found");
@@ -285,7 +288,7 @@ const PublicBooking = () => {
         }
         return;
       }
-      
+
       const user = await userResponse.json();
       setUserData(user);
       console.log('PublicBooking - Business user data:', user);
@@ -301,7 +304,7 @@ const PublicBooking = () => {
           console.log('PublicBooking - usePlatformBranding type:', typeof brandingData?.usePlatformBranding);
           console.log('PublicBooking - Will show badge?', brandingData?.usePlatformBranding !== false);
           setBranding(brandingData);
-          
+
           // Set CSS variables for colors
           const root = document.documentElement;
           root.style.setProperty('--main-color', brandingData?.primary || '#0053F1');
@@ -328,14 +331,14 @@ const PublicBooking = () => {
       if (typesResponse.ok) {
         const types = await typesResponse.json();
         const filteredTypes = types.filter(type => type.isActive !== false);
-        
+
         // Check if business user is on free plan and disable requirePayment for all services
         try {
           const featuresResponse = await fetch(`${apiUrl}/api/user-features/${user.id}`);
           if (featuresResponse.ok) {
             const featuresData = await featuresResponse.json();
             const hasCustomBranding = featuresData.customBranding || false;
-            
+
             // If business user is on free plan, set requirePayment to false for all services
             if (!hasCustomBranding) {
               const updatedTypes = filteredTypes.map(type => ({
@@ -368,6 +371,20 @@ const PublicBooking = () => {
         }
       }
 
+      // Fetch weekly availability for calendar disabling
+      try {
+        const availabilityResponse = await fetch(`${apiUrl}/api/public/availability/${user.id}`);
+        if (availabilityResponse.ok) {
+          const availabilityData = await availabilityResponse.json();
+          console.log('PublicBooking - Weekly availability loaded:', availabilityData);
+          setWeeklyAvailability(availabilityData);
+        } else {
+          console.warn('PublicBooking - Failed to fetch availability:', availabilityResponse.status);
+        }
+      } catch (error) {
+        console.warn('PublicBooking - Error fetching availability:', error);
+      }
+
       setLoading(false);
     } catch (error) {
       console.error("Error fetching booking page data:", error);
@@ -383,22 +400,29 @@ const PublicBooking = () => {
       setAvailableTimeSlots([]);
       return [];
     }
-    
+
+    // Abort previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     setLoadingTimeSlots(true);
     setAvailableTimeSlots([]); // Clear previous slots
-    
+
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      
+
       // Format date as YYYY-MM-DD in LOCAL timezone (not UTC)
       const year = selectedDate.getFullYear();
       const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
       const day = String(selectedDate.getDate()).padStart(2, '0');
       const dateStr = `${year}-${month}-${day}`;
-      
+
       // Get the timezone name from the customer's selected timezone or auto-detected
       const customerTz = customerTimezone || mapToSupportedTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
-      
+
       console.log('Fetching time slots with params:', {
         userId,
         appointmentTypeId,
@@ -407,30 +431,44 @@ const PublicBooking = () => {
         selectedDateLocal: selectedDate.toString(),
         url: `${apiUrl}/api/availability/slots?userId=${userId}&appointmentTypeId=${appointmentTypeId}&date=${dateStr}&customerTimezone=${encodeURIComponent(customerTz)}`
       });
-      
+
       const response = await fetch(
-        `${apiUrl}/api/availability/slots?userId=${userId}&appointmentTypeId=${appointmentTypeId}&date=${dateStr}&customerTimezone=${encodeURIComponent(customerTz)}`
+        `${apiUrl}/api/availability/slots?userId=${userId}&appointmentTypeId=${appointmentTypeId}&date=${dateStr}&customerTimezone=${encodeURIComponent(customerTz)}`,
+        { signal: abortController.signal }
       );
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('API Error:', response.status, errorText);
         throw new Error('Failed to fetch available slots');
       }
-      
+
       const data = await response.json();
       console.log('API Response:', data);
       const slots = data.slots || [];
       console.log('Setting available slots:', slots);
-      setAvailableTimeSlots(slots);
-    return slots;
+
+      // Only update state if this is still the current request
+      if (abortControllerRef.current === abortController) {
+        setAvailableTimeSlots(slots);
+      }
+      return slots;
     } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('Fetch aborted');
+        return [];
+      }
       console.error('Error fetching time slots:', error);
       toast.error('Failed to load available time slots');
-      setAvailableTimeSlots([]);
+      if (abortControllerRef.current === abortController) {
+        setAvailableTimeSlots([]);
+      }
       return [];
     } finally {
-      setLoadingTimeSlots(false);
+      if (abortControllerRef.current === abortController) {
+        setLoadingTimeSlots(false);
+        abortControllerRef.current = null;
+      }
     }
   };
 
@@ -438,12 +476,16 @@ const PublicBooking = () => {
     console.log('Appointment type changed to:', typeName);
     const selected = appointmentTypes.find(t => t.name === typeName);
     console.log('Selected appointment type:', selected);
-    
+
     if (!selected) {
       console.error('Appointment type not found:', typeName);
       return;
     }
-    
+
+    // Set loading immediately to prevent "no slots" flash
+    setLoadingTimeSlots(true);
+    setAvailableTimeSlots([]);
+
     setSelectedAppointmentType(selected);
     setSelectedTime(null);
     setIntakeForm(null); // Reset form when changing appointment type
@@ -485,34 +527,35 @@ const PublicBooking = () => {
       setIntakeForm(null);
       setFormSessionId(null);
     }
-    
+
     // Set today's date as default if no date is selected
     const dateToUse = selectedDate || new Date();
     if (!selectedDate) {
       setSelectedDate(dateToUse);
     }
-    
+
     console.log('Using date:', dateToUse);
     console.log('User data:', userData);
-    
+
     if (userData && selected?._id) {
       console.log('Calling fetchAvailableTimeSlots with:', { userId: userData.id, appointmentTypeId: selected._id, date: dateToUse });
       await fetchAvailableTimeSlots(userData.id, selected._id, dateToUse);
       // Note: fetchAvailableTimeSlots now sets availableTimeSlots internally
     } else {
       console.warn('Cannot fetch time slots - missing user data or appointment type ID');
+      setLoadingTimeSlots(false); // Ensure loading is turned off if we can't fetch
     }
   };
 
   const handleDateSelect = (date) => {
+    setSelectedDate(date);
+    setSelectedTime(null);
+
     if (!selectedAppointmentType?._id) {
       toast.error("Please select a service first");
       return false;
     }
 
-    setSelectedDate(date);
-    setSelectedTime(null);
-    
     if (selectedAppointmentType?._id && userData) {
       console.log('Calling fetchAvailableTimeSlots for date change with:', { userId: userData.id, appointmentTypeId: selectedAppointmentType._id, date });
       fetchAvailableTimeSlots(userData.id, selectedAppointmentType._id, date).catch((error) => {
@@ -534,24 +577,24 @@ const PublicBooking = () => {
 
   const handleCompleteBooking = async (e) => {
     e.preventDefault();
-    
+
     // Prevent double submission
     if (submitting) {
       console.log("PublicBooking - Already submitting, ignoring duplicate request");
       return;
     }
-    
+
     // Validate all required fields
     if (!selectedAppointmentType) {
       toast.error("Please select an appointment type");
       return;
     }
-    
+
     if (!selectedDate || !selectedTime) {
       toast.error("Please select a date and time");
       return;
     }
-    
+
     if (!customerName.trim()) {
       toast.error("Please enter your name");
       return;
@@ -574,8 +617,8 @@ const PublicBooking = () => {
 
       // Generate booking token
       const generateBookingToken = () => {
-        return Math.random().toString(36).substring(2, 15) + 
-               Math.random().toString(36).substring(2, 15);
+        return Math.random().toString(36).substring(2, 15) +
+          Math.random().toString(36).substring(2, 15);
       };
 
       // Create booking payload
@@ -596,7 +639,7 @@ const PublicBooking = () => {
       // Check if payment is required
       if (selectedAppointmentType.requirePayment) {
         console.log("PublicBooking - Payment required, redirecting to Stripe checkout");
-        
+
         // Create Stripe checkout session
         const checkoutResponse = await fetch(`${apiUrl}/api/public-bookings/checkout`, {
           method: 'POST',
@@ -616,11 +659,11 @@ const PublicBooking = () => {
         }
 
         const checkoutData = await checkoutResponse.json();
-        
+
         // Store booking data in sessionStorage for after payment
         sessionStorage.setItem('pendingBooking', JSON.stringify(bookingPayload));
         sessionStorage.setItem('checkoutSessionId', checkoutData.sessionId);
-        
+
         // Redirect to Stripe checkout
         window.location.href = checkoutData.url;
         return; // Don't continue with normal booking flow
@@ -773,9 +816,9 @@ const PublicBooking = () => {
           <div className="steps-one">
             <div className="left">
               {branding?.usePlatformBranding !== false && (
-              <div className="daywise-branding">
-                <button className="powered-by-button">Powered by Daywise</button>
-              </div>
+                <div className="daywise-branding">
+                  <button className="powered-by-button">Powered by Daywise</button>
+                </div>
               )}
 
               <div className="profile-con">
@@ -793,7 +836,7 @@ const PublicBooking = () => {
                       }}
                     />
                   </div>
-                  )}
+                )}
                 {branding?.showProfilePicture && (branding?.profilePictureUrl || userData.picture) && (
                   <div className="profile-picture-wrapper">
                     <CroppedImage
@@ -823,7 +866,7 @@ const PublicBooking = () => {
                 {branding?.showDisplayName && (
                   <div className="profile-wrapper">
                     <h5>{branding?.displayName || userData.name}</h5>
-                </div>
+                  </div>
                 )}
 
                 <div className="business-wrapper">
@@ -867,26 +910,27 @@ const PublicBooking = () => {
                   console.log('SingleCalendar - Timezone changed:', value);
                   handleTimezoneChange(value);
                 }}
+                weeklyAvailability={weeklyAvailability}
               />
             </div>
           </div>
         )}
 
         {step === 2 && isMobile && (
-            <div className="step-two-mobile">
-              <div className="containerr">
-                <div className="top">
-                  <div className="top-row">
-                    <button className="back-arrow-btn" onClick={goToPrev}>
-                      <BackArrowIcon />
-                    </button>
-                    {branding?.usePlatformBranding !== false && (
-                      <div className="daywise-branding">
-                        <button className="powered-by-button">Powered by Daywise</button>
-                      </div>
-                    )}
-                  </div>
-                  <div className="heading-con">
+          <div className="step-two-mobile">
+            <div className="containerr">
+              <div className="top">
+                <div className="top-row">
+                  <button className="back-arrow-btn" onClick={goToPrev}>
+                    <BackArrowIcon />
+                  </button>
+                  {branding?.usePlatformBranding !== false && (
+                    <div className="daywise-branding">
+                      <button className="powered-by-button">Powered by Daywise</button>
+                    </div>
+                  )}
+                </div>
+                <div className="heading-con">
                   <h1 className="appoint-name">{selectedAppointmentType?.name || "30 Minute Appointment"}</h1>
                   <p>{formatDate(selectedDate)}</p>
                   <div style={{ marginTop: '10px' }}>
@@ -923,20 +967,20 @@ const PublicBooking = () => {
                         return (
                           <div key={originalTime} className="time-slot-row">
                             {selectedTime === originalTime ? (
-                          <div className="time-slot-selected">
+                              <div className="time-slot-selected">
                                 <div className="selected-time-text">{displayTime}</div>
-                            <button className="next-btn" onClick={goToNext}>
-                              Next
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            className="time-slot-btn"
+                                <button className="next-btn" onClick={goToNext}>
+                                  Next
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                className="time-slot-btn"
                                 onClick={() => handleTimeSelect(originalTime)}
-                          >
+                              >
                                 {displayTime}
-                          </button>
-                        )}
+                              </button>
+                            )}
                           </div>
                         );
                       })
@@ -960,12 +1004,12 @@ const PublicBooking = () => {
                 <BackArrowIcon
                   onClick={goToPrev}
                   style={{ cursor: 'pointer' }}
-                  />
+                />
               </div>
               {branding?.usePlatformBranding !== false && (
-              <div className="daywise-branding">
-                <button className="powered-by-button">Powered by Daywise</button>
-              </div>
+                <div className="daywise-branding">
+                  <button className="powered-by-button">Powered by Daywise</button>
+                </div>
               )}
               <div className="appointment-wrapper">
                 <h2>{selectedAppointmentType?.name || "Appointment Name Here"}</h2>
@@ -1094,7 +1138,16 @@ const PublicBooking = () => {
                         )}
                         {(field.type === "file" || field.type === "file-upload") && (
                           <div className="intake-form-file-upload-wrapper">
+                            <div
+                              className="custom-file-upload-container"
+                              onClick={() => document.getElementById(`file-input-${field.id}`).click()}
+                            >
+                              <span className="file-name-display">
+                                {formResponses[field.id]?.name || "No file chosen"}
+                              </span>
+                            </div>
                             <input
+                              id={`file-input-${field.id}`}
                               type="file"
                               accept=".png,.jpg,.jpeg,.heic,.pdf"
                               onChange={(e) => {
@@ -1104,6 +1157,7 @@ const PublicBooking = () => {
                                 }
                               }}
                               className="intake-form-file-input"
+                              style={{ display: 'none' }}
                             />
                             <p className="intake-form-file-types">accepted file types: PNG, JPG, HEIC, PDF.</p>
                           </div>
@@ -1132,10 +1186,10 @@ const PublicBooking = () => {
                       if (intakeForm.fields && intakeForm.fields.length > 0) {
                         const firstEmptyRequiredField = intakeForm.fields.find((field) => {
                           if (!field.required) return false;
-                          
+
                           const fieldId = field.id;
                           const responseValue = formResponses[fieldId];
-                          
+
                           // Check based on field type
                           if (field.type === 'file' || field.type === 'file-upload') {
                             // File fields: check if file is uploaded
@@ -1162,19 +1216,19 @@ const PublicBooking = () => {
                         if (firstEmptyRequiredField) {
                           const fieldQuestion = firstEmptyRequiredField.question || 'This field';
                           toast.error(`Please fill in the required field: ${fieldQuestion}`);
-                          
+
                           // Focus on the first empty required field
                           setTimeout(() => {
                             const fieldId = firstEmptyRequiredField.id;
                             const fieldElement = document.querySelector(`[data-field-id="${fieldId}"]`);
-                            
+
                             if (fieldElement) {
                               // Scroll to the field
                               fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                              
+
                               // Focus on the appropriate input element based on field type
                               let inputElement = null;
-                              
+
                               if (firstEmptyRequiredField.type === 'file' || firstEmptyRequiredField.type === 'file-upload') {
                                 inputElement = fieldElement.querySelector('input[type="file"]');
                               } else if (firstEmptyRequiredField.type === 'checkbox') {
@@ -1189,7 +1243,7 @@ const PublicBooking = () => {
                                 // Text fields (single or multi-line)
                                 inputElement = fieldElement.querySelector('input[type="text"], textarea, .input-field');
                               }
-                              
+
                               if (inputElement) {
                                 inputElement.focus();
                                 // For select boxes, we might need to click to open dropdown
@@ -1199,7 +1253,7 @@ const PublicBooking = () => {
                               }
                             }
                           }, 100);
-                          
+
                           return;
                         }
                       }
@@ -1207,7 +1261,7 @@ const PublicBooking = () => {
                       setSubmittingForm(true);
                       try {
                         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-                        
+
                         // Step 1: Upload all files first
                         const fileUploadPromises = [];
                         const fieldFileUrls = {};
@@ -1240,7 +1294,11 @@ const PublicBooking = () => {
                                   }
                                 } catch (error) {
                                   console.error(`Error uploading file for field ${field.id}:`, error);
-                                  toast.error(`Error uploading file: ${file.name}`);
+                                  if (error.message === 'Failed to fetch' || error.message.includes('NetworkError')) {
+                                    toast.error('The backend is not responding');
+                                  } else {
+                                    toast.error(`Error uploading file: ${file.name}`);
+                                  }
                                 }
                               })();
                               fileUploadPromises.push(uploadPromise);
@@ -1328,12 +1386,12 @@ const PublicBooking = () => {
                 <BackArrowIcon
                   onClick={goToPrev}
                   style={{ cursor: 'pointer' }}
-                  />
+                />
               </div>
               {branding?.usePlatformBranding !== false && (
-              <div className="daywise-branding">
-                <button className="powered-by-button">Powered by Daywise</button>
-              </div>
+                <div className="daywise-branding">
+                  <button className="powered-by-button">Powered by Daywise</button>
+                </div>
               )}
               <div className="appointment-wrapper">
                 <h2>{selectedAppointmentType?.name || "Appointment Name Here"}</h2>
@@ -1365,15 +1423,15 @@ const PublicBooking = () => {
             <div className="right">
               <h1>Enter Detail</h1>
               <form className="booking-detail" onSubmit={handleCompleteBooking}>
-                <Input 
-                  label="Name*" 
+                <Input
+                  label="Name*"
                   placeholder="Enter name"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   required
                 />
-                <Input 
-                  label="Email*" 
+                <Input
+                  label="Email*"
                   placeholder="Enter email address"
                   type="email"
                   value={customerEmail}
@@ -1392,12 +1450,12 @@ const PublicBooking = () => {
                   to Daywise's <Link to="/terms">Terms of Use</Link> and{" "}
                   <Link to="/privacy-policy">Privacy Notice</Link>.
                 </p>
-                <Button 
+                <Button
                   text={
-                    submitting 
+                    submitting
                       ? (selectedAppointmentType?.requirePayment ? "Continuing to Payment..." : "Booking...")
                       : (selectedAppointmentType?.requirePayment ? "Continue to Payment" : "Complete Booking")
-                  } 
+                  }
                   disabled={submitting}
                   type="submit"
                 />
@@ -1407,9 +1465,9 @@ const PublicBooking = () => {
         )}
 
         {/* Debug: Log step state */}
-        {step === 3 && console.log('Step 3 Debug:', { 
-          hasIntakeForm: !!intakeForm, 
-          hasFields: !!(intakeForm?.fields), 
+        {step === 3 && console.log('Step 3 Debug:', {
+          hasIntakeForm: !!intakeForm,
+          hasFields: !!(intakeForm?.fields),
           fieldsLength: intakeForm?.fields?.length,
           fieldsIsArray: Array.isArray(intakeForm?.fields)
         })}
@@ -1427,9 +1485,9 @@ const PublicBooking = () => {
               </div>
               <div className="appointment-container">
                 {branding?.usePlatformBranding !== false && (
-                <div className="daywise-branding">
-                  <button className="powered-by-button">Powered by Daywise</button>
-                </div>
+                  <div className="daywise-branding">
+                    <button className="powered-by-button">Powered by Daywise</button>
+                  </div>
                 )}
                 <div className="booking-details">
                   <h1>{selectedAppointmentType?.name || "Appointment Name Here"}</h1>

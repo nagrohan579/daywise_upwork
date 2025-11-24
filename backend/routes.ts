@@ -32,19 +32,19 @@ import PDFDocument from "pdfkit";
 import archiver from "archiver";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  
+
   // Initialize dayjs plugins
   dayjs.extend(utc);
   dayjs.extend(timezone);
-  
+
   // OTP storage for email change (in-memory with expiration)
   // Format: Map<userId, { otp: string, newEmail: string, expiresAt: number }>
   const emailChangeOtps = new Map<string, { otp: string; newEmail: string; expiresAt: number }>();
-  
+
   // OTP storage for password change (in-memory with expiration)
   // Format: Map<userId, { otp: string, expiresAt: number }>
   const passwordChangeOtps = new Map<string, { otp: string; expiresAt: number }>();
-  
+
   // Cleanup expired OTPs every 5 minutes
   setInterval(() => {
     const now = Date.now();
@@ -59,7 +59,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   }, 5 * 60 * 1000);
-  
+
   // Helper middleware for authentication and admin checks
   const requireAuth = (req: any, res: any, next: any) => {
     const session = req.session as any;
@@ -68,22 +68,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     next();
   };
-  
+
   // Initialize Google OAuth client
   const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
   // Initialize Stripe client
-  
+
   // Helper function to mark Google Calendar as disconnected
   const markGoogleCalendarDisconnected = async (userId: string, req?: any) => {
     try {
       console.log(`Marking Google Calendar as disconnected for user: ${userId}`);
-      
+
       // Disconnect calendar (clears credentials in Convex)
       await googleCalendarService.disconnect(userId);
-      
+
       console.log(`✅ Google Calendar disconnected for user: ${userId}`);
-      
+
       return { success: true };
     } catch (error) {
       console.error('Error marking Google Calendar as disconnected:', error);
@@ -93,8 +93,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy_key_for_dev");
 
   // Initialize multer for file uploads
-  const upload = multer({ 
-    storage: multer.memoryStorage(), 
+  const upload = multer({
+    storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
   });
 
@@ -102,10 +102,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/google", (req, res) => {
     const googleClientId = process.env.GOOGLE_CLIENT_ID;
     const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    
+
     console.log(`Google OAuth Config - Client ID: ${googleClientId ? 'SET' : 'NOT SET'}`);
     console.log(`Google OAuth Config - Client Secret: ${googleClientSecret ? 'SET' : 'NOT SET'}`);
-    
+
     if (!googleClientId) {
       return res.status(500).json({ message: "Google Client ID not configured" });
     }
@@ -141,7 +141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     (req.session as any).oauthState = state;
     (req.session as any).oauthTimezone = timezone;
     (req.session as any).oauthCountry = country;
-    
+
     // Force session save before redirect to ensure state is persisted
     req.session.save((err) => {
       if (err) {
@@ -173,7 +173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Callback - State from query:', req.query.state);
       console.log('Callback - Cookies received:', req.headers.cookie);
       console.log('===================================');
-      
+
       const { code, state } = req.query;
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
@@ -219,7 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use the same redirect URI logic as the start endpoint
       const host = req.get('host');
       let redirectUri;
-      
+
       if (process.env.BASE_URL) {
         redirectUri = `${process.env.BASE_URL}/api/auth/google/callback`;
       } else if (process.env.REPLIT_DEV_DOMAIN) {
@@ -228,7 +228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // For development, hardcode localhost:3000
         redirectUri = `http://localhost:3000/api/auth/google/callback`;
       }
-      
+
       console.log(`Google OAuth Callback - Host: ${host}, Redirect URI: ${redirectUri}`);
 
       // Exchange authorization code for tokens
@@ -311,11 +311,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if user already exists by email or Google ID
       let user = await storage.getUserByEmail(normalizedEmail) || await storage.getUserByGoogleId(googleId);
-      
+
       if (!user) {
         // Create new user from Google profile
         const { businessName, slug } = generateBusinessIdentifiers(name);
-        
+
         const userData = {
           name,
           email: normalizedEmail,
@@ -327,8 +327,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           country: country || 'US',
           isAdmin: false,
         };
-  user = await storage.createUser(userData);
-        
+        user = await storage.createUser(userData);
+
         // Default new users to the Free plan (no checkout)
         if (user) {
           const subscriptionPayload: any = {
@@ -358,12 +358,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } else if (!user.googleId) {
         // Link existing email account to Google
-  await storage.updateUser(user._id, { 
-          googleId, 
+        await storage.updateUser(user._id, {
+          googleId,
           picture: picture || user.picture,
-          name: user.name || name 
+          name: user.name || name
         });
-  user = await storage.getUser(user._id);
+        user = await storage.getUser(user._id);
       }
 
       if (!user) {
@@ -401,7 +401,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         scope: tokens.scope,
         expiry_date: tokens.expiry_date
       });
-      
+
       // Note: Calendar credentials should NOT be stored during signup/login
       // Users must explicitly connect their calendar after authentication
       // via the /api/google-calendar/auth flow
@@ -441,7 +441,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       console.error('Google OAuth callback error:', error);
-      
+
       // For popup window, send error message and close
       res.send(`
         <script>
@@ -466,25 +466,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('Google Calendar auth request - Session:', req.session);
       console.log('Google Calendar auth request - UserId:', (req.session as any)?.userId);
-      
+
       const userId = (req.session as any)?.userId;
-      
+
       if (!userId) {
         console.log('No userId in session, returning 401');
         return res.status(401).json({ message: "Authentication required" });
       }
 
       console.log('User ID for Google Calendar auth:', userId);
-      
+
       const authUrl = googleCalendarService.getAuthUrl(userId, req);
       console.log('Generated auth URL:', authUrl);
-      
+
       // Check if authUrl is valid
       if (!authUrl || !authUrl.startsWith('https://accounts.google.com')) {
         console.error('Invalid auth URL generated:', authUrl);
         return res.status(500).json({ error: 'Failed to generate auth URL' });
       }
-      
+
       // Redirect directly to Google OAuth
       console.log('Redirecting to:', authUrl);
       res.redirect(authUrl);
@@ -499,7 +499,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { code, state: userId } = req.query;
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-      
+
       if (!code || typeof code !== 'string' || !userId || typeof userId !== 'string') {
         return res.redirect(`${frontendUrl}/booking?calendar_error=invalid_callback`);
       }
@@ -507,30 +507,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('=== Google Calendar Callback Start ===');
       console.log('UserId from state:', userId);
       console.log('Session ID:', req.sessionID);
-      
+
       const result = await googleCalendarService.handleCallback(code, userId, req);
 
       if (result.success) {
         console.log('✅ Google Calendar connection successful for user:', userId);
-        
+
         // Sync existing bookings to Google Calendar
         try {
           console.log('Calendar connected successfully, syncing existing bookings...');
-          
+
           // Get all confirmed bookings for this user that don't have a calendar event yet
           const bookings = await storage.getBookingsByUser(userId);
-          const bookingsToSync = bookings.filter(b => 
+          const bookingsToSync = bookings.filter(b =>
             b.status === 'confirmed' && !b.googleCalendarEventId
           );
-          
+
           console.log(`Found ${bookingsToSync.length} bookings to sync to Google Calendar`);
-          
+
           for (const booking of bookingsToSync) {
             try {
               const appointmentDateObj = new Date(booking.appointmentDate);
               const appointmentEnd = new Date(appointmentDateObj.getTime() + (booking.duration || 30) * 60 * 1000);
               const customEventId = `daywise_${booking._id}`.replace(/[^a-v0-9]/g, '').substring(0, 64);
-              
+
               const calendarResult = await googleCalendarService.createCalendarEvent(userId, {
                 summary: `Appointment - ${booking.customerName}`,
                 description: `Appointment with ${booking.customerName} (${booking.customerEmail})`,
@@ -539,10 +539,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 attendees: [booking.customerEmail],
                 customEventId: customEventId, // Use custom ID for idempotency
               });
-              
+
               if (calendarResult.success && calendarResult.eventId) {
-                await storage.updateBooking(booking._id, { 
-                  googleCalendarEventId: calendarResult.eventId 
+                await storage.updateBooking(booking._id, {
+                  googleCalendarEventId: calendarResult.eventId
                 });
                 console.log(`✅ Synced booking ${booking._id} to calendar event ${calendarResult.eventId}`);
                 if (calendarResult.alreadyExists) {
@@ -554,13 +554,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Continue with other bookings even if one fails
             }
           }
-          
+
           console.log('Finished syncing existing bookings to Google Calendar');
         } catch (syncError) {
           console.error('Error during booking sync:', syncError);
           // Don't fail the connection if sync fails
         }
-        
+
         // Force session save to ensure cookie is updated before redirect
         await new Promise<void>((resolve, reject) => {
           req.session.save((err) => {
@@ -573,7 +573,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           });
         });
-        
+
         console.log('=== Google Calendar Callback Complete - Redirecting ===');
         // Redirect back to booking page with success parameter
         return res.redirect(`${frontendUrl}/booking?calendar_connected=true`);
@@ -593,9 +593,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('Google Calendar status request - Session:', req.session);
       console.log('Google Calendar status request - UserId from session:', (req.session as any)?.userId);
-      
+
       const userId = (req.session as any)?.userId;
-      
+
       if (!userId) {
         console.log('No userId found in session for calendar status check');
         return res.status(401).json({ message: "Authentication required", connected: false });
@@ -615,7 +615,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/google-calendar/disconnect", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId;
-      
+
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
@@ -631,7 +631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/google-calendar/sync", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId;
-      
+
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
@@ -648,7 +648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/google-calendar/events", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId;
-      
+
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
@@ -662,7 +662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startDate,
         endDate
       );
-      
+
       res.json(result);
     } catch (error) {
       console.error('Google Calendar events error:', error);
@@ -674,7 +674,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/google-calendar/events", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId;
-      
+
       if (!userId) {
         console.log('Google Calendar event creation - No userId in session');
         return res.status(401).json({ message: "Authentication required" });
@@ -683,7 +683,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Google Calendar event creation - User ID:', userId);
 
       const { summary, description, start, end, attendees } = req.body;
-      
+
       if (!summary || !start || !end) {
         console.log('Google Calendar event creation - Missing required fields');
         return res.status(400).json({ message: "Missing required fields: summary, start, end" });
@@ -701,15 +701,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           attendees
         }
       );
-      
+
       console.log('Google Calendar event creation - Result:', result);
       res.json(result);
     } catch (error) {
       console.error('Google Calendar create event error:', error);
       console.error('Google Calendar create event error stack:', error instanceof Error ? error.stack : 'No stack trace');
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to create calendar event",
-        error: error instanceof Error ? error.message : "Unknown error" 
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
@@ -718,7 +718,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/google-calendar/events/:eventId", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId;
-      
+
       if (!userId) {
         console.log('Google Calendar event update - No userId in session');
         return res.status(401).json({ message: "Authentication required" });
@@ -743,13 +743,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           attendees
         }
       );
-      
+
       console.log('Google Calendar event update - Result:', result);
       res.json(result);
     } catch (error) {
       console.error('Google Calendar update event error:', error);
       console.error('Google Calendar update event error stack:', error instanceof Error ? error.stack : 'No stack trace');
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to update calendar event",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -760,7 +760,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/google-calendar/events/:eventId", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId;
-      
+
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
@@ -771,7 +771,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
         eventId
       );
-      
+
       res.json(result);
     } catch (error) {
       console.error('Google Calendar delete event error:', error);
@@ -783,7 +783,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/google", async (req, res) => {
     try {
       const { credential } = req.body;
-      
+
       if (!credential) {
         return res.status(400).json({ message: "Google credential is required" });
       }
@@ -800,7 +800,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { sub: googleId, email, name, picture } = payload;
-      
+
       if (!email || !name || !googleId) {
         return res.status(400).json({ message: "Missing required user information from Google" });
       }
@@ -810,7 +810,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if user already exists by email or Google ID
       let user = await storage.getUserByEmail(normalizedEmail) || await storage.getUserByGoogleId(googleId);
-      
+
       if (!user) {
         // Create new user from Google profile
         const userData = {
@@ -824,7 +824,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isAdmin: false,
         };
         user = await storage.createUser(userData);
-        
+
         // Default new users to the Free plan (no checkout)
         if (user) {
           const subscriptionPayload: any = {
@@ -837,12 +837,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } else if (!user.googleId) {
         // Link existing email account to Google
-  await storage.updateUser(user._id, { 
-          googleId, 
+        await storage.updateUser(user._id, {
+          googleId,
           picture: picture || user.picture,
-          name: user.name || name 
+          name: user.name || name
         });
-  user = await storage.getUser(user._id);
+        user = await storage.getUser(user._id);
       }
 
       if (!user) {
@@ -850,23 +850,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Set session data
-  (req.session as any).userId = user._id;
+      (req.session as any).userId = user._id;
       (req.session as any).user = {
-  id: user._id,
+        id: user._id,
         email: user.email,
         name: user.name,
         isAdmin: user.isAdmin
       };
 
-      res.json({ 
-        message: "Login successful", 
-        user: { 
-          id: user._id, 
-          email: user.email, 
-          name: user.name, 
+      res.json({
+        message: "Login successful",
+        user: {
+          id: user._id,
+          email: user.email,
+          name: user.name,
           picture: user.picture,
-          isAdmin: user.isAdmin 
-        } 
+          isAdmin: user.isAdmin
+        }
       });
     } catch (error) {
       console.error('Google OAuth error:', error);
@@ -882,7 +882,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if user exists in storage
       const user = await storage.getUserByEmail(email);
-      
+
       if (!user) {
         return res.status(404).json({ message: "No account found with this email. Please sign up first." });
       }
@@ -899,7 +899,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if email is verified
       if (!user.emailVerified) {
-        return res.status(403).json({ 
+        return res.status(403).json({
           message: "Please verify your email address before logging in. Check your inbox for a verification link.",
           requiresVerification: true
         });
@@ -907,7 +907,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Verify password
       const isPasswordValid = await bcrypt.compare(password, user.password);
-      
+
       if (!isPasswordValid) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
@@ -920,17 +920,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name: user.name,
         isAdmin: user.isAdmin
       };
-      
-      res.json({ 
-        message: "Login successful", 
-        user: { 
-          id: user._id, 
-          email: user.email, 
-          name: user.name, 
-          isAdmin: user.isAdmin 
-        } 
+
+      res.json({
+        message: "Login successful",
+        user: {
+          id: user._id,
+          email: user.email,
+          name: user.name,
+          isAdmin: user.isAdmin
+        }
       });
-      
+
     } catch (error) {
       console.error('Login error:', error);
       res.status(500).json({ message: "Login failed", error: error instanceof Error ? error.message : "Unknown error" });
@@ -1010,7 +1010,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if user already exists
       let existingUser = await storage.getUserByEmail(email);
-      
+
       if (existingUser) {
         // Check if it's an admin account
         if (existingUser.isAdmin) {
@@ -1098,32 +1098,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send verification email
       try {
         // Determine frontend URL based on environment
-        const frontendUrl = process.env.FRONTEND_URL || 
-                           (process.env.NODE_ENV === 'production' 
-                             ? `${req.protocol}://${req.get('host')}` 
-                             : 'http://localhost:5173'); // Frontend dev server
-        
+        const frontendUrl = process.env.FRONTEND_URL ||
+          (process.env.NODE_ENV === 'production'
+            ? `${req.protocol}://${req.get('host')}`
+            : 'http://localhost:5173'); // Frontend dev server
+
         const verificationUrl = `${frontendUrl}/verify/${verificationToken}`;
-        
+
         await sendVerificationEmail(email, name, verificationUrl);
-        
-        res.json({ 
+
+        res.json({
           message: "Account created successfully. Please check your email to verify your account.",
           requiresVerification: true
         });
       } catch (emailError: any) {
         console.error('Failed to send verification email:', emailError);
-        
+
         // Return specific error message to frontend
         const errorMessage = emailError.message || 'Failed to send verification email';
-        return res.status(500).json({ 
+        return res.status(500).json({
           message: `Account created but email verification failed: ${errorMessage}`,
           error: errorMessage,
           requiresVerification: true,
           emailFailed: true
         });
       }
-      
+
     } catch (error) {
       console.error('Email signup error:', error);
       res.status(500).json({ message: "Signup failed", error: error instanceof Error ? error.message : "Unknown error" });
@@ -1135,14 +1135,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/verify/:token", async (req, res) => {
     try {
       const { token } = req.params;
-      
+
       if (!token) {
         return res.status(400).send("Verification token is required");
       }
 
       // Find user with this token
       const user = await storage.getUserByVerificationToken(token);
-      
+
       if (!user) {
         return res.status(400).send("Invalid or expired verification token");
       }
@@ -1165,22 +1165,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Determine frontend URL based on environment
-      const frontendUrl = process.env.FRONTEND_URL || 
-                         process.env.NODE_ENV === 'production' 
-                           ? '' // Same domain in production
-                           : 'http://localhost:5173'; // Frontend dev server
+      const frontendUrl = process.env.FRONTEND_URL ||
+        process.env.NODE_ENV === 'production'
+        ? '' // Same domain in production
+        : 'http://localhost:5173'; // Frontend dev server
 
       // Redirect to frontend onboarding page with verified flag
       res.redirect(`${frontendUrl}/verify?verified=true`);
-      
+
     } catch (error) {
       console.error('Email verification error:', error);
-      
+
       // Redirect to frontend with error
-      const frontendUrl = process.env.FRONTEND_URL || 
-                         process.env.NODE_ENV === 'production' 
-                           ? '' 
-                           : 'http://localhost:5173';
+      const frontendUrl = process.env.FRONTEND_URL ||
+        process.env.NODE_ENV === 'production'
+        ? ''
+        : 'http://localhost:5173';
       res.redirect(`${frontendUrl}/verify-error?message=Verification failed`);
     }
   });
@@ -1189,14 +1189,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/verify-email", async (req, res) => {
     try {
       const { token } = req.body;
-      
+
       if (!token) {
         return res.status(400).json({ message: "Verification token is required" });
       }
 
       // Find user with this token
       const user = await storage.getUserByVerificationToken(token);
-      
+
       if (!user) {
         return res.status(400).json({ message: "Invalid or expired verification token" });
       }
@@ -1218,16 +1218,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isAdmin: user.isAdmin
       };
 
-      res.json({ 
-        message: "Email verified successfully", 
-        user: { 
-          id: user._id, 
-          email: user.email, 
+      res.json({
+        message: "Email verified successfully",
+        user: {
+          id: user._id,
+          email: user.email,
           name: user.name,
-          isAdmin: user.isAdmin 
-        } 
+          isAdmin: user.isAdmin
+        }
       });
-      
+
     } catch (error) {
       console.error('Email verification error:', error);
       res.status(500).json({ message: "Verification failed", error: error instanceof Error ? error.message : "Unknown error" });
@@ -1238,14 +1238,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/resend-verification", async (req, res) => {
     try {
       const { email } = req.body;
-      
+
       if (!email) {
         return res.status(400).json({ message: "Email is required" });
       }
 
       // Find user
       const user = await storage.getUserByEmail(email);
-      
+
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -1259,18 +1259,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
       // Update user with new token
-  await storage.updateUserVerificationToken(user._id, verificationToken, verificationExpires);
+      await storage.updateUserVerificationToken(user._id, verificationToken, verificationExpires);
 
       // Send verification email
-      const frontendUrl = process.env.FRONTEND_URL || 
-                         (process.env.NODE_ENV === 'production' 
-                           ? `${req.protocol}://${req.get('host')}` 
-                           : 'http://localhost:5173');
+      const frontendUrl = process.env.FRONTEND_URL ||
+        (process.env.NODE_ENV === 'production'
+          ? `${req.protocol}://${req.get('host')}`
+          : 'http://localhost:5173');
       const verificationUrl = `${frontendUrl}/verify/${verificationToken}`;
       await sendVerificationEmail(email, user.name, verificationUrl);
-      
+
       res.json({ message: "Verification email resent successfully" });
-      
+
     } catch (error) {
       console.error('Resend verification error:', error);
       res.status(500).json({ message: "Failed to resend verification email", error: error instanceof Error ? error.message : "Unknown error" });
@@ -1303,49 +1303,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('UserId from session:', (req.session as any).userId);
       console.log('User from session:', (req.session as any).user);
       console.log('================================');
-      
+
       if (!(req.session as any).userId) {
         console.log('❌ No userId in session - returning 401');
         return res.status(401).json({ message: "Not authenticated" });
       }
-      
+
       const userId = (req.session as any).userId;
       console.log('✅ UserId found in session:', userId);
-      
+
       // ALWAYS fetch fresh user data from DB (never rely on cached session)
       const user = await storage.getUser(userId);
       if (!user) {
         console.log('❌ User not found in storage for userId:', userId);
         return res.status(401).json({ message: "User not found" });
       }
-      
+
       console.log('✅ User loaded from DB:', { id: user._id, email: user.email, name: user.name });
-      
+
       // ALWAYS check fresh Google Calendar connection status from DB
       let googleCalendarConnected = false;
       try {
         console.log('Checking Google Calendar connection status from DB...');
         const calendarStatus = await googleCalendarService.getConnectionStatus(user._id);
         googleCalendarConnected = calendarStatus.connected === true;
-        console.log('✅ Calendar status retrieved:', { 
+        console.log('✅ Calendar status retrieved:', {
           connected: calendarStatus.connected,
           connectedAccount: calendarStatus.connectedAccount,
-          isSynced: calendarStatus.isSynced 
+          isSynced: calendarStatus.isSynced
         });
       } catch (error) {
         console.log('⚠️ Error checking calendar status:', error);
         googleCalendarConnected = false;
       }
-      
-      console.log('Auth me - Final user state:', { 
-        id: user._id, 
-        email: user.email, 
+
+      console.log('Auth me - Final user state:', {
+        id: user._id,
+        email: user.email,
         name: user.name,
-        googleCalendarConnected 
+        googleCalendarConnected
       });
       console.log('Auth me - Response timestamp:', new Date().toISOString());
       console.log('================================');
-      
+
       // Return comprehensive user data for account page
       res.json({
         user: {
@@ -1401,10 +1401,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         COOKIE_DOMAIN: process.env.COOKIE_DOMAIN
       }
     };
-    
+
     console.log('=== Debug endpoint called ===');
     console.log(JSON.stringify(debugInfo, null, 2));
-    
+
     res.json(debugInfo);
   });
 
@@ -1417,7 +1417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { currentPassword, newPassword } = req.body;
-      
+
       if (!currentPassword || !newPassword) {
         return res.status(400).json({ message: "Current password and new password are required" });
       }
@@ -1464,7 +1464,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { newEmail, password } = req.body;
-      
+
       if (!newEmail) {
         return res.status(400).json({ message: "New email is required" });
       }
@@ -1488,7 +1488,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if new email is already in use
       const existingUser = await storage.getUserByEmail(newEmail.toLowerCase().trim());
-  if (existingUser && existingUser._id !== session.userId) {
+      if (existingUser && existingUser._id !== session.userId) {
         return res.status(409).json({ message: "Email already in use by another account" });
       }
 
@@ -1506,20 +1506,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Send verification email to new address
       try {
-        const frontendUrl = process.env.FRONTEND_URL || 
-                           (process.env.NODE_ENV === 'production' 
-                             ? `${req.protocol}://${req.get('host')}` 
-                             : 'http://localhost:5173');
+        const frontendUrl = process.env.FRONTEND_URL ||
+          (process.env.NODE_ENV === 'production'
+            ? `${req.protocol}://${req.get('host')}`
+            : 'http://localhost:5173');
         const verificationUrl = `${frontendUrl}/verify/${verificationToken}`;
         await sendVerificationEmail(newEmail, user.name, verificationUrl);
-        
-        res.json({ 
+
+        res.json({
           message: "Email updated. Please check your new email address for verification.",
           requiresVerification: true
         });
       } catch (emailError) {
         console.error('Failed to send verification email:', emailError);
-        res.json({ 
+        res.json({
           message: "Email updated. Please check your new email address for verification.",
           requiresVerification: true
         });
@@ -1538,7 +1538,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { password } = req.body;
-      
+
       const user = await storage.getUser(session.userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -1551,8 +1551,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Require password to disconnect Google account for security
       if (!user.password) {
-        return res.status(400).json({ 
-          message: "You must set a password before disconnecting Google account. Please change your password first." 
+        return res.status(400).json({
+          message: "You must set a password before disconnecting Google account. Please change your password first."
         });
       }
 
@@ -1566,7 +1566,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Disconnect Google account
-      await storage.updateUser(session.userId, { 
+      await storage.updateUser(session.userId, {
         googleId: null,
         picture: null
       });
@@ -1582,47 +1582,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/check-email-for-reset", async (req, res) => {
     try {
       const { email } = req.body;
-      
+
       if (!email || typeof email !== 'string') {
-        return res.status(400).json({ 
-          exists: false, 
+        return res.status(400).json({
+          exists: false,
           isGoogleOnly: false,
-          message: "Email is required" 
+          message: "Email is required"
         });
       }
 
       const normalizedEmail = email.toLowerCase().trim();
       const user = await storage.getUserByEmail(normalizedEmail);
-      
+
       if (!user) {
-        return res.json({ 
-          exists: false, 
+        return res.json({
+          exists: false,
           isGoogleOnly: false,
-          message: "Email doesn't exist" 
+          message: "Email doesn't exist"
         });
       }
 
       // Check if it's a Google-only account (no password)
       if (!user.password) {
-        return res.json({ 
-          exists: true, 
+        return res.json({
+          exists: true,
           isGoogleOnly: true,
-          message: "This is a Google login account. Please login through Google. No password required." 
+          message: "This is a Google login account. Please login through Google. No password required."
         });
       }
 
       // Email exists and has password - can reset
-      return res.json({ 
-        exists: true, 
+      return res.json({
+        exists: true,
         isGoogleOnly: false,
-        message: "Email is valid for password reset" 
+        message: "Email is valid for password reset"
       });
     } catch (error) {
       console.error('Check email for reset error:', error);
-      res.status(500).json({ 
-        exists: false, 
+      res.status(500).json({
+        exists: false,
         isGoogleOnly: false,
-        message: "Failed to check email" 
+        message: "Failed to check email"
       });
     }
   });
@@ -1634,7 +1634,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { email } = validatedData;
 
       const user = await storage.getUserByEmail(email);
-      
+
       // For security, don't reveal if user exists or not
       if (!user) {
         return res.json({ message: "If an account exists with this email, a password reset link will be sent." });
@@ -1655,12 +1655,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send password reset email
       try {
         const frontendUrl = process.env.FRONTEND_URL ||
-                           (process.env.NODE_ENV === 'production'
-                             ? `${req.protocol}://${req.get('host')}`
-                             : 'http://localhost:5173');
+          (process.env.NODE_ENV === 'production'
+            ? `${req.protocol}://${req.get('host')}`
+            : 'http://localhost:5173');
         const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
         await sendPasswordResetEmail(email, user.name, resetUrl);
-        
+
         res.json({ message: "If an account exists with this email, a password reset link will be sent." });
       } catch (emailError) {
         console.error('Failed to send password reset email:', emailError);
@@ -1679,7 +1679,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Find user with this reset token
       const user = await storage.getUserByPasswordResetToken(token);
-      
+
       if (!user) {
         return res.status(400).json({ message: "Invalid or expired reset token" });
       }
@@ -1708,7 +1708,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bookingData = insertBookingSchema.parse(req.body);
       const userId = bookingData.userId;
       if (!userId) return 0;
-      
+
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth(), 1);
       const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -1719,7 +1719,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const bookingDate = new Date(booking._creationTime);
         return bookingDate >= start && bookingDate < end;
       });
-      
+
       return bookingsThisMonth.length;
     } catch (error) {
       // If parsing fails or other error, return 0 to allow the main handler to do proper validation
@@ -1799,7 +1799,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/bookings", async (req, res) => {
     try {
       const { customerName, customerEmail, appointmentDate, appointmentTypeId } = req.body;
-      
+
       // Get userId from session
       const userId = (req.session as any)?.userId;
       if (!userId) {
@@ -1811,23 +1811,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (features.bookingLimit !== null) {
         // Get current bookings count for this user
         const existingBookings = await storage.getBookingsByUser(userId);
-        
+
         // Filter bookings for current month (bookings made within this calendar month)
         const now = new Date();
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
-        
+
         const currentMonthBookings = existingBookings.filter((booking: any) => {
           const bookingDate = new Date(booking.appointmentDate);
-          return bookingDate.getMonth() === currentMonth && 
-                 bookingDate.getFullYear() === currentYear;
+          return bookingDate.getMonth() === currentMonth &&
+            bookingDate.getFullYear() === currentYear;
         });
-        
+
         const currentCount = currentMonthBookings.length;
-        
+
         if (currentCount >= features.bookingLimit) {
-          return res.status(403).json({ 
-            message: `Upgrade to Pro plan to add more bookings. You have reached your monthly limit of ${features.bookingLimit} bookings.` 
+          return res.status(403).json({
+            message: `Upgrade to Pro plan to add more bookings. You have reached your monthly limit of ${features.bookingLimit} bookings.`
           });
         }
       }
@@ -1886,7 +1886,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (appointmentTypeId) {
         bookingData.appointmentTypeId = appointmentTypeId;
       }
-      
+
       console.log('POST /api/bookings - Booking data to create:', bookingData);
 
       let booking;
@@ -1897,7 +1897,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('POST /api/bookings - Error details:', JSON.stringify(convexError, null, 2));
         throw convexError;
       }
-      
+
       if (!booking) {
         return res.status(500).json({ message: "Failed to create booking" });
       }
@@ -1909,7 +1909,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const customEventId = `daywise_${booking._id}`.replace(/[^a-v0-9]/g, '').substring(0, 64);
       const appointmentDateObj = new Date(appointmentTimestamp);
       const appointmentEnd = new Date(appointmentDateObj.getTime() + 30 * 60 * 1000); // 30 min default
-      
+
       // Get appointment type name for Google Calendar event
       let appointmentTypeName = 'Appointment';
       if (appointmentTypeId) {
@@ -1922,7 +1922,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error('Failed to fetch appointment type for Google Calendar:', error);
         }
       }
-      
+
       googleCalendarService.createCalendarEvent(userId, {
         summary: `${appointmentTypeName} with ${customerName}`,
         description: `${appointmentTypeName} with ${customerName} (${customerEmail})`,
@@ -1953,11 +1953,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('POST /api/bookings - Error type:', typeof error);
       console.error('POST /api/bookings - Error name:', error instanceof Error ? error.name : 'unknown');
       console.error('POST /api/bookings - Error message:', error instanceof Error ? error.message : String(error));
-      
+
       // Format error message properly
       let errorMessage = "Invalid booking data";
       let errorDetails = "Unknown error";
-      
+
       if (error instanceof Error) {
         errorMessage = error.message;
         errorDetails = error.stack || error.message;
@@ -1971,8 +1971,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errorDetails = String(error);
         }
       }
-      
-      res.status(400).json({ 
+
+      res.status(400).json({
         message: errorMessage,
         error: errorDetails,
       });
@@ -1983,7 +1983,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/public-bookings", async (req, res) => {
     try {
       const bookingData = insertBookingSchema.parse(req.body);
-      
+
       // Additional validation for critical fields
       if (!bookingData.customerName?.trim()) {
         return res.status(400).json({ message: "Customer name is required" });
@@ -1997,7 +1997,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         return res.status(400).json({ message: "User ID is required for booking" });
       }
-      
+
       if (!bookingData.appointmentTypeId) {
         return res.status(400).json({ message: "Appointment type ID is required" });
       }
@@ -2019,19 +2019,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hasBlockedConflict = blockedDates.some(blocked => {
         const blockStart = new Date(blocked.startDate);
         let blockEnd = new Date(blocked.endDate);
-        
+
         // For all-day blocks, extend to end of day
         if (blocked.isAllDay) {
           blockEnd.setHours(23, 59, 59, 999);
         }
-        
+
         // Check for overlap: appointment overlaps if start < blockEnd AND end > blockStart
         return appointmentDate < blockEnd && appointmentEnd > blockStart;
       });
 
       if (hasBlockedConflict) {
-        return res.status(409).json({ 
-          message: "The selected date and time is not available due to blocked dates. Please choose a different time slot." 
+        return res.status(409).json({
+          message: "The selected date and time is not available due to blocked dates. Please choose a different time slot."
         });
       }
 
@@ -2051,17 +2051,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hasBookingConflict = sameDay.some(existing => {
         const existingStart = new Date(existing.appointmentDate);
         const existingEnd = new Date(existingStart.getTime() + (existing.duration || 30) * 60 * 1000);
-        
+
         // Check for overlap between new appointment and existing booking
         return appointmentDate < existingEnd && appointmentEnd > existingStart;
       });
 
       if (hasBookingConflict) {
-        return res.status(409).json({ 
-          message: "The selected time slot is no longer available. Please choose a different time." 
+        return res.status(409).json({
+          message: "The selected time slot is no longer available. Please choose a different time."
         });
       }
-      
+
       const booking = await storage.createBooking(bookingData);
 
       if (!booking) {
@@ -2122,7 +2122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send confirmation emails
       const businessUser = await storage.getUser(bookingData.userId || 'demo-user-id');
       const emailAppointmentType = await storage.getAppointmentType(bookingData.appointmentTypeId);
-      
+
       if (businessUser && emailAppointmentType) {
         // Fetch branding data for enhanced email styling
         let branding = await storage.getBranding(businessUser._id);
@@ -2139,13 +2139,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             updatedAt: Date.now()
           } as any;
         }
-        
+
         const appointmentDate = new Date(bookingData.appointmentDate);
 
         // Generate unique event URL for email (not stored in database)
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
         const eventUrl = `${frontendUrl}/event/${booking.bookingToken}`;
-        
+
         console.log('Booking created with bookingToken:', booking.bookingToken);
         console.log('Generated eventUrl:', eventUrl);
         console.log('Frontend URL:', frontendUrl);
@@ -2231,7 +2231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('Google Calendar integration not connected or failed:', error.message);
         });
       }
-      
+
       res.json({ message: "Booking created successfully", booking });
     } catch (error) {
       console.error("POST /api/public-bookings - Error:", error);
@@ -2300,7 +2300,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!session?.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
-      
+
       const includeDeleted = req.query.includeDeleted === 'true';
       const allBookings = await storage.getBookingsByUser(session.userId);
       // Filter out deleted bookings unless explicitly included
@@ -2320,17 +2320,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!session?.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
-      
+
       const booking = await storage.getBooking(req.params.id);
       if (!booking) {
         return res.status(404).json({ message: "Booking not found" });
       }
-      
+
       // SECURITY: Only return booking if it belongs to the authenticated user  
       if (booking.userId !== session.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       res.json(booking);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch booking", error: error instanceof Error ? error.message : "Unknown error" });
@@ -2358,14 +2358,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get form submission
       const formSubmission = await storage.getFormSubmissionByBooking(req.params.id);
-      
+
       if (!formSubmission) {
         return res.status(404).json({ message: "Form submission not found" });
       }
 
       // Get the intake form details
       const intakeForm = await storage.getIntakeFormById(formSubmission.intakeFormId);
-      
+
       res.json({
         ...formSubmission,
         intakeForm,
@@ -2397,14 +2397,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get form submission
       const formSubmission = await storage.getFormSubmissionByBooking(req.params.id);
-      
+
       if (!formSubmission) {
         return res.status(404).json({ message: "Form submission not found" });
       }
 
       // Get the intake form details
       const intakeForm = await storage.getIntakeFormById(formSubmission.intakeFormId);
-      
+
       if (!intakeForm) {
         return res.status(404).json({ message: "Intake form not found" });
       }
@@ -2467,17 +2467,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Title (22px, bold, black)
             doc.fontSize(22)
-               .font('Helvetica-Bold')
-               .fillColor(COLOR_TEXT[0], COLOR_TEXT[1], COLOR_TEXT[2])
-               .text(intakeForm.name || 'Untitled Form');
+              .font('Helvetica-Bold')
+              .fillColor(COLOR_TEXT[0], COLOR_TEXT[1], COLOR_TEXT[2])
+              .text(intakeForm.name || 'Untitled Form');
 
             // Description (14px, normal, gray) - only if exists
             if (intakeForm.description) {
               doc.moveDown(0.5);
               doc.fontSize(14)
-                 .font('Helvetica')
-                 .fillColor(COLOR_SECONDARY[0], COLOR_SECONDARY[1], COLOR_SECONDARY[2])
-                 .text(intakeForm.description);
+                .font('Helvetica')
+                .fillColor(COLOR_SECONDARY[0], COLOR_SECONDARY[1], COLOR_SECONDARY[2])
+                .text(intakeForm.description);
             }
 
             // Space before questions (28px gap equivalent)
@@ -2492,9 +2492,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
                 // Question (14px, bold, black)
                 doc.fontSize(14)
-                   .font('Helvetica-Bold')
-                   .fillColor(COLOR_TEXT[0], COLOR_TEXT[1], COLOR_TEXT[2])
-                   .text(questionText);
+                  .font('Helvetica-Bold')
+                  .fillColor(COLOR_TEXT[0], COLOR_TEXT[1], COLOR_TEXT[2])
+                  .text(questionText);
 
                 // Small gap between question and answer
                 doc.moveDown(0.3);
@@ -2504,9 +2504,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 const answerColor = isNotProvided ? COLOR_MUTED : COLOR_SECONDARY;
 
                 doc.fontSize(14)
-                   .font('Helvetica')
-                   .fillColor(answerColor[0], answerColor[1], answerColor[2])
-                   .text(answerText);
+                  .font('Helvetica')
+                  .fillColor(answerColor[0], answerColor[1], answerColor[2])
+                  .text(answerText);
 
                 // Gap between fields (20px equivalent)
                 doc.moveDown(1);
@@ -2898,7 +2898,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Update booking status to "cancelled" instead of deleting
-      await storage.updateBooking(existingBooking._id, { 
+      await storage.updateBooking(existingBooking._id, {
         status: 'cancelled',
         googleCalendarEventId: undefined // Clear calendar event ID since event is deleted
       });
@@ -2912,7 +2912,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Format appointment date and time in customer's timezone
         const customerTimezone = existingBooking.customerTimezone || user.timezone || 'UTC';
         const appointmentDate = dayjs.utc(existingBooking.appointmentDate).tz(customerTimezone);
-        
+
         await sendCancellationConfirmation({
           customerName: existingBooking.customerName,
           customerEmail: existingBooking.customerEmail,
@@ -3013,20 +3013,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!session?.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
-      
+
       // SECURITY: Verify booking exists and ownership before update
       const existingBooking = await storage.getBooking(req.params.id);
       if (!existingBooking) {
         return res.status(404).json({ message: "Booking not found" });
       }
-      
+
       if (existingBooking.userId !== session.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       const updates = req.body;
       const booking = await storage.updateBooking(req.params.id, updates);
-      
+
       if (!booking) {
         return res.status(404).json({ message: "Booking not found after update" });
       }
@@ -3053,7 +3053,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ) {
             const appointmentDateObj = new Date(booking.appointmentDate);
             const appointmentEnd = new Date(appointmentDateObj.getTime() + (booking.duration || 30) * 60 * 1000);
-            
+
             // Get appointment type name for Google Calendar event
             let appointmentTypeName = 'Appointment';
             if (booking.appointmentTypeId) {
@@ -3066,7 +3066,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 console.error('Failed to fetch appointment type for Google Calendar update:', error);
               }
             }
-            
+
             const updateResult = await googleCalendarService.updateCalendarEvent(session.userId, existingBooking.googleCalendarEventId, {
               start: appointmentDateObj,
               end: appointmentEnd,
@@ -3074,14 +3074,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               description: `${appointmentTypeName} with ${booking.customerName} (${booking.customerEmail})`,
               attendees: [booking.customerEmail]
             });
-            
+
             if (updateResult.success) {
               console.log(`✅ Google Calendar event updated: ${existingBooking.googleCalendarEventId}`);
             } else if (updateResult.notFound) {
               // Event was deleted from Google Calendar - clear the ID and try to create a new one
               console.log('⚠️ Calendar event not found (deleted by user), creating new event');
               await storage.updateBooking(req.params.id, { googleCalendarEventId: undefined });
-              
+
               // Create new calendar event
               const customEventId = `daywise_${booking._id}`.replace(/[^a-v0-9]/g, '').substring(0, 64);
               const createResult = await googleCalendarService.createCalendarEvent(session.userId, {
@@ -3092,7 +3092,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 attendees: [booking.customerEmail],
                 customEventId: customEventId,
               });
-              
+
               if (createResult.success && createResult.eventId) {
                 await storage.updateBooking(req.params.id, { googleCalendarEventId: createResult.eventId });
                 console.log(`✅ New Google Calendar event created: ${createResult.eventId}`);
@@ -3109,7 +3109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const appointmentDateObj = new Date(booking.appointmentDate);
           const appointmentEnd = new Date(appointmentDateObj.getTime() + (booking.duration || 30) * 60 * 1000);
           const customEventId = `daywise_${booking._id}`.replace(/[^a-v0-9]/g, '').substring(0, 64);
-          
+
           const result = await googleCalendarService.createCalendarEvent(session.userId, {
             summary: `Appointment - ${booking.customerName}`,
             description: `Appointment with ${booking.customerName} (${booking.customerEmail})`,
@@ -3118,7 +3118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             attendees: [booking.customerEmail],
             customEventId: customEventId,
           });
-          
+
           if (result.success && result.eventId) {
             await storage.updateBooking(req.params.id, { googleCalendarEventId: result.eventId });
             console.log(`✅ Google Calendar event created during update: ${result.eventId}`);
@@ -3128,20 +3128,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // This is fine - user might not have calendar connected
         }
       }
-      
+
       console.log(`PUT /api/bookings/${req.params.id} - Update completed, sending response`);
-      
+
       // Send email notifications based on status change
       try {
         const user = await storage.getUser(booking.userId);
-        
+
         // Only send emails if we have an appointment type (skip for internal bookings without appointment type)
         if (booking.appointmentTypeId) {
           console.log(`PUT /api/bookings/${req.params.id} - Has appointmentTypeId, preparing email notifications`);
           const appointmentType = await storage.getAppointmentType(booking.appointmentTypeId);
           const branding = await storage.getBranding(booking.userId);
           const userFeatures = await getUserFeatures(booking.userId);
-          
+
           if (user && appointmentType) {
             // Determine timezones for email formatting
             const customerTimezone = booking.customerTimezone || user.timezone || 'Etc/UTC';
@@ -3178,29 +3178,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
               appointmentTime: formatTimeForEmail(booking.appointmentDate, businessTimezone),
             };
 
-          // Check if booking was cancelled by business
-          if (existingBooking.status !== 'cancelled' && booking.status === 'cancelled') {
-            // Send email to customer when business cancels
-            await sendBusinessCancellationConfirmation(customerEmailData);
-            // Send notification to business owner
-            await sendCancellationBusinessNotification(businessEmailData);
+            // Check if booking was cancelled by business
+            if (existingBooking.status !== 'cancelled' && booking.status === 'cancelled') {
+              // Send email to customer when business cancels
+              await sendBusinessCancellationConfirmation(customerEmailData);
+              // Send notification to business owner
+              await sendCancellationBusinessNotification(businessEmailData);
+            }
+            // Check if booking was rescheduled (date/time changed)
+            else if (existingBooking.appointmentDate !== booking.appointmentDate) {
+              const oldCustomerEmailData = {
+                ...customerEmailData,
+                oldAppointmentDate: formatDateForEmail(existingBooking.appointmentDate, customerTimezone),
+                oldAppointmentTime: formatTimeForEmail(existingBooking.appointmentDate, customerTimezone),
+              };
+              const oldBusinessEmailData = {
+                ...businessEmailData,
+                oldAppointmentDate: formatDateForEmail(existingBooking.appointmentDate, businessTimezone),
+                oldAppointmentTime: formatTimeForEmail(existingBooking.appointmentDate, businessTimezone),
+              };
+              await sendRescheduleConfirmation(oldCustomerEmailData);
+              await sendRescheduleBusinessNotification(oldBusinessEmailData);
+            }
           }
-          // Check if booking was rescheduled (date/time changed)
-          else if (existingBooking.appointmentDate !== booking.appointmentDate) {
-            const oldCustomerEmailData = {
-              ...customerEmailData,
-              oldAppointmentDate: formatDateForEmail(existingBooking.appointmentDate, customerTimezone),
-              oldAppointmentTime: formatTimeForEmail(existingBooking.appointmentDate, customerTimezone),
-            };
-            const oldBusinessEmailData = {
-              ...businessEmailData,
-              oldAppointmentDate: formatDateForEmail(existingBooking.appointmentDate, businessTimezone),
-              oldAppointmentTime: formatTimeForEmail(existingBooking.appointmentDate, businessTimezone),
-            };
-            await sendRescheduleConfirmation(oldCustomerEmailData);
-            await sendRescheduleBusinessNotification(oldBusinessEmailData);
-          }
-        }
         } else {
           console.log(`PUT /api/bookings/${req.params.id} - No appointmentTypeId, skipping email notifications`);
         }
@@ -3208,7 +3208,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('Email notification error:', emailError);
         // Don't fail the booking update if email fails
       }
-      
+
       console.log(`PUT /api/bookings/${req.params.id} - Sending success response`);
       res.json({ message: "Booking updated successfully", booking });
     } catch (error) {
@@ -3223,13 +3223,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!session?.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
-      
+
       // SECURITY: Verify booking exists and ownership before deletion
       const existingBooking = await storage.getBooking(req.params.id);
       if (!existingBooking) {
         return res.status(404).json({ message: "Booking not found" });
       }
-      
+
       if (existingBooking.userId !== session.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -3262,15 +3262,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Update booking status to "deleted" instead of deleting
-      const updatedBooking = await storage.updateBooking(req.params.id, { 
+      const updatedBooking = await storage.updateBooking(req.params.id, {
         status: 'deleted',
         googleCalendarEventId: undefined // Clear calendar event ID since event is deleted
       });
-      
+
       if (!updatedBooking) {
         return res.status(500).json({ message: "Failed to update booking status" });
       }
-      
+
       console.log(`✅ Booking ${req.params.id} marked as deleted`);
       res.json({ message: "Booking deleted successfully" });
     } catch (error) {
@@ -3313,16 +3313,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update weekly availability using the new bulk method
       const availability = await storage.updateWeeklyAvailability(session.userId, weeklySchedule);
-      res.json({ 
-        message: "Weekly availability updated successfully", 
+      res.json({
+        message: "Weekly availability updated successfully",
         availability,
-        count: availability.length 
+        count: availability.length
       });
     } catch (error) {
       console.error("Error updating weekly availability:", error);
-      res.status(500).json({ 
-        message: "Failed to update weekly availability", 
-        error: error instanceof Error ? error.message : "Unknown error" 
+      res.status(500).json({
+        message: "Failed to update weekly availability",
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
@@ -3335,11 +3335,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { userId, appointmentTypeId, date, customerTimezone, timezone = 'UTC' } = req.query;
       console.log(`GET /api/availability/slots - Parsed Params:`, { userId, appointmentTypeId, date, customerTimezone, timezone });
-      
+
       if (!userId || !appointmentTypeId || !date) {
         console.log(`Missing required parameters:`, { userId, appointmentTypeId, date });
-        return res.status(400).json({ 
-          message: "Missing required parameters: userId, appointmentTypeId, and date are required" 
+        return res.status(400).json({
+          message: "Missing required parameters: userId, appointmentTypeId, and date are required"
         });
       }
 
@@ -3348,43 +3348,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (features.bookingLimit !== null) {
         // Get current bookings count for this user
         const existingBookings = await storage.getBookingsByUser(userId as string);
-        
+
         // Filter bookings for current month (bookings made within this calendar month)
         const now = new Date();
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
-        
+
         const currentMonthBookings = existingBookings.filter((booking: any) => {
           const bookingDate = new Date(booking.appointmentDate);
-          return bookingDate.getMonth() === currentMonth && 
-                 bookingDate.getFullYear() === currentYear;
+          return bookingDate.getMonth() === currentMonth &&
+            bookingDate.getFullYear() === currentYear;
         });
-        
+
         const currentCount = currentMonthBookings.length;
-        
+
         // If free plan user has reached the monthly limit (5 bookings), return no slots
         if (currentCount >= features.bookingLimit) {
           console.log(`User ${userId} has reached monthly booking limit (${currentCount}/${features.bookingLimit}), returning no slots`);
           return res.json([]); // Return empty array (no slots available)
         }
       }
-      
+
       // Parse the date
       const requestDate = new Date(date as string);
       if (isNaN(requestDate.getTime())) {
         return res.status(400).json({ message: "Invalid date format" });
       }
-      
+
       // Get appointment type details
       const appointmentType = await storage.getAppointmentType(appointmentTypeId as string);
       if (!appointmentType) {
         return res.status(404).json({ message: "Appointment type not found" });
       }
-      
+
       // Get user's weekly availability
       const availability = await storage.getAvailabilityByUser(userId as string);
       console.log(`Found ${availability.length} availability records for user ${userId}:`, availability);
-      
+
       // Get user's timezone and normalize to supported timezone
       const user = await storage.getUser(userId as string);
       const userTimezone = mapToSupportedTimezone(user?.timezone || 'Etc/UTC');
@@ -3396,7 +3396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if timezones are the same
       const timezonesMatch = userTimezone === customerTz;
       console.log(`Timezones match: ${timezonesMatch}`);
-      
+
       // Parse the date in the customer's timezone
       const customerDateInCustomerTz = dayjs.tz(date as string, customerTz);
 
@@ -3410,7 +3410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dayName = dayNames[dayOfWeek];
 
       console.log(`Customer date ${date} in ${customerTz} → UTC: ${customerDateUTC.format('YYYY-MM-DD HH:mm:ss')} → User's timezone (${userTimezone}): ${dateInUserTz.format('YYYY-MM-DD dddd')}, day ${dayOfWeek} (${dayName})`);
-      
+
       // Check if customer's full day (00:00-23:59 in their TZ) spans multiple calendar days in business TZ
       const customerDayStart = customerDateInCustomerTz.startOf('day'); // 00:00 in customer TZ
       const customerDayEnd = customerDateInCustomerTz.endOf('day'); // 23:59:59 in customer TZ
@@ -3425,7 +3425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const rawWeekday = slot.weekday || '';
         const wk = String(rawWeekday).toLowerCase().trim();
         const available = slot.isAvailable !== false;
-        const matches = wk === dayName || wk === dayName.slice(0,3) || wk === String(dayOfWeek);
+        const matches = wk === dayName || wk === dayName.slice(0, 3) || wk === String(dayOfWeek);
         return matches && available;
       });
       console.log(`Found ${dayAvailability.length} availability slots for ${dayName}:`, dayAvailability);
@@ -3438,33 +3438,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // the Monday in GMT+10 might be Sunday evening or Tuesday morning in IST
         const prevDayInUserTz = dateInUserTz.subtract(1, 'day');
         const nextDayInUserTz = dateInUserTz.add(1, 'day');
-        
+
         const prevDayName = dayNames[prevDayInUserTz.day()];
         const nextDayName = dayNames[nextDayInUserTz.day()];
-        
+
         console.log(`No availability for ${dayName}, checking adjacent days due to timezone difference: ${prevDayName} and ${nextDayName}`);
-        
+
         dayAvailability = availability.filter(slot => {
           const rawWeekday = slot.weekday || '';
           const wk = String(rawWeekday).toLowerCase().trim();
           const available = slot.isAvailable !== false;
-          
-          const matchesPrev = wk === prevDayName || wk === prevDayName.slice(0,3);
-          const matchesNext = wk === nextDayName || wk === nextDayName.slice(0,3);
+
+          const matchesPrev = wk === prevDayName || wk === prevDayName.slice(0, 3);
+          const matchesNext = wk === nextDayName || wk === nextDayName.slice(0, 3);
           const matches = matchesPrev || matchesNext;
-          
+
           if (matches) {
             if (matchesPrev) console.log(`Slot for ${rawWeekday} matches adjacent day ${prevDayName}`);
             if (matchesNext) console.log(`Slot for ${rawWeekday} matches adjacent day ${nextDayName}`);
           }
-          
+
           return matches && available;
         });
         console.log(`Found ${dayAvailability.length} availability slots from adjacent days:`, dayAvailability);
       } else if (dayAvailability.length === 0) {
         console.log(`No availability for ${dayName}, returning empty slots (not checking adjacent days - customer's day doesn't span different calendar days in business timezone)`);
       }
-      
+
       // Use the date in user's timezone for exception matching (not UTC)
       const dateStrInUserTz = dateInUserTz.format('YYYY-MM-DD');
 
@@ -3484,7 +3484,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return false;
         }
       });
-      
+
       if (isMonthClosed) {
         console.log(`Month ${dateInUserTz.format('MMMM YYYY')} is closed, returning no slots`);
         return res.json({ slots: [] });
@@ -3499,11 +3499,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const blockEnd = dayjs(blocked.endDate).tz(userTimezone).endOf('day');
         const dateStart = dateInUserTz.startOf('day');
         const dateEnd = dateInUserTz.endOf('day');
-        
+
         // Check if the requested date overlaps with the blocked date range
         return dateStart.isBefore(blockEnd) && dateEnd.isAfter(blockStart);
       });
-      
+
       if (isBlocked) {
         console.log(`Date ${dateStrInUserTz} is blocked by booking window, returning no slots`);
         return res.json({ slots: [] });
@@ -3545,13 +3545,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Check for custom_hours exception (applies to all services, no appointmentTypeId)
-      const customHoursException = dateExceptions.find(exception => 
+      const customHoursException = dateExceptions.find(exception =>
         exception.type === 'custom_hours' && !exception.appointmentTypeId
       );
 
       // Determine which exception to use (priority: special_availability > custom_hours > week hours)
       const applicableException = specialAvailabilityException || customHoursException;
-      
+
       console.log(`Exception check results:`, {
         hasSpecialAvailability: !!specialAvailabilityException,
         hasCustomHours: !!customHoursException,
@@ -3582,7 +3582,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const bookingDateStr = bookingInUserTz.format('YYYY-MM-DD');
         return bookingDateStr === dateStrInUserTz;
       });
-      
+
       // Fetch appointment types for all existing bookings to get their buffer times
       const bookingAppointmentTypes = new Map();
       for (const booking of dateBookings) {
@@ -3593,14 +3593,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       }
-      
+
       // Generate time slots
       const slots: string[] = [];
       const appointmentDuration = appointmentType.duration || 30;
       const bufferTimeBefore = appointmentType.bufferTimeBefore || 0;
       const bufferTimeAfter = appointmentType.bufferTime || 0; // Legacy field name for "after"
       const totalSlotTime = appointmentDuration + bufferTimeAfter;
-      
+
       console.log(`Slot generation params:`, {
         appointmentDuration,
         bufferTimeBefore,
@@ -3609,7 +3609,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         existingBookings: dateBookings.length,
         requestDateStr: dateStrInUserTz
       });
-      
+
       // If exception exists, ignore week hours and use custom time range
       let timeRangesToUse = [];
       if (applicableException && applicableException.startTime && applicableException.endTime) {
@@ -3619,8 +3619,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           endTime: applicableException.endTime
         }];
         const exceptionType = applicableException.type === 'special_availability' ? 'special_availability' : 'custom_hours';
-        const serviceInfo = applicableException.type === 'special_availability' && applicableException.appointmentTypeId 
-          ? ` for service ${appointmentTypeId}` 
+        const serviceInfo = applicableException.type === 'special_availability' && applicableException.appointmentTypeId
+          ? ` for service ${appointmentTypeId}`
           : ' (all services)';
         console.log(`✅ Using ${exceptionType} for ${dateStrInUserTz}${serviceInfo}: ${applicableException.startTime} - ${applicableException.endTime}`);
         console.log(`Time ranges to use:`, timeRangesToUse);
@@ -3639,46 +3639,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Sort availability by start time
       timeRangesToUse.sort((a, b) => a.startTime.localeCompare(b.startTime));
-      
+
       for (const availSlot of timeRangesToUse) {
         console.log(`Processing availability slot: ${availSlot.startTime} - ${availSlot.endTime}`);
         const [startHour, startMin] = availSlot.startTime.split(':').map(Number);
         const [endHour, endMin] = availSlot.endTime.split(':').map(Number);
-        
+
         const startTimeMinutes = startHour * 60 + startMin;
         const endTimeMinutes = endHour * 60 + endMin;
-        
+
         console.log(`Time range in minutes: ${startTimeMinutes} to ${endTimeMinutes}`);
-        
+
         let currentTimeMinutes = startTimeMinutes;
         let slotIndex = 0;
-        
+
         while (currentTimeMinutes + appointmentDuration <= endTimeMinutes) {
           const slotHour = Math.floor(currentTimeMinutes / 60);
           const slotMin = currentTimeMinutes % 60;
-          
+
           // Create the appointment time for conflict checking IN THE USER'S TIMEZONE
           const slotTimeStr = `${dateStrInUserTz} ${String(slotHour).padStart(2, '0')}:${String(slotMin).padStart(2, '0')}:00`;
           const appointmentDateTime = dayjs.tz(slotTimeStr, userTimezone).toDate();
 
           console.log(`Checking slot ${slotIndex++}: ${slotHour}:${slotMin.toString().padStart(2, '0')} (${appointmentDateTime.toISOString()})`);
-          
+
           // Check for conflicts with existing bookings (including buffer times)
           const hasConflict = dateBookings.some(booking => {
             const bookingApptType = bookingAppointmentTypes.get(booking.appointmentTypeId);
             const bookingBufferBefore = bookingApptType?.bufferTimeBefore || 0;
             const bookingBufferAfter = bookingApptType?.bufferTime || 0;
-            
+
             const bookingStart = new Date(booking.appointmentDate);
-            
+
             // Existing booking's effective time range includes prep time before and cleanup time after
             const bookingEffectiveStart = new Date(bookingStart.getTime() - bookingBufferBefore * 60 * 1000);
             const bookingEffectiveEnd = new Date(bookingStart.getTime() + (booking.duration || 30) * 60 * 1000 + bookingBufferAfter * 60 * 1000);
-            
+
             // New slot's effective time range includes prep time before and cleanup time after
             const slotEffectiveStart = new Date(appointmentDateTime.getTime() - bufferTimeBefore * 60 * 1000);
             const slotEffectiveEnd = new Date(appointmentDateTime.getTime() + appointmentDuration * 60 * 1000 + bufferTimeAfter * 60 * 1000);
-            
+
             // Check for overlap between the effective time ranges
             const overlap = slotEffectiveStart < bookingEffectiveEnd && slotEffectiveEnd > bookingEffectiveStart;
             if (overlap) {
@@ -3686,7 +3686,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             return overlap;
           });
-          
+
           if (!hasConflict) {
             // Create the slot time in the business owner's timezone
             // Use the already-computed date in user's timezone (not reinterpret customer's date)
@@ -3701,7 +3701,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } else {
             console.log(`  ⏭️  Slot skipped due to conflict`);
           }
-          
+
           currentTimeMinutes += totalSlotTime;
         }
       }
@@ -3718,16 +3718,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Only filter past slots if customer is selecting today
       const filteredSlots = currentDateInCustomerTz === selectedDateInCustomerTz
         ? slots.filter(slotIsoString => {
-            // Convert UTC slot time to customer's timezone
-            const slotInCustomerTz = dayjs.utc(slotIsoString).tz(customerTz);
-            const isPast = slotInCustomerTz.isBefore(nowInCustomerTz);
+          // Convert UTC slot time to customer's timezone
+          const slotInCustomerTz = dayjs.utc(slotIsoString).tz(customerTz);
+          const isPast = slotInCustomerTz.isBefore(nowInCustomerTz);
 
-            if (isPast) {
-              console.log(`  ⏭️  Filtering past slot: ${slotInCustomerTz.format('YYYY-MM-DD HH:mm:ss')} (before ${nowInCustomerTz.format('YYYY-MM-DD HH:mm:ss')})`);
-            }
+          if (isPast) {
+            console.log(`  ⏭️  Filtering past slot: ${slotInCustomerTz.format('YYYY-MM-DD HH:mm:ss')} (before ${nowInCustomerTz.format('YYYY-MM-DD HH:mm:ss')})`);
+          }
 
-            return !isPast;
-          })
+          return !isPast;
+        })
         : slots;
 
       console.log(`Generated ${slots.length} time slots, ${filteredSlots.length} after filtering past slots:`, filteredSlots);
@@ -3738,6 +3738,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Failed to get available slots",
         error: error instanceof Error ? error.message : "Unknown error"
       });
+    }
+  });
+
+  // Public availability endpoint (no authentication required) - for public booking pages
+  app.get("/api/public/availability/:userId", async (req, res) => {
+    try {
+      const availability = await storage.getAvailabilityByUser(req.params.userId);
+      console.log(`GET /api/public/availability/${req.params.userId} - Found ${availability.length} records:`, availability);
+      res.json(availability);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch availability", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -3821,10 +3832,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/debug/availability/:userId", async (req, res) => {
     try {
       const availability = await storage.getAvailabilityByUser(req.params.userId);
-      res.json({ 
+      res.json({
         userId: req.params.userId,
         count: availability.length,
-        records: availability 
+        records: availability
       });
     } catch (error) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
@@ -3852,23 +3863,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       // Return public user data only
-      const publicUserData = { 
+      const publicUserData = {
         id: user._id,
         name: user.name,
-        businessName: user.businessName, 
-        logoUrl: user.logoUrl, 
+        businessName: user.businessName,
+        logoUrl: user.logoUrl,
         picture: user.picture,
-        welcomeMessage: user.welcomeMessage, 
-        primaryColor: user.primaryColor, 
-        secondaryColor: user.secondaryColor, 
-        accentColor: user.accentColor, 
+        welcomeMessage: user.welcomeMessage,
+        primaryColor: user.primaryColor,
+        secondaryColor: user.secondaryColor,
+        accentColor: user.accentColor,
         timezone: user.timezone,
-        slug: user.slug
+        slug: user.slug,
+        closedMonths: user.closedMonths,
+        bookingWindow: user.bookingWindow,
+        bookingWindowDate: user.bookingWindowDate,
+        bookingWindowStart: user.bookingWindowStart,
+        bookingWindowEnd: user.bookingWindowEnd
       };
-      
+
       console.log('Public user data returned for slug:', req.params.slug);
       console.log('Picture URL:', publicUserData.picture);
-      
+
       res.json(publicUserData);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch user by slug", error: error instanceof Error ? error.message : "Unknown error" });
@@ -3919,7 +3935,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timezone: z.string().optional(),
         language: z.string().regex(/^[a-z]{2}(-[A-Z]{2})?$/, "Must be a valid language code (e.g., 'en', 'en-US')").optional(),
         dateFormat: z.enum([
-          "MM/dd/yyyy", "dd/MM/yyyy", "yyyy-MM-dd", "dd.MM.yyyy", 
+          "MM/dd/yyyy", "dd/MM/yyyy", "yyyy-MM-dd", "dd.MM.yyyy",
           "dd-MM-yyyy", "MMM dd, yyyy", "dd MMM yyyy"
         ]).optional(),
         timeFormat: z.enum(["12", "24"]).optional(),
@@ -3934,46 +3950,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!validation.success) {
         console.log("Validation failed:", validation.error.issues);
         console.log("Request body:", req.body);
-        return res.status(400).json({ 
-          message: "Invalid request data", 
-          errors: validation.error.issues 
+        return res.status(400).json({
+          message: "Invalid request data",
+          errors: validation.error.issues
         });
       }
 
       const { slug, ...validatedUpdates } = validation.data;
       const finalUpdates: any = { ...validatedUpdates };
-      
+
       // Auto-generate slug from business name if business name is updated
       if (validatedUpdates.businessName) {
         const baseSlug = toSlug(validatedUpdates.businessName);
-        
+
         // Check for reserved slugs - block exact matches or any slugs that start with reserved terms
-        const isReservedSlug = RESERVED_SLUGS.some(reserved => 
+        const isReservedSlug = RESERVED_SLUGS.some(reserved =>
           baseSlug === reserved || baseSlug.startsWith(reserved)
         );
-        
+
         if (isReservedSlug) {
-          return res.status(400).json({ 
-            message: `Business name "${validatedUpdates.businessName}" generates a reserved URL path. Please choose a different business name.` 
+          return res.status(400).json({
+            message: `Business name "${validatedUpdates.businessName}" generates a reserved URL path. Please choose a different business name.`
           });
         }
-        
+
         const uniqueSlug = await ensureUniqueSlug(baseSlug, req.params.id);
-        
+
         // Double-check that the final unique slug is not reserved
-        const isUniqueSlugReserved = RESERVED_SLUGS.some(reserved => 
+        const isUniqueSlugReserved = RESERVED_SLUGS.some(reserved =>
           uniqueSlug === reserved || uniqueSlug.startsWith(reserved)
         );
-        
+
         if (isUniqueSlugReserved) {
-          return res.status(400).json({ 
-            message: `Business name generates a reserved URL path. Please choose a different business name.` 
+          return res.status(400).json({
+            message: `Business name generates a reserved URL path. Please choose a different business name.`
           });
         }
-        
+
         finalUpdates.slug = uniqueSlug;
       }
-      
+
       // NEVER accept manual slug updates - ignore any slug field in body
 
       const user = await storage.updateUser(req.params.id, finalUpdates);
@@ -3991,117 +4007,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const session = req.session as any;
       const userId = session.userId;
-      
+
       const { newEmail } = req.body;
-      
+
       if (!newEmail || typeof newEmail !== 'string') {
         return res.status(400).json({ message: 'New email address is required' });
       }
-      
+
       // Basic email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(newEmail)) {
         return res.status(400).json({ message: 'Invalid email address format' });
       }
-      
+
       // Get current user to check if email is different
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
-      
+
       if (newEmail.toLowerCase() === user.email?.toLowerCase()) {
         return res.status(400).json({ message: 'New email must be different from current email' });
       }
-      
+
       // Check if email is already taken
       const existingUser = await storage.getUserByEmail(newEmail);
       if (existingUser && existingUser._id !== userId) {
         return res.status(400).json({ message: 'This email address is already in use' });
       }
-      
+
       // Generate 6-digit OTP
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      
+
       // Store OTP with 10-minute expiration
       emailChangeOtps.set(userId, {
         otp,
         newEmail: newEmail.toLowerCase(),
         expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
       });
-      
+
       // Send OTP email
       await sendEmailChangeOtp(newEmail, otp);
-      
+
       res.json({ message: 'OTP sent successfully' });
     } catch (error) {
       console.error('Error sending OTP:', error);
-      res.status(500).json({ 
-        message: 'Failed to send OTP', 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      res.status(500).json({
+        message: 'Failed to send OTP',
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
-  
+
   // Verify OTP and change email
   app.post("/api/users/change-email/verify-otp", requireAuth, async (req, res) => {
     try {
       const session = req.session as any;
       const userId = session.userId;
-      
+
       const { newEmail, otp } = req.body;
-      
+
       if (!newEmail || !otp) {
         return res.status(400).json({ message: 'Email and OTP are required' });
       }
-      
+
       if (typeof otp !== 'string' || otp.length !== 6) {
         return res.status(400).json({ message: 'OTP must be 6 digits' });
       }
-      
+
       // Get stored OTP data
       const storedData = emailChangeOtps.get(userId);
       if (!storedData) {
         return res.status(400).json({ message: 'OTP not found or expired. Please request a new OTP.' });
       }
-      
+
       // Check expiration
       if (storedData.expiresAt < Date.now()) {
         emailChangeOtps.delete(userId);
         return res.status(400).json({ message: 'OTP has expired. Please request a new OTP.' });
       }
-      
+
       // Verify OTP and email match
       if (storedData.otp !== otp || storedData.newEmail.toLowerCase() !== newEmail.toLowerCase()) {
         return res.status(400).json({ message: 'Invalid OTP or email mismatch' });
       }
-      
+
       // Get user to verify they still exist
       const user = await storage.getUser(userId);
       if (!user) {
         emailChangeOtps.delete(userId);
         return res.status(404).json({ message: 'User not found' });
       }
-      
+
       // Check if email is still available
       const existingUser = await storage.getUserByEmail(newEmail);
       if (existingUser && existingUser._id !== userId) {
         emailChangeOtps.delete(userId);
         return res.status(400).json({ message: 'This email address is already in use' });
       }
-      
+
       // Update email in Convex
       await storage.updateUser(userId, { email: newEmail.toLowerCase() });
-      
+
       // Remove OTP after successful change
       emailChangeOtps.delete(userId);
-      
+
       res.json({ message: 'Email changed successfully' });
     } catch (error) {
       console.error('Error verifying OTP:', error);
-      res.status(500).json({ 
-        message: 'Failed to verify OTP', 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      res.status(500).json({
+        message: 'Failed to verify OTP',
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
@@ -4111,7 +4127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const session = req.session as any;
       const userId = session.userId;
-      
+
       // Get current user to get email
       const user = await storage.getUser(userId);
       if (!user) {
@@ -4121,69 +4137,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user.email) {
         return res.status(400).json({ message: 'User email not found' });
       }
-      
+
       // Generate 6-digit OTP
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      
+
       // Store OTP with 10-minute expiration
       passwordChangeOtps.set(userId, {
         otp,
         expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
       });
-      
+
       // Send OTP email
       await sendPasswordChangeOtp(user.email, otp);
-      
+
       res.json({ message: 'OTP sent successfully' });
     } catch (error) {
       console.error('Error sending password change OTP:', error);
-      res.status(500).json({ 
-        message: 'Failed to send OTP', 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      res.status(500).json({
+        message: 'Failed to send OTP',
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
-  
+
   // Verify OTP for password change
   app.post("/api/users/change-password/verify-otp", requireAuth, async (req, res) => {
     try {
       const session = req.session as any;
       const userId = session.userId;
-      
+
       const { otp } = req.body;
-      
+
       if (!otp) {
         return res.status(400).json({ message: 'OTP is required' });
       }
-      
+
       if (typeof otp !== 'string' || otp.length !== 6) {
         return res.status(400).json({ message: 'OTP must be 6 digits' });
       }
-      
+
       // Get stored OTP data
       const storedData = passwordChangeOtps.get(userId);
       if (!storedData) {
         return res.status(400).json({ message: 'OTP not found or expired. Please request a new OTP.' });
       }
-      
+
       // Check expiration
       if (storedData.expiresAt < Date.now()) {
         passwordChangeOtps.delete(userId);
         return res.status(400).json({ message: 'OTP has expired. Please request a new OTP.' });
       }
-      
+
       // Verify OTP
       if (storedData.otp !== otp) {
         return res.status(400).json({ message: 'Invalid OTP' });
       }
-      
+
       // OTP verified - keep it stored for the password update step
       res.json({ message: 'OTP verified successfully' });
     } catch (error) {
       console.error('Error verifying password change OTP:', error);
-      res.status(500).json({ 
-        message: 'Failed to verify OTP', 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      res.status(500).json({
+        message: 'Failed to verify OTP',
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
@@ -4193,45 +4209,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const session = req.session as any;
       const userId = session.userId;
-      
+
       const { newPassword } = req.body;
-      
+
       if (!newPassword) {
         return res.status(400).json({ message: 'New password is required' });
       }
-      
+
       if (typeof newPassword !== 'string' || newPassword.length < 12) {
         return res.status(400).json({ message: 'Password must be at least 12 characters long' });
       }
-      
+
       // Verify OTP was previously verified
       const storedData = passwordChangeOtps.get(userId);
       if (!storedData) {
         return res.status(400).json({ message: 'Please verify your OTP first' });
       }
-      
+
       // Get user to verify they still exist
       const user = await storage.getUser(userId);
       if (!user) {
         passwordChangeOtps.delete(userId);
         return res.status(404).json({ message: 'User not found' });
       }
-      
+
       // Hash the new password
       const hashedPassword = await bcrypt.hash(newPassword, 12);
-      
+
       // Update password in Convex
       await storage.updateUser(userId, { password: hashedPassword });
-      
+
       // Remove OTP after successful password change
       passwordChangeOtps.delete(userId);
-      
+
       res.json({ message: 'Password changed successfully' });
     } catch (error) {
       console.error('Error updating password:', error);
-      res.status(500).json({ 
-        message: 'Failed to update password', 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      res.status(500).json({
+        message: 'Failed to update password',
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
@@ -4278,7 +4294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Before deleting from Convex, delete Digital Ocean images if they exist
       try {
         const branding = await storage.getBranding(userId);
-        
+
         if (branding) {
           // Delete logo from Digital Ocean if it exists
           if (branding.logoUrl && isSpacesUrl(branding.logoUrl)) {
@@ -4391,7 +4407,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const blockedDates = await storage.getBlockedDatesByUser(userId);
       const blockedDate = blockedDates.find(b => b._id === req.params.id);
-      
+
       if (!blockedDate) {
         return res.status(404).json({ message: "Blocked date not found" });
       }
@@ -4399,13 +4415,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updates = insertBlockedDateSchema.partial().parse(req.body);
       // Strip userId to prevent ownership changes
       delete (updates as any).userId;
-      
+
       const updatedBlockedDate = await storage.updateBlockedDate(req.params.id, updates);
-      
+
       if (!updatedBlockedDate) {
         return res.status(404).json({ message: "Blocked date not found" });
       }
-      
+
       res.json({ message: "Blocked date updated successfully", blockedDate: updatedBlockedDate });
     } catch (error) {
       res.status(400).json({ message: "Invalid blocked date data", error: error instanceof Error ? error.message : "Unknown error" });
@@ -4429,7 +4445,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = (req.session as any)?.userId;
       if (!userId) return 0;
-      
+
       const existingTypes = await storage.getAppointmentTypesByUser(userId);
       return existingTypes.length;
     } catch (error) {
@@ -4444,7 +4460,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Honor query userId for public booking, else use session or demo
       const userId = req.query.userId as string || (req.session as any)?.userId || "demo-user-id";
       const appointmentTypes = await storage.getAppointmentTypesByUser(userId);
-      
+
       // Check if user is on free plan and has more than 1 service
       // If they downgraded from Pro and have more than 1 active service, set all services to inactive
       const features = await getUserFeatures(userId);
@@ -4460,7 +4476,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.json(updatedAppointmentTypes);
         }
       }
-      
+
       res.json(appointmentTypes);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch appointment types", error: error instanceof Error ? error.message : "Unknown error" });
@@ -4486,17 +4502,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
-      
+
       // Check user's plan and enforce appointment type limit
       const features = await getUserFeatures(userId);
       if (features.appointmentTypeLimit !== null) {
         // Get current appointment types count for this user
         const existingAppointmentTypes = await storage.getAppointmentTypesByUser(userId);
         const currentCount = existingAppointmentTypes.length;
-        
+
         if (currentCount >= features.appointmentTypeLimit) {
-          return res.status(403).json({ 
-            message: `Upgrade to Pro plan to add more services.` 
+          return res.status(403).json({
+            message: `Upgrade to Pro plan to add more services.`
           });
         }
       }
@@ -4505,16 +4521,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         userId
       });
-      
+
       if (!validation.success) {
         console.error('Validation error:', validation.error.issues);
         console.error('Request body:', JSON.stringify(req.body, null, 2));
-        return res.status(400).json({ 
-          message: "Invalid appointment type data", 
-          errors: validation.error.issues 
+        return res.status(400).json({
+          message: "Invalid appointment type data",
+          errors: validation.error.issues
         });
       }
-      
+
       console.log('Creating appointment type with data:', JSON.stringify(validation.data, null, 2));
       const appointmentType = await storage.createAppointmentType(validation.data);
       res.json({ message: "Appointment type created successfully", appointmentType });
@@ -4547,14 +4563,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validation = insertAppointmentTypeSchema.partial().safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ 
-          message: "Invalid appointment type data", 
-          errors: validation.error.issues 
+        return res.status(400).json({
+          message: "Invalid appointment type data",
+          errors: validation.error.issues
         });
       }
 
       let updates = validation.data;
-      
+
       // Handle intakeFormId: if null, we want to clear it
       // Check the raw request body to see if intakeFormId was explicitly set to null
       if ('intakeFormId' in req.body) {
@@ -4566,12 +4582,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           delete updates.intakeFormId;
         }
       }
-      
+
       // Handle requirePayment: explicitly include boolean values (including false)
       if ('requirePayment' in req.body) {
         updates.requirePayment = req.body.requirePayment === true;
       }
-      
+
       console.log('Updating appointment type with:', updates);
       const appointmentType = await storage.updateAppointmentType(req.params.id, updates);
       res.json({ message: "Appointment type updated successfully", appointmentType });
@@ -4619,14 +4635,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Fetching intake forms for userId:', userId);
       let forms = await storage.getIntakeFormsByUser(userId);
       console.log('Forms fetched from storage:', forms?.length || 0, Array.isArray(forms));
-      
+
       // Ensure we always return ALL forms (including inactive ones)
       // The query should return all forms, but let's make sure
       if (!Array.isArray(forms)) {
         console.warn('Forms is not an array, setting to empty array. Type:', typeof forms, 'Value:', forms);
         forms = [];
       }
-      
+
       // Check if user is on free plan and has more than 1 form
       // If they downgraded from Pro, set all forms to inactive so they can choose one to activate
       let isFreePlan = false;
@@ -4649,13 +4665,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isFreePlan = true;
         }
       }
-      
+
       // If on free plan and has more than 1 form, check for multiple active forms
       if (isFreePlan && forms.length > 1) {
         const activeForms = forms.filter(f => f.isActive);
         console.log('Total forms:', forms.length, 'Active forms:', activeForms.length);
         console.log('Forms status:', forms.map(f => ({ id: f._id, name: f.name, isActive: f.isActive })));
-        
+
         // If there are multiple active forms, set all to inactive (they downgraded from Pro)
         // This ensures that when they downgrade with multiple active forms, all become inactive
         // and they can choose one to activate. If they have only 1 active, that's allowed on free plan.
@@ -4665,14 +4681,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             const result = await storage.setAllIntakeFormsInactiveForUser(userId);
             console.log('setAllIntakeFormsInactiveForUser returned:', result);
-            
+
             // Fetch updated forms - ensure we get ALL forms (including inactive ones)
             forms = await storage.getIntakeFormsByUser(userId);
             if (!Array.isArray(forms)) {
               forms = [];
             }
             console.log('Forms after setting all inactive:', forms.length, forms.map(f => ({ id: f._id, name: f.name, isActive: f.isActive })));
-            
+
             // Verify all forms are now inactive
             const stillActive = forms.filter(f => f.isActive);
             if (stillActive.length > 0) {
@@ -4707,10 +4723,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       }
-      
+
       // Ensure ALL forms are returned (both active and inactive)
       // The query should already return all forms, but this is a safeguard
-      
+
       // Always return ALL forms, regardless of active status
       console.log('Returning forms:', forms.length, forms.map(f => ({ id: f._id, name: f.name, isActive: f.isActive })));
       res.json(forms);
@@ -5032,9 +5048,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next();
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Validation failed", 
-          errors: error.issues 
+        return res.status(400).json({
+          message: "Validation failed",
+          errors: error.issues
         });
       }
       return res.status(400).json({ message: "Invalid request body" });
@@ -5046,39 +5062,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const session = req.session as any;
       const { weeklyHours, timezone, bookingWindow, bookingWindowDate, bookingWindowStart, bookingWindowEnd, closedMonths } = req.body;
-      
-      const updateData: any = { 
-        weeklyHours, 
-        timezone 
+
+      const updateData: any = {
+        weeklyHours,
+        timezone
       };
-      
+
       if (bookingWindow !== undefined) {
         updateData.bookingWindow = bookingWindow;
       }
-      
+
       if (bookingWindowDate !== undefined) {
         updateData.bookingWindowDate = bookingWindowDate;
       }
-      
+
       if (bookingWindowStart !== undefined) {
         updateData.bookingWindowStart = bookingWindowStart;
       }
-      
+
       if (bookingWindowEnd !== undefined) {
         updateData.bookingWindowEnd = bookingWindowEnd;
       }
-      
+
       if (closedMonths !== undefined) {
         updateData.closedMonths = closedMonths;
       }
-      
+
       await storage.updateUser(session.userId, updateData);
-      
+
       res.json({ ok: true });
     } catch (error) {
-      res.status(500).json({ 
-        message: "Failed to save availability settings", 
-        error: error instanceof Error ? error.message : "Unknown error" 
+      res.status(500).json({
+        message: "Failed to save availability settings",
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
@@ -5088,10 +5104,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Public endpoint for viewing available plans  
       const plans = await storage.getAllSubscriptionPlans();
-      
+
       // Public endpoint returns only active plans with pricing info
       const activePlans = plans.filter(plan => plan.isActive);
-      
+
       // Transform to match frontend expectations
       const publicPlans = activePlans.map(plan => ({
         id: plan._id,
@@ -5102,7 +5118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         features: plan.features || {},
         isActive: plan.isActive
       }));
-      
+
       res.json(publicPlans);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch plans", error: error instanceof Error ? error.message : "Unknown error" });
@@ -5114,10 +5130,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Public endpoint for viewing available plans
       const plans = await storage.getAllSubscriptionPlans();
-      
+
       // Public endpoint returns only active plans
       const activePlans = plans.filter(plan => plan.isActive);
-      
+
       res.json(activePlans);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch subscription plans", error: error instanceof Error ? error.message : "Unknown error" });
@@ -5137,7 +5153,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/plans", requireAdmin, async (req, res) => {
     try {
       const { id, name, description, banner, originalPrice,
-              priceMonthly, priceYearly, features, isActive } = req.body;
+        priceMonthly, priceYearly, features, isActive } = req.body;
 
       const normalized: FeaturesShape = applyDefaults(features ?? {});
       const rec = {
@@ -5152,7 +5168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create plan first
       const upserted = await storage.createSubscriptionPlan(rec);
-      
+
       if (!upserted) {
         return res.status(500).json({ message: "Failed to create subscription plan" });
       }
@@ -5185,11 +5201,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const { name, description, banner, originalPrice,
-              priceMonthly, priceYearly, features, isActive } = req.body;
+        priceMonthly, priceYearly, features, isActive } = req.body;
 
       const normalized: FeaturesShape = applyDefaults(features ?? {});
       const updates = {
-        name, 
+        name,
         description: description ?? null,
         banner: banner ?? null,
         originalPrice: originalPrice ?? null,
@@ -5234,7 +5250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/admin/plans/:id", requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
-      
+
       const deleted = await storage.deleteSubscriptionPlan(id);
       if (!deleted) {
         return res.status(404).json({ message: "Plan not found" });
@@ -5278,7 +5294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Honor query userId for public booking, else require authentication
       const queryUserId = req.query.userId as string;
       let userId: string;
-      
+
       if (queryUserId) {
         // Public access via userId query parameter
         userId = queryUserId;
@@ -5290,12 +5306,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         userId = session.userId;
       }
-      
+
       // Default colors
       const DEFAULT_PRIMARY = '#0053F1';
       const DEFAULT_SECONDARY = '#64748B';
       const DEFAULT_ACCENT = '#121212';
-      
+
       let branding = await storage.getBranding(userId);
       if (!branding) {
         // Create default branding if none exists (only for authenticated requests)
@@ -5338,13 +5354,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // User is on free plan
           let needsUpdate = false;
           const updates: any = {};
-          
+
           // Reset colors to defaults if they're different
-          const needsColorReset = 
+          const needsColorReset =
             (branding.primary && branding.primary !== DEFAULT_PRIMARY) ||
             (branding.secondary && branding.secondary !== DEFAULT_SECONDARY) ||
             (branding.accent && branding.accent !== DEFAULT_ACCENT);
-          
+
           if (needsColorReset) {
             updates.primary = DEFAULT_PRIMARY;
             updates.secondary = DEFAULT_SECONDARY;
@@ -5352,11 +5368,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             needsUpdate = true;
             console.log('BACKEND - Reset branding colors to defaults for free user:', userId);
           }
-          
+
           // Remove logo if it exists (free users can't have logos)
           if (branding.logoUrl) {
             console.log('BACKEND - Free user has logo, deleting it:', branding.logoUrl);
-            
+
             // Delete logo from Digital Ocean Spaces if it's a Spaces URL
             if (isSpacesUrl(branding.logoUrl)) {
               try {
@@ -5367,15 +5383,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // Continue with database cleanup even if file deletion fails
               }
             }
-            
+
             // Clear logo from database
             await storage.clearBrandingField(userId, 'logoUrl');
             console.log('BACKEND - Cleared logo from database for free user');
-            
+
             // Re-fetch branding to get updated state
             branding = await storage.getBranding(userId);
           }
-          
+
           // Ensure Daywise branding toggle is ON (usePlatformBranding = true)
           // Check again after potential logo deletion and re-fetch
           if (branding && branding.usePlatformBranding !== true) {
@@ -5383,7 +5399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             needsUpdate = true;
             console.log('BACKEND - Enabled Daywise branding toggle for free user:', userId);
           }
-          
+
           // Apply any remaining updates (colors and usePlatformBranding)
           if (needsUpdate && branding) {
             branding = await storage.updateBranding(userId, updates);
@@ -5407,26 +5423,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/branding/proxy-image", async (req, res) => {
     try {
       const { imageUrl } = req.query;
-      
+
       if (!imageUrl || typeof imageUrl !== 'string') {
         return res.status(400).json({ message: 'imageUrl is required' });
       }
-      
+
       // Fetch the image
       const imageResponse = await fetch(imageUrl);
       if (!imageResponse.ok) {
         return res.status(404).json({ message: 'Image not found' });
       }
-      
+
       const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
       const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
-      
+
       // Set CORS headers
       const origin = req.headers.origin || req.headers.referer?.split('/').slice(0, 3).join('/');
       const allowedOrigins = process.env.NODE_ENV === 'production'
         ? (process.env.FRONTEND_URL || '').split(',').filter(Boolean)
         : ['http://localhost:5173', 'http://localhost:5174'];
-      
+
       if (process.env.NODE_ENV !== 'production') {
         res.setHeader('Access-Control-Allow-Origin', origin || 'http://localhost:5173');
       } else if (origin && allowedOrigins.includes(origin)) {
@@ -5436,12 +5452,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.setHeader('Access-Control-Allow-Origin', '*');
       }
-      
+
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
       res.setHeader('Content-Type', contentType);
-      
+
       res.send(imageBuffer);
     } catch (error: any) {
       console.error('Error proxying image:', error);
@@ -5454,32 +5470,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('BACKEND - Cropped image request received');
       const { imageUrl, cropData } = req.query;
-      
+
       if (!imageUrl || typeof imageUrl !== 'string') {
         return res.status(400).json({ message: 'imageUrl is required' });
       }
-      
+
       if (!cropData) {
         // No crop data, return original image URL
         return res.redirect(imageUrl);
       }
-      
+
       let parsedCropData;
       try {
         parsedCropData = typeof cropData === 'string' ? JSON.parse(cropData) : cropData;
       } catch (e) {
         return res.status(400).json({ message: 'Invalid cropData format' });
       }
-      
+
       if (!parsedCropData.croppedAreaPixels) {
         return res.redirect(imageUrl);
       }
-      
+
       const pixels = parsedCropData.croppedAreaPixels;
       const rotation = parsedCropData.rotation || 0;
-      
+
       console.log('BACKEND - Processing crop:', { pixels, rotation });
-      
+
       // Fetch the image with error handling
       let imageResponse;
       try {
@@ -5496,7 +5512,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('BACKEND - Error fetching image:', fetchError);
         return res.status(500).json({ message: 'Failed to fetch image', error: fetchError.message });
       }
-      
+
       let imageBuffer;
       try {
         imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
@@ -5505,7 +5521,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('BACKEND - Error converting image to buffer:', bufferError);
         return res.status(500).json({ message: 'Failed to process image', error: bufferError.message });
       }
-      
+
       // Apply crop using sharp with error handling
       let croppedBuffer;
       try {
@@ -5517,19 +5533,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const metadata = await sharpImage.metadata();
         const imageWidth = metadata.width || 0;
         const imageHeight = metadata.height || 0;
-        
+
         // Validate and clamp crop coordinates
         const cropLeft = Math.max(0, Math.min(Math.round(pixels.x), imageWidth - 1));
         const cropTop = Math.max(0, Math.min(Math.round(pixels.y), imageHeight - 1));
         const cropWidth = Math.max(1, Math.min(Math.round(pixels.width), imageWidth - cropLeft));
         const cropHeight = Math.max(1, Math.min(Math.round(pixels.height), imageHeight - cropTop));
-        
+
         console.log('BACKEND - Crop bounds:', {
           original: { x: pixels.x, y: pixels.y, width: pixels.width, height: pixels.height },
           clamped: { left: cropLeft, top: cropTop, width: cropWidth, height: cropHeight },
           imageSize: { width: imageWidth, height: imageHeight }
         });
-        
+
         // Extract the crop area from the auto-oriented image
         let croppedImage = sharpImage.extract({
           left: cropLeft,
@@ -5537,12 +5553,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           width: cropWidth,
           height: cropHeight,
         });
-        
+
         // Apply additional rotation to the cropped result if needed (user's manual rotation)
         if (rotation !== 0 && rotation !== 360) {
           croppedImage = croppedImage.rotate(rotation);
         }
-        
+
         // Convert to PNG buffer (preserve original format if possible, but PNG is safe)
         croppedBuffer = await croppedImage.png().toBuffer();
         console.log('BACKEND - Cropped image created, size:', croppedBuffer.length);
@@ -5550,16 +5566,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('BACKEND - Error processing image with sharp:', sharpError);
         return res.status(500).json({ message: 'Failed to process image crop', error: sharpError.message });
       }
-      
+
       // Set CORS headers BEFORE sending response
       const origin = req.headers.origin || req.headers.referer?.split('/').slice(0, 3).join('/');
       const allowedOrigins = process.env.NODE_ENV === 'production'
         ? (process.env.FRONTEND_URL || '').split(',').filter(Boolean)
         : ['http://localhost:5173', 'http://localhost:5174'];
-      
+
       console.log('BACKEND - Request origin:', origin);
       console.log('BACKEND - Allowed origins:', allowedOrigins);
-      
+
       // Always set CORS headers for localhost in development
       if (process.env.NODE_ENV !== 'production') {
         res.setHeader('Access-Control-Allow-Origin', origin || 'http://localhost:5173');
@@ -5570,13 +5586,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.setHeader('Access-Control-Allow-Origin', '*');
       }
-      
+
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
       res.setHeader('Content-Type', 'image/png');
       res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
-      
+
       console.log('BACKEND - CORS headers set:', {
         'Access-Control-Allow-Origin': res.getHeader('Access-Control-Allow-Origin'),
         'Content-Type': res.getHeader('Content-Type')
@@ -5588,20 +5604,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to create cropped image', error: error.message });
     }
   });
-  
+
   // Handle OPTIONS preflight for cropped-image endpoint
   app.options("/api/branding/cropped-image", (req, res) => {
     const origin = req.headers.origin;
     const allowedOrigins = process.env.NODE_ENV === 'production'
       ? (process.env.FRONTEND_URL || '').split(',').filter(Boolean)
       : ['http://localhost:5173', 'http://localhost:5174'];
-    
+
     if (origin && (allowedOrigins.includes(origin) || allowedOrigins.includes('*'))) {
       res.setHeader('Access-Control-Allow-Origin', origin);
     } else if (process.env.NODE_ENV !== 'production') {
       res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
     }
-    
+
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -5614,7 +5630,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const session = req.session as any;
       const userId = session.userId;
       const { primary, secondary, accent, usePlatformBranding, displayName, showDisplayName, showProfilePicture, logoCropData, profileCropData } = req.body || {};
-      
+
       // Plan gate using feature system (disallow custom colors on Free)
       // TODO: Re-enable plan gate later
       // const { getUserFeatures } = await import("./lib/plan-features");
@@ -5622,7 +5638,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // if (!features.customBranding) {
       //   return res.status(403).json({ message: "Branding customization requires Pro Plan." });
       // }
-      
+
       // Validate hex colors
       const HEX_REGEX = /^#[0-9A-Fa-f]{6}$/;
       for (const color of [primary, secondary, accent]) {
@@ -5647,10 +5663,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } else {
         branding = await storage.updateBranding(userId, {
-          primary, secondary, accent, 
+          primary, secondary, accent,
           usePlatformBranding: nextUsePlatformBranding,
           displayName,
-          showDisplayName, 
+          showDisplayName,
           showProfilePicture,
           logoCropData: logoCropData !== undefined ? logoCropData : undefined,
           profileCropData: profileCropData !== undefined ? profileCropData : undefined
@@ -5672,7 +5688,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // plan gate using hardened getUserFeatures
       // const { getUserFeatures } = await import("./lib/plan-features");
       // const features = await getUserFeatures(userId);
-      
+
       // if (!features.customBranding) {
       //   return res.status(403).json({ message: "Logo upload not available in your plan" });
       // }
@@ -5680,7 +5696,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if this is an edit (no new file upload) or new upload
       const isEdit = req.body.isEdit === 'true';
       const file = req.file;
-      
+
       if (!isEdit && !file) {
         return res.status(400).json({ message: "No file provided" });
       }
@@ -5703,10 +5719,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       let logoUrl = existingBranding?.logoUrl;
-      
+
       // If new file is uploaded, delete old logo and upload new one
       if (file) {
-        if (!["image/png","image/jpeg","image/gif"].includes(file.mimetype)) {
+        if (!["image/png", "image/jpeg", "image/gif"].includes(file.mimetype)) {
           return res.status(400).json({ message: "Only PNG/JPG/GIF allowed" });
         }
 
@@ -5748,10 +5764,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updatedAt: Date.now()
       });
 
-      console.log('BACKEND - Returning logo response:', { 
-        logoUrl, 
+      console.log('BACKEND - Returning logo response:', {
+        logoUrl,
         logoCropData: logoCropData ? 'present' : 'null',
-        logoCropDataDetails: logoCropData 
+        logoCropDataDetails: logoCropData
       });
       return res.json({ logoUrl, logoCropData });
     } catch (e: any) {
@@ -5799,7 +5815,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // plan gate using hardened getUserFeatures
       // const { getUserFeatures } = await import("./lib/plan-features");
       // const features = await getUserFeatures(userId);
-      
+
       // if (!features.customBranding) {
       //   return res.status(403).json({ message: "Profile picture upload not available in your plan" });
       // }
@@ -5807,7 +5823,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if this is an edit (no new file upload) or new upload
       const isEdit = req.body.isEdit === 'true';
       const file = req.file;
-      
+
       if (!isEdit && !file) {
         return res.status(400).json({ message: "No file provided" });
       }
@@ -5830,10 +5846,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       let profilePictureUrl = existingBranding?.profilePictureUrl;
-      
+
       // If new file is uploaded, delete old profile picture and upload new one
       if (file) {
-        if (!["image/png","image/jpeg","image/gif"].includes(file.mimetype)) {
+        if (!["image/png", "image/jpeg", "image/gif"].includes(file.mimetype)) {
           return res.status(400).json({ message: "Only PNG/JPG/GIF allowed" });
         }
 
@@ -5869,16 +5885,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('BACKEND - No crop data in request body');
       }
 
-      await storage.updateBranding(userId, { 
+      await storage.updateBranding(userId, {
         profilePictureUrl: profilePictureUrl || undefined,
         profileCropData: profileCropData || undefined,
-        updatedAt: Date.now() 
+        updatedAt: Date.now()
       });
-      
-      console.log('BACKEND - Returning profile response:', { 
-        profilePictureUrl, 
+
+      console.log('BACKEND - Returning profile response:', {
+        profilePictureUrl,
         profileCropData: profileCropData ? 'present' : 'null',
-        profileCropDataDetails: profileCropData 
+        profileCropDataDetails: profileCropData
       });
       return res.json({ profilePictureUrl, profileCropData });
     } catch (e: any) {
@@ -5922,16 +5938,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const session = req.session as any;
       const userId = session.userId;
-      
+
       // Get user subscription and plan
       const subscription = await storage.getUserSubscription(userId);
       const plan = subscription ? await storage.getSubscriptionPlan(subscription.planId) : null;
-      
+
       // Resolve user features using the new feature system
       const { getUserFeatures } = await import("./lib/plan-features");
       const features = await getUserFeatures(userId);
-      
-      res.json({ 
+
+      res.json({
         subscription,
         plan,
         features
@@ -5944,19 +5960,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/user-subscriptions", requireAuth, async (req, res) => {
     try {
       const session = req.session as any;
-      
+
       // Create subscription data, enforcing userId from session to prevent privilege escalation
       const subscriptionData = insertUserSubscriptionSchema.parse({
         ...req.body,
         userId: session.userId // Server-side override prevents horizontal privilege escalation
       });
-      
+
       // Check if user already has a subscription
       const existingSubscription = await storage.getUserSubscription(session.userId);
       if (existingSubscription) {
         return res.status(409).json({ message: "User already has an active subscription" });
       }
-      
+
       const subscription = await storage.createUserSubscription(subscriptionData);
       res.json({ message: "User subscription created successfully", subscription });
     } catch (error) {
@@ -5971,21 +5987,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const session = req.session as any;
       const subscriptionId = req.params.id;
-      
+
       // Create update schema that excludes system-managed fields and userId to prevent privilege escalation
       const updateSubscriptionSchema = insertUserSubscriptionSchema.partial();
-      
+
       const parseResult = updateSubscriptionSchema.safeParse(req.body);
       if (!parseResult.success) {
         return res.status(400).json({ message: "Invalid update data", error: parseResult.error.issues });
       }
-      
+
       // Get existing subscription to verify ownership
       const existingSubscription = await storage.getUserSubscription(session.userId);
       if (!existingSubscription || existingSubscription._id !== subscriptionId) {
         return res.status(404).json({ message: "Subscription not found or access denied" });
       }
-      
+
       // Filter out userId to prevent privilege escalation (id, createdAt, updatedAt already excluded by schema)
       const updateData = { ...parseResult.data };
       if ('userId' in updateData) {
@@ -6056,7 +6072,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get or create subscription for this user
       let sub = await storage.getUserSubscription(userId);
-      
+
       if (sub) {
         // Update existing subscription to free plan
         await storage.updateUserSubscription(userId, {
@@ -6095,7 +6111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       let priceId = interval === "year" ? plan.stripePriceYearly : plan.stripePriceMonthly;
-      
+
       // If no Stripe price exists, create it
       if (!priceId) {
         const { ensureStripePrices } = await import('./lib/stripe');
@@ -6107,7 +6123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           stripePriceMonthly: plan.stripePriceMonthly,
           stripePriceYearly: plan.stripePriceYearly
         });
-        
+
         // Update the plan in database with new price IDs
         if (prices.monthly && interval === "month") {
           await storage.updateSubscriptionPlan(planId, { stripePriceMonthly: prices.monthly });
@@ -6116,7 +6132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.updateSubscriptionPlan(planId, { stripePriceYearly: prices.yearly });
           priceId = prices.yearly;
         }
-        
+
         if (!priceId) {
           return res.status(400).json({ message: "Plan interval not purchasable" });
         }
@@ -6125,11 +6141,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // ensure stripe customer
       let sub = await storage.getUserSubscription(userId);
       let customerId = sub?.stripeCustomerId;
-      
+
       if (!customerId) {
         const customer = await stripe.customers.create({ metadata: { userId } });
         customerId = customer.id;
-        
+
         if (sub) {
           sub = await storage.updateUserSubscription(userId, { stripeCustomerId: customerId });
         } else {
@@ -6193,7 +6209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (promotionCodes.data.length > 0) {
           const promoCode = promotionCodes.data[0];
           const coupon = promoCode.coupon;
-          
+
           return res.json({
             valid: true,
             type: 'promotion_code',
@@ -6211,7 +6227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // If not found as promotion code, try as direct coupon ID
         const coupon = await stripe.coupons.retrieve(code);
-        
+
         if (coupon && coupon.valid) {
           return res.json({
             valid: true,
@@ -6228,22 +6244,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        return res.status(404).json({ 
-          valid: false, 
-          message: "Invalid or expired coupon code" 
+        return res.status(404).json({
+          valid: false,
+          message: "Invalid or expired coupon code"
         });
       } catch (err: any) {
         if (err.code === 'resource_missing') {
-          return res.status(404).json({ 
-            valid: false, 
-            message: "Invalid or expired coupon code" 
+          return res.status(404).json({
+            valid: false,
+            message: "Invalid or expired coupon code"
           });
         }
         throw err;
       }
     } catch (e: any) {
-      return res.status(500).json({ 
-        message: e?.message ?? "Error validating coupon" 
+      return res.status(500).json({
+        message: e?.message ?? "Error validating coupon"
       });
     }
   });
@@ -6633,7 +6649,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create the booking using the same logic as /api/public-bookings
       const validatedData = insertBookingSchema.parse(bookingData);
-      
+
       // Additional validation
       if (!validatedData.customerName?.trim()) {
         return res.status(400).json({ message: "Customer name is required" });
@@ -6665,8 +6681,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (hasBlockedConflict) {
-        return res.status(409).json({ 
-          message: "The selected date and time is no longer available. Please choose a different time slot." 
+        return res.status(409).json({
+          message: "The selected date and time is no longer available. Please choose a different time slot."
         });
       }
 
@@ -6689,11 +6705,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (hasBookingConflict) {
-        return res.status(409).json({ 
-          message: "The selected time slot is no longer available. Please choose a different time." 
+        return res.status(409).json({
+          message: "The selected time slot is no longer available. Please choose a different time."
         });
       }
-      
+
       const booking = await storage.createBooking(validatedData);
 
       if (!booking) {
@@ -6714,7 +6730,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Update responses with new file URLs
             const updatedResponses = tempSubmission.responses.map((response: any) => {
               if (response.fileUrls && response.fileUrls.length > 0) {
-                const fieldFileUrls = newFileUrls.filter((url: string) => 
+                const fieldFileUrls = newFileUrls.filter((url: string) =>
                   tempSubmission.fileUrls?.includes(url)
                 );
                 return { ...response, fileUrls: fieldFileUrls };
@@ -6775,7 +6791,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Get subscription details to determine if annual or monthly
             const subscription = await stripe.subscriptions.retrieve(subscriptionId);
             const priceId = subscription.items.data[0]?.price?.id;
-            
+
             // Determine if annual based on price interval
             let isAnnual = false;
             if (priceId) {
@@ -6799,7 +6815,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           break;
         }
-        
+
         case "customer.subscription.deleted": {
           const subscription = event.data.object as any;
           const customerId = subscription.customer as string;
@@ -6817,19 +6833,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           break;
         }
-        
+
         case "customer.subscription.updated":
         case "customer.subscription.created": {
           const subscription = event.data.object as any;
           await upsertSubscriptionFromStripe(subscription.customer as string, subscription);
           break;
         }
-        
-        default: 
+
+        default:
           console.log(`Unhandled Stripe event type: ${event.type}`);
           break;
       }
-      
+
       res.json({ received: true });
     } catch (error) {
       console.error('Stripe webhook error:', error);
@@ -6876,55 +6892,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allBookings = await storage.getAllBookings();
       const allUserSubscriptions = await storage.getAllUserSubscriptions();
       const allPlans = await storage.getAllSubscriptionPlans();
-      
+
       console.log('[Admin Stats] Fetched data:', {
         users: allUsers.length,
         bookings: allBookings.length,
         subscriptions: allUserSubscriptions.length,
         plans: allPlans.length
       });
-      
+
       const now = new Date();
       const currentMonth = now.getMonth();
       const currentYear = now.getFullYear();
       const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
       const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-      
+
       // Basic metrics
       const totalUsers = allUsers.length;
       const activeSubscriptions = allUserSubscriptions.filter(sub => sub.status === "active").length;
       const totalBookings = allBookings.length;
-      
+
       // User engagement analytics
       const newUsersThisMonth = allUsers.filter(user => {
         const userDate = new Date(user._creationTime);
         return userDate.getMonth() === currentMonth && userDate.getFullYear() === currentYear;
       }).length;
-      
+
       const newUsersLastMonth = allUsers.filter(user => {
         const userDate = new Date(user._creationTime);
         return userDate.getMonth() === lastMonth && userDate.getFullYear() === lastMonthYear;
       }).length;
-      
+
       // Active users (users with bookings in last 30 days)
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       const activeUsers = allUsers.filter(user => {
-        const userBookings = allBookings.filter(booking => 
+        const userBookings = allBookings.filter(booking =>
           booking.userId === user._id && new Date(booking._creationTime) > thirtyDaysAgo
         );
         return userBookings.length > 0;
       }).length;
-      
+
       // Revenue analytics
       let monthlyRevenue = 0;
       let monthlyRevenueLastMonth = 0;
-      
+
       for (const subscription of allUserSubscriptions) {
         if (subscription.status === "active") {
           const plan = allPlans.find(p => p._id === subscription.planId);
           if (plan && plan.priceMonthly && plan.priceMonthly > 0) {
             monthlyRevenue += plan.priceMonthly;
-            
+
             // Check if subscription was active last month too
             const subDate = new Date(subscription._creationTime);
             if (subDate.getMonth() <= lastMonth && subDate.getFullYear() <= lastMonthYear) {
@@ -6933,17 +6949,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       }
-      
+
       // Convert from cents to dollars
       monthlyRevenue = monthlyRevenue / 100;
       monthlyRevenueLastMonth = monthlyRevenueLastMonth / 100;
-      
+
       // Growth calculations
-      const userGrowthRate = newUsersLastMonth > 0 ? 
+      const userGrowthRate = newUsersLastMonth > 0 ?
         ((newUsersThisMonth - newUsersLastMonth) / newUsersLastMonth * 100) : 0;
-      const revenueGrowthRate = monthlyRevenueLastMonth > 0 ? 
+      const revenueGrowthRate = monthlyRevenueLastMonth > 0 ?
         ((monthlyRevenue - monthlyRevenueLastMonth) / monthlyRevenueLastMonth * 100) : 0;
-      
+
       // Churn rate (users who cancelled subscriptions this month)
       const cancelledSubscriptions = allUserSubscriptions.filter(sub => {
         if (sub.status === "cancelled" && sub.updatedAt) {
@@ -6952,22 +6968,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         return false;
       }).length;
-      
+
       const churnRate = activeSubscriptions > 0 ? (cancelledSubscriptions / activeSubscriptions * 100) : 0;
-      
+
       // Average revenue per user (ARPU)
       const arpu = totalUsers > 0 ? monthlyRevenue / totalUsers : 0;
-      
+
       // Plan distribution
       // Get admin user IDs to exclude from counts
       const adminUserIds = allUsers.filter(user => user.isAdmin).map(user => user._id);
-      
+
       // Get all non-admin user IDs
       const nonAdminUserIds = allUsers.filter(user => !user.isAdmin).map(user => user._id);
-      
+
       const planDistribution = allPlans.map(plan => {
         let subscriptions = 0;
-        
+
         if (plan.planId === "free") {
           // For free plan: count all non-admin users who either:
           // 1. Have no subscription record, OR
@@ -6983,63 +6999,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return sub.planId === plan.planId && sub.status === "active" && !userIsAdmin;
           }).length;
         }
-        
+
         return {
           planName: plan.name,
           subscriptions,
           revenue: (subscriptions * (plan.priceMonthly || 0)) / 100
         };
       });
-      
+
       // Booking trends (last 6 months)
       const bookingTrends = [];
       for (let i = 5; i >= 0; i--) {
         const targetDate = new Date(currentYear, currentMonth - i, 1);
         const bookingsInMonth = allBookings.filter(booking => {
           const bookingDate = new Date(booking._creationTime);
-          return bookingDate.getMonth() === targetDate.getMonth() && 
-                 bookingDate.getFullYear() === targetDate.getFullYear();
+          return bookingDate.getMonth() === targetDate.getMonth() &&
+            bookingDate.getFullYear() === targetDate.getFullYear();
         }).length;
-        
+
         bookingTrends.push({
           month: targetDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
           bookings: bookingsInMonth
         });
       }
-      
+
       // User acquisition trends (last 6 months)
       const userTrends = [];
       for (let i = 5; i >= 0; i--) {
         const targetDate = new Date(currentYear, currentMonth - i, 1);
         const usersInMonth = allUsers.filter(user => {
           const userDate = new Date(user._creationTime);
-          return userDate.getMonth() === targetDate.getMonth() && 
-                 userDate.getFullYear() === targetDate.getFullYear();
+          return userDate.getMonth() === targetDate.getMonth() &&
+            userDate.getFullYear() === targetDate.getFullYear();
         }).length;
-        
+
         userTrends.push({
           month: targetDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
           users: usersInMonth
         });
       }
-      
+
       res.json({
         // Basic metrics
         totalUsers,
         activeSubscriptions,
         totalBookings,
         monthlyRevenue,
-        
+
         // Engagement metrics
         newUsersThisMonth,
         activeUsers,
-        
+
         // Growth metrics
         userGrowthRate: Math.round(userGrowthRate * 100) / 100,
         revenueGrowthRate: Math.round(revenueGrowthRate * 100) / 100,
         churnRate: Math.round(churnRate * 100) / 100,
         arpu: Math.round(arpu * 100) / 100,
-        
+
         // Trend data for charts
         bookingTrends,
         userTrends,
@@ -7057,14 +7073,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allBookings = await storage.getAllBookings();
       const allUserSubscriptions = await storage.getAllUserSubscriptions();
       const allPlans = await storage.getAllSubscriptionPlans();
-      
+
       console.log('[Admin Users] Fetched data:', {
         users: allUsers.length,
         bookings: allBookings.length,
         subscriptions: allUserSubscriptions.length,
         plans: allPlans.length
       });
-      
+
       // Format user data for admin interface
       const usersWithDetails = allUsers.map(user => {
         const userBookings = allBookings.filter(booking => booking.userId === user._id);
@@ -7075,9 +7091,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const planId = userSubscription.planId.toLowerCase();
           planDisplayName = planId === "pro" ? "Pro" : "Free";
         }
-        
+
         console.log(`[Admin Users] User ${user.email}: subscription planId=${userSubscription?.planId}, display plan=${planDisplayName}`);
-        
+
         return {
           id: user._id,
           name: user.name || 'No Name', // User's actual name
@@ -7090,7 +7106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: user.isAdmin ? "Admin" : "Active"
         };
       });
-      
+
       res.json(usersWithDetails);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch users", error: error instanceof Error ? error.message : "Unknown error" });
@@ -7102,7 +7118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.params.id;
       const subscription = await storage.getUserSubscription(userId);
-      
+
       if (!subscription) {
         // Return default values if subscription doesn't exist
         return res.json({
@@ -7116,7 +7132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Format the response
       // Use _creationTime as fallback for startDate if not set
       const startDate = subscription.startDate || (subscription as any)._creationTime || null;
-      
+
       const response = {
         plan: subscription.planId === "pro" ? "Pro" : "Free",
         startDate: startDate,
@@ -7170,22 +7186,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.params.id;
       const { suspend } = req.body;
-      
+
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      
+
       // For now, we'll simulate suspension by adding a "suspended" flag
       // In a real app, you might have a separate suspended field or status
-      const updatedUser = await storage.updateUser(userId, { 
+      const updatedUser = await storage.updateUser(userId, {
         // Note: This is a demo implementation - you'd want a proper suspended field in the schema
         businessName: suspend ? `[SUSPENDED] ${user.businessName}` : user.businessName?.replace('[SUSPENDED] ', '') || user.businessName
       });
-      
-      res.json({ 
+
+      res.json({
         message: `User ${suspend ? 'suspended' : 'reactivated'} successfully`,
-        user: updatedUser 
+        user: updatedUser
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to update user status", error: error instanceof Error ? error.message : "Unknown error" });
@@ -7233,7 +7249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
-      
+
       const patterns = await storage.getAvailabilityPatternsByUser(userId);
       res.json(patterns);
     } catch (error) {
@@ -7252,11 +7268,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!pattern) {
         return res.status(404).json({ message: "Availability pattern not found" });
       }
-      
+
       if (pattern.userId !== userId) {
         return res.status(403).json({ message: "Permission denied" });
       }
-      
+
       res.json(pattern);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch availability pattern", error: error instanceof Error ? error.message : "Unknown error" });
@@ -7269,12 +7285,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
-      
+
       const patternData = insertAvailabilityPatternSchema.parse({
         ...req.body,
         userId
       });
-      
+
       const pattern = await storage.createAvailabilityPattern(patternData);
       res.json({ message: "Availability pattern created successfully", pattern });
     } catch (error) {
@@ -7305,18 +7321,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Parse request body and strip userId to prevent ownership changes
       const rawUpdates = req.body;
       delete rawUpdates.userId;
-      
+
       // Validate the updates (only validate required fields if they exist)
       const updates = insertAvailabilityPatternSchema.parse({
         ...existingPattern,
         ...rawUpdates
       });
       const updatedPattern = await storage.updateAvailabilityPattern(req.params.id, updates);
-      
+
       if (!updatedPattern) {
         return res.status(404).json({ message: "Availability pattern not found" });
       }
-      
+
       res.json({ message: "Availability pattern updated successfully", pattern: updatedPattern });
     } catch (error) {
       res.status(400).json({ message: "Invalid availability pattern data", error: error instanceof Error ? error.message : "Unknown error" });
@@ -7342,7 +7358,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!deleted) {
         return res.status(404).json({ message: "Availability pattern not found" });
       }
-      
+
       res.json({ message: "Availability pattern deleted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete availability pattern", error: error instanceof Error ? error.message : "Unknown error" });
@@ -7387,13 +7403,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         appointmentTypeId: req.params.appointmentTypeId
       });
-      
+
       // Verify referenced availability pattern belongs to same user
       const pattern = await storage.getAvailabilityPattern(mappingData.availabilityPatternId);
       if (!pattern || pattern.userId !== userId) {
         return res.status(403).json({ message: "Availability pattern not found or access denied" });
       }
-      
+
       const mapping = await storage.createAppointmentTypeAvailability(mappingData);
       res.json({ message: "Appointment type availability mapping created successfully", mapping });
     } catch (error) {
@@ -7415,7 +7431,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const updates = insertAppointmentTypeAvailabilitySchema.partial().parse(req.body);
-      
+
       // If updating availability pattern reference, verify new pattern belongs to same user
       if (updates.availabilityPatternId) {
         const pattern = await storage.getAvailabilityPattern(updates.availabilityPatternId);
@@ -7423,17 +7439,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ message: "Availability pattern not found or access denied" });
         }
       }
-      
+
       const updatedMapping = await storage.updateAppointmentTypeAvailability(
-        req.params.appointmentTypeId, 
-        req.params.patternId, 
+        req.params.appointmentTypeId,
+        req.params.patternId,
         updates
       );
-      
+
       if (!updatedMapping) {
         return res.status(404).json({ message: "Mapping not found" });
       }
-      
+
       res.json({ message: "Appointment type availability mapping updated successfully", mapping: updatedMapping });
     } catch (error) {
       res.status(400).json({ message: "Invalid mapping data", error: error instanceof Error ? error.message : "Unknown error" });
@@ -7454,14 +7470,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const deleted = await storage.deleteAppointmentTypeAvailability(
-        req.params.appointmentTypeId, 
+        req.params.appointmentTypeId,
         req.params.patternId
       );
-      
+
       if (!deleted) {
         return res.status(404).json({ message: "Mapping not found" });
       }
-      
+
       res.json({ message: "Appointment type availability mapping deleted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete mapping", error: error instanceof Error ? error.message : "Unknown error" });
@@ -7475,16 +7491,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
-      
+
       const { date } = req.query;
-      
+
       let exceptions;
       if (date) {
         exceptions = await storage.getAvailabilityExceptionsByDate(userId, new Date(date as string));
       } else {
         exceptions = await storage.getAvailabilityExceptionsByUser(userId);
       }
-      
+
       res.json(exceptions);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch availability exceptions", error: error instanceof Error ? error.message : "Unknown error" });
@@ -7497,12 +7513,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
-      
+
       const exceptionData = insertAvailabilityExceptionSchema.parse({
         ...req.body,
         userId
       });
-      
+
       // If exception is scoped to appointment type, verify ownership
       if (exceptionData.appointmentTypeId) {
         const appointmentType = await storage.getAppointmentType(exceptionData.appointmentTypeId);
@@ -7510,7 +7526,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ message: "Appointment type not found or access denied" });
         }
       }
-      
+
       const exception = await storage.createAvailabilityException(exceptionData);
       res.json({ message: "Availability exception created successfully", exception });
     } catch (error) {
@@ -7527,7 +7543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const existingException = await storage.getAvailabilityExceptionsByUser(userId);
       const exception = existingException.find(e => e._id === req.params.id);
-      
+
       if (!exception) {
         return res.status(404).json({ message: "Availability exception not found" });
       }
@@ -7535,7 +7551,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updates = insertAvailabilityExceptionSchema.partial().parse(req.body);
       // Strip userId to prevent ownership changes
       delete (updates as any).userId;
-      
+
       // If updating appointment type reference, verify ownership
       if (updates.appointmentTypeId) {
         const appointmentType = await storage.getAppointmentType(updates.appointmentTypeId);
@@ -7543,13 +7559,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ message: "Appointment type not found or access denied" });
         }
       }
-      
+
       const updatedException = await storage.updateAvailabilityException(req.params.id, updates);
-      
+
       if (!updatedException) {
         return res.status(404).json({ message: "Availability exception not found" });
       }
-      
+
       res.json({ message: "Availability exception updated successfully", exception: updatedException });
     } catch (error) {
       res.status(400).json({ message: "Invalid availability exception data", error: error instanceof Error ? error.message : "Unknown error" });
@@ -7565,7 +7581,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const existingExceptions = await storage.getAvailabilityExceptionsByUser(userId);
       const exception = existingExceptions.find(e => e._id === req.params.id);
-      
+
       if (!exception) {
         return res.status(404).json({ message: "Availability exception not found" });
       }
@@ -7574,7 +7590,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!deleted) {
         return res.status(404).json({ message: "Availability exception not found" });
       }
-      
+
       res.json({ message: "Availability exception deleted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete availability exception", error: error instanceof Error ? error.message : "Unknown error" });
@@ -7625,12 +7641,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const plans = await storage.getAllSubscriptionPlans();
       const { ensureStripePrices } = await import('./lib/stripe');
-      
+
       const results = [];
-      
+
       for (const plan of plans) {
         if (!plan.isActive) continue;
-        
+
         try {
           console.log(`Syncing plan "${plan.name}" to Stripe...`);
           const prices = await ensureStripePrices({
@@ -7641,7 +7657,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             stripePriceMonthly: plan.stripePriceMonthly,
             stripePriceYearly: plan.stripePriceYearly
           });
-          
+
           // Update plan with new Stripe price IDs
           const updates: any = {};
           if (prices.monthly) {
@@ -7650,11 +7666,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (prices.yearly) {
             updates.stripePriceYearly = prices.yearly;
           }
-          
+
           if (Object.keys(updates).length > 0) {
             await storage.updateSubscriptionPlan(plan._id, updates);
           }
-          
+
           results.push({
             planId: plan._id,
             planName: plan.name,
@@ -7662,7 +7678,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             monthlyPriceId: prices.monthly || plan.stripePriceMonthly,
             yearlyPriceId: prices.yearly || plan.stripePriceYearly
           });
-          
+
         } catch (error) {
           console.error(`Failed to sync plan ${plan._id}:`, error);
           results.push({
@@ -7673,7 +7689,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-      
+
       res.json({ message: "Stripe sync completed", results });
     } catch (error) {
       console.error('Stripe sync error:', error);
@@ -7712,17 +7728,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/feedback", async (req, res) => {
     try {
       const feedbackData = insertFeedbackSchema.parse(req.body);
-      
+
       // Validate that name and email are provided
       if (!feedbackData.name || !feedbackData.email) {
-        return res.status(400).json({ 
-          message: "Name and email are required" 
+        return res.status(400).json({
+          message: "Name and email are required"
         });
       }
-      
+
       // Store feedback in database
       const feedback = await storage.createFeedback(feedbackData);
-      
+
       // Send email notification
       try {
         await sendFeedbackEmail({
@@ -7735,14 +7751,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('Failed to send feedback email:', emailError);
         // Don't fail the request if email fails, feedback is still saved
       }
-      
+
       res.json({ message: "Feedback submitted successfully" });
     } catch (error) {
       console.error('Create feedback error:', error);
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Invalid feedback data", 
-          errors: error.issues 
+        return res.status(400).json({
+          message: "Invalid feedback data",
+          errors: error.issues
         });
       }
       res.status(500).json({ message: "Failed to submit feedback" });

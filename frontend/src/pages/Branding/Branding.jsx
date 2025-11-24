@@ -57,7 +57,7 @@ const Branding = () => {
   const [profileCropData, setProfileCropData] = useState(null);
   const [selectedLogoFile, setSelectedLogoFile] = useState(null); // Store original file for upload
   const [selectedProfileFile, setSelectedProfileFile] = useState(null); // Store original file for upload
-  
+
   // Get context functions
   const { setImage, setAspect, setShape, resetStates, restoreCropState, imageSrc } = useImageCropContext();
 
@@ -82,7 +82,7 @@ const Branding = () => {
     const fetchAllData = async () => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        
+
         // Fetch branding data, features, user data, and appointment types in parallel
         const [brandingResponse, featuresResponse, userResponse, appointmentTypesResponse] = await Promise.all([
           fetch(`${apiUrl}/api/branding`, {
@@ -105,7 +105,7 @@ const Branding = () => {
           const featuresData = await featuresResponse.json();
           customBranding = featuresData.features?.customBranding || false;
           setHasCustomBranding(customBranding);
-          
+
           // For free plan users, force daywise branding to be ON
           if (!customBranding) {
             setToggleDayWiseBranding(true);
@@ -143,7 +143,7 @@ const Branding = () => {
           } else {
             setLogoCropData(null);
           }
-          
+
           console.log('FRONTEND - Profile crop data from API:', brandingData.profileCropData);
           console.log('FRONTEND - Profile crop data type:', typeof brandingData.profileCropData);
           if (brandingData.profileCropData) {
@@ -165,13 +165,13 @@ const Branding = () => {
           }
           if (brandingData.showDisplayName !== undefined) setIsShownName(brandingData.showDisplayName);
           if (brandingData.showProfilePicture !== undefined) setIsShownProfilePic(brandingData.showProfilePicture);
-          
+
           // Load brand colors (use defaults if not present)
           // Text color maps to accent
           setMainColor(brandingData.primary || "#0053F1");
           setSecondaryColor(brandingData.secondary || "#64748B");
           setTextColor(brandingData.accent || "#121212");
-          
+
           // Only set usePlatformBranding from data if user has custom branding feature
           // Otherwise, it's already forced to true above
           if (brandingData.usePlatformBranding !== undefined && customBranding) {
@@ -187,7 +187,7 @@ const Branding = () => {
           const userDataResponse = await userResponse.json();
           user = userDataResponse.user || userDataResponse;
           setUserData(user);
-          
+
           // Get user's timezone and convert to display label
           if (user.timezone) {
             const mappedTimezone = mapToSupportedTimezone(user.timezone);
@@ -197,7 +197,7 @@ const Branding = () => {
         } else {
           console.error('Failed to fetch user data:', userResponse.status);
         }
-        
+
         // Get timezone options for the dropdown
         const tzOptions = getTimezoneOptions();
         setTimezoneOptions(tzOptions.map(([label]) => label));
@@ -230,7 +230,7 @@ const Branding = () => {
             userPictureImg.onerror = reject;
           }));
         }
-        
+
         // Wait for images to load (but don't block if they fail)
         if (imagePromises.length > 0) {
           await Promise.allSettled(imagePromises);
@@ -248,13 +248,15 @@ const Branding = () => {
         // On error, assume free plan and force branding ON
         setHasCustomBranding(false);
         setToggleDayWiseBranding(true);
+        // Show error toast to help debug
+        toast.error("Failed to load branding settings. Please check your connection or API configuration.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchAllData();
-    
+
     // Cleanup timeout on unmount
     return () => {
       if (saveTimeoutRef.current) {
@@ -267,16 +269,16 @@ const Branding = () => {
   const saveBrandingSettings = async (updates) => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      
+
       // Get current branding to preserve colors and other settings
       const currentBrandingResponse = await fetch(`${apiUrl}/api/branding`, {
         credentials: 'include',
       });
-      
+
       let primary = mainColor || '#0053F1';
       let secondary = secondaryColor || '#64748B';
       let accent = textColor || '#121212'; // Text color maps to accent
-      
+
       if (currentBrandingResponse.ok) {
         const currentBranding = await currentBrandingResponse.json();
         primary = currentBranding.primary || primary;
@@ -314,7 +316,7 @@ const Branding = () => {
     if (savingName) return; // Prevent clicks while saving
     const newValue = !isShownName;
     setSavingName(true);
-    
+
     try {
       // Don't update UI yet - keep toggle in current position while saving
       await saveBrandingSettings({
@@ -323,7 +325,7 @@ const Branding = () => {
         showProfilePicture: isShownProfilePic,
         usePlatformBranding: toggleDaywiseBranding,
       });
-      
+
       // Only update UI after successful save
       setIsShownName(newValue);
       toast.success(newValue ? "Display name is now shown" : "Display name is now hidden");
@@ -338,7 +340,7 @@ const Branding = () => {
     if (savingProfilePic) return; // Prevent clicks while saving
     const newValue = !isShownProfilePic;
     setSavingProfilePic(true);
-    
+
     try {
       // Don't update UI yet - keep toggle in current position while saving
       await saveBrandingSettings({
@@ -347,7 +349,7 @@ const Branding = () => {
         showProfilePicture: newValue,
         usePlatformBranding: toggleDaywiseBranding,
       });
-      
+
       // Only update UI after successful save
       setIsShownProfilePic(newValue);
       toast.success(newValue ? "Profile picture is now shown" : "Profile picture is now hidden");
@@ -364,11 +366,11 @@ const Branding = () => {
       toast.error("This feature is available in Pro plan.");
       return;
     }
-    
+
     if (savingDaywiseBranding) return; // Prevent clicks while saving
     const newValue = !toggleDaywiseBranding;
     setSavingDaywiseBranding(true);
-    
+
     try {
       // Don't update UI yet - keep toggle in current position while saving
       await saveBrandingSettings({
@@ -377,7 +379,7 @@ const Branding = () => {
         showProfilePicture: isShownProfilePic,
         usePlatformBranding: newValue,
       });
-      
+
       // Only update UI after successful save
       setToggleDayWiseBranding(newValue);
       toast.success(newValue ? "Daywise branding is now shown" : "Daywise branding is now hidden");
@@ -393,7 +395,7 @@ const Branding = () => {
     if (loading) return; // Don't save on initial load
     if (!displayNameInitialized.current) return; // Don't save if not initialized yet
     if (displayName === undefined || displayName === null) return; // Don't save if not initialized
-    
+
     // Check if displayName actually changed from last saved value
     const currentDisplayName = displayName || "";
     if (lastSavedDisplayName.current === currentDisplayName) {
@@ -443,7 +445,7 @@ const Branding = () => {
     try {
       // Store the original file for upload when crop is saved
       setSelectedLogoFile(file);
-      
+
       // Read file and set image in context - opens crop editor instantly
       const imageDataUrl = await readFile(file);
       setImage(imageDataUrl);
@@ -455,7 +457,7 @@ const Branding = () => {
       console.error('Error reading file:', error);
       toast.error('Failed to load image');
     }
-    
+
     // Reset input
     event.target.value = '';
   };
@@ -506,7 +508,7 @@ const Branding = () => {
     if (imageUrl.startsWith('data:')) {
       return imageUrl;
     }
-    
+
     // Fetch through backend to avoid CORS issues
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
     try {
@@ -514,11 +516,11 @@ const Branding = () => {
       const response = await fetch(`${apiUrl}/api/branding/proxy-image?imageUrl=${encodeURIComponent(imageUrl)}`, {
         credentials: 'include',
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch image');
       }
-      
+
       const blob = await response.blob();
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -543,21 +545,21 @@ const Branding = () => {
   // Handle edit button click for logo
   const handleEditLogo = async () => {
     if (!logoUrl) return;
-    
+
     try {
       // Fetch image as data URL to avoid CORS issues
       const imageDataUrl = await fetchImageAsDataUrl(logoUrl);
-      
+
       // Load the original image
       setImage(imageDataUrl);
       setAspect(undefined); // No aspect ratio for logo
       setShape('rect');
-      
+
       // Restore previous crop data to show how it was cropped
       if (logoCropData) {
         restoreCropState(logoCropData);
       }
-      
+
       setCropEditorType('logo');
       setShowCropEditor(true);
     } catch (error) {
@@ -572,7 +574,7 @@ const Branding = () => {
       setLogoUploading(true);
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       const formData = new FormData();
-      
+
       // Check if we have a file to upload or an existing logo to edit
       if (!selectedLogoFile && !logoUrl) {
         toast.error('No file selected');
@@ -588,7 +590,7 @@ const Branding = () => {
         // But we need to tell backend it's an edit, not a new upload
         formData.append('isEdit', 'true');
       }
-      
+
       if (cropData) {
         console.log('FRONTEND - Sending logo crop data:', cropData);
         formData.append('cropData', JSON.stringify(cropData));
@@ -613,12 +615,12 @@ const Branding = () => {
       console.log('FRONTEND - Logo cropData received:', data.logoCropData);
       console.log('FRONTEND - Logo cropData type:', typeof data.logoCropData);
       console.log('FRONTEND - Logo cropData is object?', typeof data.logoCropData === 'object' && data.logoCropData !== null);
-      
+
       // Update state with response data
       if (data.logoUrl) {
         setLogoUrl(data.logoUrl);
       }
-      
+
       // Always update crop data - use response data if available, otherwise use what we sent
       // Deep clone to ensure React detects the change
       let finalLogoCropData = null;
@@ -638,7 +640,7 @@ const Branding = () => {
       } else if (cropData) {
         finalLogoCropData = JSON.parse(JSON.stringify(cropData));
       }
-      
+
       console.log('FRONTEND - Setting logoCropData to:', finalLogoCropData);
       console.log('FRONTEND - logoCropData has croppedAreaPixels:', finalLogoCropData?.croppedAreaPixels);
       console.log('FRONTEND - logoCropData croppedAreaPixels details:', finalLogoCropData?.croppedAreaPixels);
@@ -650,7 +652,11 @@ const Branding = () => {
       resetStates(); // Reset context state
     } catch (error) {
       console.error('Error saving logo:', error);
-      toast.error(error.message || 'Failed to save logo');
+      if (error.message === 'Failed to fetch' || error.message.includes('NetworkError')) {
+        toast.error('The backend is not responding');
+      } else {
+        toast.error(error.message || 'Failed to save logo');
+      }
       // Re-throw error so ImageCropEditor can handle it
       throw error;
     } finally {
@@ -678,7 +684,7 @@ const Branding = () => {
     try {
       // Store the original file for upload when crop is saved
       setSelectedProfileFile(file);
-      
+
       // Read file and set image in context - opens crop editor instantly
       const imageDataUrl = await readFile(file);
       setImage(imageDataUrl);
@@ -690,7 +696,7 @@ const Branding = () => {
       console.error('Error reading file:', error);
       toast.error('Failed to load image');
     }
-    
+
     // Reset input
     event.target.value = '';
   };
@@ -698,21 +704,21 @@ const Branding = () => {
   // Handle edit button click for profile
   const handleEditProfile = async () => {
     if (!profileUrl) return;
-    
+
     try {
       // Fetch image as data URL to avoid CORS issues
       const imageDataUrl = await fetchImageAsDataUrl(profileUrl);
-      
+
       // Load the original image
       setImage(imageDataUrl);
       setAspect(1); // Square aspect ratio for profile picture
       setShape('round'); // Circular crop for profile
-      
+
       // Restore previous crop data to show how it was cropped
       if (profileCropData) {
         restoreCropState(profileCropData);
       }
-      
+
       setCropEditorType('profile');
       setShowCropEditor(true);
     } catch (error) {
@@ -727,7 +733,7 @@ const Branding = () => {
       setProfileUploading(true);
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       const formData = new FormData();
-      
+
       // Check if we have a file to upload or an existing profile to edit
       if (!selectedProfileFile && !profileUrl) {
         toast.error('No file selected');
@@ -743,7 +749,7 @@ const Branding = () => {
         // But we need to tell backend it's an edit, not a new upload
         formData.append('isEdit', 'true');
       }
-      
+
       if (cropData) {
         console.log('FRONTEND - Sending profile crop data:', cropData);
         formData.append('cropData', JSON.stringify(cropData));
@@ -768,12 +774,12 @@ const Branding = () => {
       console.log('FRONTEND - Profile cropData received:', data.profileCropData);
       console.log('FRONTEND - Profile cropData type:', typeof data.profileCropData);
       console.log('FRONTEND - Profile cropData is object?', typeof data.profileCropData === 'object' && data.profileCropData !== null);
-      
+
       // Update state with response data
       if (data.profilePictureUrl) {
         setProfileUrl(data.profilePictureUrl);
       }
-      
+
       // Always update crop data - use response data if available, otherwise use what we sent
       // Deep clone to ensure React detects the change
       let finalProfileCropData = null;
@@ -793,7 +799,7 @@ const Branding = () => {
       } else if (cropData) {
         finalProfileCropData = JSON.parse(JSON.stringify(cropData));
       }
-      
+
       console.log('FRONTEND - Setting profileCropData to:', finalProfileCropData);
       console.log('FRONTEND - profileCropData has croppedAreaPixels:', finalProfileCropData?.croppedAreaPixels);
       console.log('FRONTEND - profileCropData croppedAreaPixels details:', finalProfileCropData?.croppedAreaPixels);
@@ -805,7 +811,11 @@ const Branding = () => {
       resetStates(); // Reset context state
     } catch (error) {
       console.error('Error saving profile picture:', error);
-      toast.error(error.message || 'Failed to save profile picture');
+      if (error.message === 'Failed to fetch' || error.message.includes('NetworkError')) {
+        toast.error('The backend is not responding');
+      } else {
+        toast.error(error.message || 'Failed to save profile picture');
+      }
       // Re-throw error so ImageCropEditor can handle it
       throw error;
     } finally {
@@ -900,483 +910,483 @@ const Branding = () => {
           </div>
         ) : (
           <div className="main-wrapper">
-          <div className="logo-con">
-            <h3 className={!hasCustomBranding ? "grayed-out" : ""}>
-              <PremiumIcon />
-              Logo
-            </h3>
-            <div className="upload-con">
-              <div className={`logo-display-box ${!hasCustomBranding ? "grayed-out" : ""}`}>
-                {logoUrl ? (
-                  // State: Logo uploaded - show cropped version
-                  (() => {
-                    console.log('BRANDING RENDER - Logo CroppedImage props:', {
-                      src: logoUrl,
-                      hasCropData: !!logoCropData,
-                      cropData: logoCropData,
-                      croppedAreaPixels: logoCropData?.croppedAreaPixels
-                    });
-                    return (
-                      <CroppedImage
-                        src={logoUrl}
-                        cropData={logoCropData}
-                        alt="Uploaded Logo"
-                        className="uploaded-logo"
-                        key={`logo-${logoUrl}-${logoCropData ? JSON.stringify(logoCropData.croppedAreaPixels) : 'no-crop'}`}
-                      />
-                    );
-                  })()
-                ) : (
-                  // State: No logo
-                  <div className={`no-logo-placeholder ${!hasCustomBranding ? "grayed-out" : ""}`}>No Logo</div>
-                )}
-              </div>
+            <div className="logo-con">
+              <h3 className={!hasCustomBranding ? "grayed-out" : ""}>
+                <PremiumIcon />
+                Logo
+              </h3>
+              <div className="upload-con">
+                <div className={`logo-display-box ${!hasCustomBranding ? "grayed-out" : ""}`}>
+                  {logoUrl ? (
+                    // State: Logo uploaded - show cropped version
+                    (() => {
+                      console.log('BRANDING RENDER - Logo CroppedImage props:', {
+                        src: logoUrl,
+                        hasCropData: !!logoCropData,
+                        cropData: logoCropData,
+                        croppedAreaPixels: logoCropData?.croppedAreaPixels
+                      });
+                      return (
+                        <CroppedImage
+                          src={logoUrl}
+                          cropData={logoCropData}
+                          alt="Uploaded Logo"
+                          className="uploaded-logo"
+                          key={`logo-${logoUrl}-${logoCropData ? JSON.stringify(logoCropData.croppedAreaPixels) : 'no-crop'}`}
+                        />
+                      );
+                    })()
+                  ) : (
+                    // State: No logo
+                    <div className={`no-logo-placeholder ${!hasCustomBranding ? "grayed-out" : ""}`}>No Logo</div>
+                  )}
+                </div>
 
-              {/* Hidden File Input */}
-              <input
-                type="file"
-                id="logo-upload-input"
-                accept="image/jpeg,image/gif,image/png"
-                onChange={handleFileUpload}
-                style={{ display: "none" }} // Hide the default input
-              />
-
-              <div className="upload-controls">
-                {/* Button to trigger the file input */}
-                <button
-                  type="button"
-                  className="upload-btn"
-                  onClick={triggerFileInput}
-                  disabled={logoUploading || !hasCustomBranding}
-                  style={{
-                    opacity: !hasCustomBranding ? 0.6 : 1,
-                    cursor: !hasCustomBranding ? "not-allowed" : "pointer",
-                    backgroundColor: !hasCustomBranding ? "#ccc" : undefined,
-                  }}
-                >
-                  {logoUploading ? "Uploading..." : (logoUrl ? "Update Logo" : "Upload logo")}
-                </button>
-
-                {/* Edit button shown only when a logo is uploaded */}
-                {logoUrl && (
-                  <button
-                    type="button"
-                    className="edit-btn"
-                    onClick={handleEditLogo}
-                    disabled={logoUploading || !hasCustomBranding}
-                  >
-                    <span>Edit</span>
-                    <EditIconBranding />
-                  </button>
-                )}
-
-                {/* Delete button shown only when a logo is uploaded */}
-                {logoUrl && (
-                  <button
-                    type="button"
-                    className="delete-btn"
-                    onClick={handleDelete}
-                    disabled={deletingLogo}
-                  >
-                    {deletingLogo ? (
-                      "Deleting..."
-                    ) : (
-                      <>
-                        <RiDeleteBin5Line size={14} />
-                        Delete
-                      </>
-                    )}
-                  </button>
-                )}
-
-                {!logoUrl && (
-                  <span className={`file-info ${!hasCustomBranding ? "grayed-out" : ""}`}>
-                    JPG, GIF, or PNG. Max size of 5MB
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="user-display-name-con">
-            <div className="top">
-              <h3>User Display Name</h3>
-              <div className="toggle-con">
-                <span
-                  className="toggle-label "
-                  style={{ color: isShownName ? "#64748B33" : "#64748B" }}
-                >
-                  Hide
-                </span>
-
-                <ToggleSwitch
-                  checked={isShownName}
-                  onchange={toggleHandlerShowName}
-                  disabled={savingName}
-                />
-                <span
-                  className="toggle-label "
-                  style={{ color: isShownName ? "#64748B" : "#64748B33" }}
-                >
-                  Show
-                </span>
-              </div>
-            </div>
-            <Input
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder={savingDisplayName ? "Saving..." : "Type your name here"}
-              style={{ boxShadow: "0px 1px 2px 0px #0000000D", opacity: savingDisplayName ? 0.6 : 1 }}
-              readOnly={savingDisplayName}
-            />
-          </div>
-
-          <div className="user-display-name-con user-picture">
-            <div className="top">
-              <h3>User Profile Picture</h3>
-              <div className="toggle-con">
-                <span
-                  className="toggle-label "
-                  style={{ color: isShownProfilePic ? "#64748B33" : "#64748B" }}
-                >
-                  Hide
-                </span>
-
-                <ToggleSwitch
-                  checked={isShownProfilePic}
-                  onchange={toggleHandlerShowProfile}
-                  disabled={savingProfilePic}
-                />
-                <span
-                  className="toggle-label "
-                  style={{ color: isShownProfilePic ? "#64748B" : "#64748B33" }}
-                >
-                  Show
-                </span>
-              </div>
-            </div>
-            <div className="upload-picture-con">
-              <div className="left">
-                {profileUrl ? (
-                  (() => {
-                    console.log('BRANDING RENDER - Profile CroppedImage props:', {
-                      src: profileUrl,
-                      hasCropData: !!profileCropData,
-                      cropData: profileCropData,
-                      croppedAreaPixels: profileCropData?.croppedAreaPixels
-                    });
-                    return (
-                      <CroppedImage
-                        src={profileUrl}
-                        cropData={profileCropData}
-                        alt="Profile Picture"
-                        style={{
-                          width: "90px",
-                          height: "90px",
-                          borderRadius: "50%",
-                          objectFit: "cover",
-                          objectPosition: "center",
-                          flexShrink: 0,
-                          display: "block",
-                          minWidth: "90px",
-                          minHeight: "90px",
-                          maxWidth: "90px",
-                          maxHeight: "90px",
-                        }}
-                        key={`profile-${profileUrl}-${profileCropData ? JSON.stringify(profileCropData.croppedAreaPixels) : 'no-crop'}`}
-                      />
-                    );
-                  })()
-                ) : (
-                  <img src="/assets/images/avatar.png" alt="avatar" />
-                )}
-              </div>
-              <div className="right">
                 {/* Hidden File Input */}
                 <input
                   type="file"
-                  id="profile-upload-input"
+                  id="logo-upload-input"
                   accept="image/jpeg,image/gif,image/png"
-                  onChange={handleFileUploadAvatar}
-                  style={{ display: "none" }}
+                  onChange={handleFileUpload}
+                  style={{ display: "none" }} // Hide the default input
                 />
-                <div className="btn-wrap">
+
+                <div className="upload-controls">
+                  {/* Button to trigger the file input */}
                   <button
-                    onClick={triggerFileInputAvatar}
-                    disabled={profileUploading}
+                    type="button"
+                    className="upload-btn"
+                    onClick={triggerFileInput}
+                    disabled={logoUploading || !hasCustomBranding}
+                    style={{
+                      opacity: !hasCustomBranding ? 0.6 : 1,
+                      cursor: !hasCustomBranding ? "not-allowed" : "pointer",
+                      backgroundColor: !hasCustomBranding ? "#ccc" : undefined,
+                    }}
                   >
-                    {profileUploading ? "Uploading..." : (profileUrl ? "Update Picture" : "Upload Picture")}
+                    {logoUploading ? "Uploading..." : (logoUrl ? "Update Logo" : "Upload logo")}
                   </button>
-                  {/* Edit button shown only when a profile picture is uploaded */}
-                  {profileUrl && (
+
+                  {/* Edit button shown only when a logo is uploaded */}
+                  {logoUrl && (
                     <button
                       type="button"
                       className="edit-btn"
-                      onClick={handleEditProfile}
-                      disabled={profileUploading}
+                      onClick={handleEditLogo}
+                      disabled={logoUploading || !hasCustomBranding}
                     >
                       <span>Edit</span>
                       <EditIconBranding />
                     </button>
                   )}
+
                   {/* Delete button shown only when a logo is uploaded */}
-                  {profileUrl && (
+                  {logoUrl && (
                     <button
                       type="button"
                       className="delete-btn"
-                      onClick={handleDeleteAvatar}
-                      disabled={deletingProfilePic}
+                      onClick={handleDelete}
+                      disabled={deletingLogo}
                     >
-                      {deletingProfilePic ? (
+                      {deletingLogo ? (
                         "Deleting..."
                       ) : (
                         <>
-                          <RiDeleteBin5Line size={18} />
+                          <RiDeleteBin5Line size={14} />
                           Delete
                         </>
                       )}
                     </button>
                   )}
+
+                  {!logoUrl && (
+                    <span className={`file-info ${!hasCustomBranding ? "grayed-out" : ""}`}>
+                      JPG, GIF, or PNG. Max size of 5MB
+                    </span>
+                  )}
                 </div>
-                <span>JPG, GIF, or PNG. Max size of 5MB</span>
               </div>
             </div>
-            <div className="info-text">
-              <p>
-                Make your bookings feel more personal by uploading a profile
-                photo so clients know who they’re meeting.
-              </p>
-            </div>
-          </div>
+            <div className="user-display-name-con">
+              <div className="top">
+                <h3>User Display Name</h3>
+                <div className="toggle-con">
+                  <span
+                    className="toggle-label "
+                    style={{ color: isShownName ? "#64748B33" : "#64748B" }}
+                  >
+                    Hide
+                  </span>
 
-          <div className="user-display-name-con daywise-branding">
-            <div className="top">
-              <h3 className={!hasCustomBranding ? "grayed-out" : ""}>
-                <PremiumIcon /> Use Daywise branding
-              </h3>
-              <div className="toggle-con">
-                <span
-                  className="toggle-label "
-                  style={{ color: toggleDaywiseBranding ? "#64748B33" : "#64748B" }}
-                >
-                  Hide
-                </span>
-
-                <ToggleSwitch
-                  checked={toggleDaywiseBranding}
-                  onchange={toggleHandlerDayWiseBranding}
-                  disabled={savingDaywiseBranding || !hasCustomBranding}
-                />
-                <span
-                  className="toggle-label "
-                  style={{ color: toggleDaywiseBranding ? "#64748B" : "#64748B33" }}
-                >
-                  Show
-                </span>
-              </div>
-            </div>
-
-            <div className={`info-text ${!hasCustomBranding ? "grayed-out" : ""}`}>
-              <p>
-                Daywise's branding will be displayed on your scheduling page,
-                notifications, and confirmations.
-              </p>
-            </div>
-          </div>
-
-          <div className="user-display-name-con brand-color-con">
-            <div className="top">
-              <h3 className={!hasCustomBranding ? "grayed-out" : ""}>
-                <PremiumIcon /> Your Brand Colors
-              </h3>
-            </div>
-            <div 
-              className="selection-color-con"
-              style={{
-                opacity: !hasCustomBranding ? 0.6 : savingColors ? 0.1 : 1,
-                pointerEvents: (!hasCustomBranding || savingColors) ? "none" : "auto",
-                cursor: (!hasCustomBranding || savingColors) ? "not-allowed" : "auto",
-                backgroundColor: savingColors ? "#FFFFFF" : "transparent",
-                transition: savingColors ? "opacity 0.2s ease, background-color 0.2s ease" : "opacity 0.2s ease",
-              }}
-            >
-              <div className="color-box">
-                <ColorPicker
-                  label=""
-                  name="mainColor"
-                  value={mainColor}
-                  onChange={async (color) => {
-                    if (!hasCustomBranding) {
-                      toast.error("Brand colors customization is available in Pro plan.");
-                      return;
-                    }
-                    if (isSavingRef.current) return; // Prevent multiple simultaneous saves
-                    
-                    setMainColor(color);
-                    
-                    // Clear any existing timeout
-                    if (saveTimeoutRef.current) {
-                      clearTimeout(saveTimeoutRef.current);
-                    }
-                    
-                    // Debounce the save - wait 500ms after user stops changing color
-                    saveTimeoutRef.current = setTimeout(async () => {
-                      if (isSavingRef.current) return;
-                      isSavingRef.current = true;
-                      setSavingColors(true);
-                      try {
-                        await saveBrandingSettings({ primary: color });
-                        toast.success("Main color updated");
-                      } catch (error) {
-                        toast.error(error.message || 'Failed to save main color');
-                        // Revert on error
-                        const currentBrandingResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/branding`, {
-                          credentials: 'include',
-                        });
-                        if (currentBrandingResponse.ok) {
-                          const currentBranding = await currentBrandingResponse.json();
-                          setMainColor(currentBranding.primary || "#0053F1");
-                        }
-                      } finally {
-                        setSavingColors(false);
-                        isSavingRef.current = false;
-                      }
-                    }, 500);
-                  }}
-                />
-                <h4>Main color</h4>
-              </div>
-              <div className="color-box">
-                <ColorPicker
-                  label=""
-                  name="secondaryColor"
-                  value={secondaryColor}
-                  onChange={async (color) => {
-                    if (!hasCustomBranding) {
-                      toast.error("Brand colors customization is available in Pro plan.");
-                      return;
-                    }
-                    if (isSavingRef.current) return; // Prevent multiple simultaneous saves
-                    
-                    setSecondaryColor(color);
-                    
-                    // Clear any existing timeout
-                    if (saveTimeoutRef.current) {
-                      clearTimeout(saveTimeoutRef.current);
-                    }
-                    
-                    // Debounce the save - wait 500ms after user stops changing color
-                    saveTimeoutRef.current = setTimeout(async () => {
-                      if (isSavingRef.current) return;
-                      isSavingRef.current = true;
-                      setSavingColors(true);
-                      try {
-                        await saveBrandingSettings({ secondary: color });
-                        toast.success("Secondary color updated");
-                      } catch (error) {
-                        toast.error(error.message || 'Failed to save secondary color');
-                        // Revert on error
-                        const currentBrandingResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/branding`, {
-                          credentials: 'include',
-                        });
-                        if (currentBrandingResponse.ok) {
-                          const currentBranding = await currentBrandingResponse.json();
-                          setSecondaryColor(currentBranding.secondary || "#64748B");
-                        }
-                      } finally {
-                        setSavingColors(false);
-                        isSavingRef.current = false;
-                      }
-                    }, 500);
-                  }}
-                />
-                <h4>Secondary Color</h4>
-              </div>
-              <div className="color-box">
-                <ColorPicker
-                  label=""
-                  name="textColor"
-                  value={textColor}
-                  onChange={async (color) => {
-                    if (!hasCustomBranding) {
-                      toast.error("Brand colors customization is available in Pro plan.");
-                      return;
-                    }
-                    if (isSavingRef.current) return; // Prevent multiple simultaneous saves
-                    
-                    setTextColor(color);
-                    
-                    // Clear any existing timeout
-                    if (saveTimeoutRef.current) {
-                      clearTimeout(saveTimeoutRef.current);
-                    }
-                    
-                    // Debounce the save - wait 500ms after user stops changing color
-                    saveTimeoutRef.current = setTimeout(async () => {
-                      if (isSavingRef.current) return;
-                      isSavingRef.current = true;
-                      setSavingColors(true);
-                      try {
-                        await saveBrandingSettings({ accent: color }); // Text color maps to accent
-                        toast.success("Text color updated");
-                      } catch (error) {
-                        toast.error(error.message || 'Failed to save text color');
-                        // Revert on error
-                        const currentBrandingResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/branding`, {
-                          credentials: 'include',
-                        });
-                        if (currentBrandingResponse.ok) {
-                          const currentBranding = await currentBrandingResponse.json();
-                          setTextColor(currentBranding.accent || "#121212");
-                        }
-                      } finally {
-                        setSavingColors(false);
-                        isSavingRef.current = false;
-                      }
-                    }, 500);
-                  }}
-                />
-                <h4>Text Color</h4>
-              </div>
-            </div>
-          </div>
-
-          <div className="btn-preview-form">
-            <Button
-              text={"Preview Booking Form"}
-              icon={
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 18 18"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M1.52698 9.2415C1.47522 9.08594 1.47522 8.91781 1.52698 8.76225C2.56723 5.6325 5.51998 3.375 8.99998 3.375C12.4785 3.375 15.4297 5.63025 16.4722 8.7585C16.5247 8.91375 16.5247 9.08175 16.4722 9.23775C15.4327 12.3675 12.48 14.625 8.99998 14.625C5.52148 14.625 2.56948 12.3697 1.52698 9.2415Z"
-                    stroke="#64748B"
-                    stroke-width="1.125"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
+                  <ToggleSwitch
+                    checked={isShownName}
+                    onchange={toggleHandlerShowName}
+                    disabled={savingName}
                   />
-                  <path
-                    d="M11.25 9C11.25 9.59674 11.0129 10.169 10.591 10.591C10.169 11.0129 9.59674 11.25 9 11.25C8.40326 11.25 7.83097 11.0129 7.40901 10.591C6.98705 10.169 6.75 9.59674 6.75 9C6.75 8.40326 6.98705 7.83097 7.40901 7.40901C7.83097 6.98705 8.40326 6.75 9 6.75C9.59674 6.75 10.169 6.98705 10.591 7.40901C11.0129 7.83097 11.25 8.40326 11.25 9Z"
-                    stroke="#64748B"
-                    stroke-width="1.125"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
+                  <span
+                    className="toggle-label "
+                    style={{ color: isShownName ? "#64748B" : "#64748B33" }}
+                  >
+                    Show
+                  </span>
+                </div>
+              </div>
+              <Input
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder={savingDisplayName ? "Saving..." : "Type your name here"}
+                style={{ boxShadow: "0px 1px 2px 0px #0000000D", opacity: savingDisplayName ? 0.6 : 1 }}
+                readOnly={savingDisplayName}
+              />
+            </div>
+
+            <div className="user-display-name-con user-picture">
+              <div className="top">
+                <h3>User Profile Picture</h3>
+                <div className="toggle-con">
+                  <span
+                    className="toggle-label "
+                    style={{ color: isShownProfilePic ? "#64748B33" : "#64748B" }}
+                  >
+                    Hide
+                  </span>
+
+                  <ToggleSwitch
+                    checked={isShownProfilePic}
+                    onchange={toggleHandlerShowProfile}
+                    disabled={savingProfilePic}
                   />
-                </svg>
-              }
-              style={{
-                width: "100%",
-                backgroundColor: "transparent",
-                color: "#64748B",
-                border: "1px solid #64748B33",
-              }}
-              onClick={() => setShowPreviewBooking(true)}
-            />
+                  <span
+                    className="toggle-label "
+                    style={{ color: isShownProfilePic ? "#64748B" : "#64748B33" }}
+                  >
+                    Show
+                  </span>
+                </div>
+              </div>
+              <div className="upload-picture-con">
+                <div className="left">
+                  {profileUrl ? (
+                    (() => {
+                      console.log('BRANDING RENDER - Profile CroppedImage props:', {
+                        src: profileUrl,
+                        hasCropData: !!profileCropData,
+                        cropData: profileCropData,
+                        croppedAreaPixels: profileCropData?.croppedAreaPixels
+                      });
+                      return (
+                        <CroppedImage
+                          src={profileUrl}
+                          cropData={profileCropData}
+                          alt="Profile Picture"
+                          style={{
+                            width: "90px",
+                            height: "90px",
+                            borderRadius: "50%",
+                            objectFit: "cover",
+                            objectPosition: "center",
+                            flexShrink: 0,
+                            display: "block",
+                            minWidth: "90px",
+                            minHeight: "90px",
+                            maxWidth: "90px",
+                            maxHeight: "90px",
+                          }}
+                          key={`profile-${profileUrl}-${profileCropData ? JSON.stringify(profileCropData.croppedAreaPixels) : 'no-crop'}`}
+                        />
+                      );
+                    })()
+                  ) : (
+                    <img src="/assets/images/avatar.png" alt="avatar" />
+                  )}
+                </div>
+                <div className="right">
+                  {/* Hidden File Input */}
+                  <input
+                    type="file"
+                    id="profile-upload-input"
+                    accept="image/jpeg,image/gif,image/png"
+                    onChange={handleFileUploadAvatar}
+                    style={{ display: "none" }}
+                  />
+                  <div className="btn-wrap">
+                    <button
+                      onClick={triggerFileInputAvatar}
+                      disabled={profileUploading}
+                    >
+                      {profileUploading ? "Uploading..." : (profileUrl ? "Update Picture" : "Upload Picture")}
+                    </button>
+                    {/* Edit button shown only when a profile picture is uploaded */}
+                    {profileUrl && (
+                      <button
+                        type="button"
+                        className="edit-btn"
+                        onClick={handleEditProfile}
+                        disabled={profileUploading}
+                      >
+                        <span>Edit</span>
+                        <EditIconBranding />
+                      </button>
+                    )}
+                    {/* Delete button shown only when a logo is uploaded */}
+                    {profileUrl && (
+                      <button
+                        type="button"
+                        className="delete-btn"
+                        onClick={handleDeleteAvatar}
+                        disabled={deletingProfilePic}
+                      >
+                        {deletingProfilePic ? (
+                          "Deleting..."
+                        ) : (
+                          <>
+                            <RiDeleteBin5Line size={18} />
+                            Delete
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  <span>JPG, GIF, or PNG. Max size of 5MB</span>
+                </div>
+              </div>
+              <div className="info-text">
+                <p>
+                  Make your bookings feel more personal by uploading a profile
+                  photo so clients know who they’re meeting.
+                </p>
+              </div>
+            </div>
+
+            <div className="user-display-name-con daywise-branding">
+              <div className="top">
+                <h3 className={!hasCustomBranding ? "grayed-out" : ""}>
+                  <PremiumIcon /> Use Daywise branding
+                </h3>
+                <div className="toggle-con">
+                  <span
+                    className="toggle-label "
+                    style={{ color: toggleDaywiseBranding ? "#64748B33" : "#64748B" }}
+                  >
+                    Hide
+                  </span>
+
+                  <ToggleSwitch
+                    checked={toggleDaywiseBranding}
+                    onchange={toggleHandlerDayWiseBranding}
+                    disabled={savingDaywiseBranding || !hasCustomBranding}
+                  />
+                  <span
+                    className="toggle-label "
+                    style={{ color: toggleDaywiseBranding ? "#64748B" : "#64748B33" }}
+                  >
+                    Show
+                  </span>
+                </div>
+              </div>
+
+              <div className={`info-text ${!hasCustomBranding ? "grayed-out" : ""}`}>
+                <p>
+                  Daywise's branding will be displayed on your scheduling page,
+                  notifications, and confirmations.
+                </p>
+              </div>
+            </div>
+
+            <div className="user-display-name-con brand-color-con">
+              <div className="top">
+                <h3 className={!hasCustomBranding ? "grayed-out" : ""}>
+                  <PremiumIcon /> Your Brand Colors
+                </h3>
+              </div>
+              <div
+                className="selection-color-con"
+                style={{
+                  opacity: !hasCustomBranding ? 0.6 : savingColors ? 0.1 : 1,
+                  pointerEvents: (!hasCustomBranding || savingColors) ? "none" : "auto",
+                  cursor: (!hasCustomBranding || savingColors) ? "not-allowed" : "auto",
+                  backgroundColor: savingColors ? "#FFFFFF" : "transparent",
+                  transition: savingColors ? "opacity 0.2s ease, background-color 0.2s ease" : "opacity 0.2s ease",
+                }}
+              >
+                <div className="color-box">
+                  <ColorPicker
+                    label=""
+                    name="mainColor"
+                    value={mainColor}
+                    onChange={async (color) => {
+                      if (!hasCustomBranding) {
+                        toast.error("Brand colors customization is available in Pro plan.");
+                        return;
+                      }
+                      if (isSavingRef.current) return; // Prevent multiple simultaneous saves
+
+                      setMainColor(color);
+
+                      // Clear any existing timeout
+                      if (saveTimeoutRef.current) {
+                        clearTimeout(saveTimeoutRef.current);
+                      }
+
+                      // Debounce the save - wait 500ms after user stops changing color
+                      saveTimeoutRef.current = setTimeout(async () => {
+                        if (isSavingRef.current) return;
+                        isSavingRef.current = true;
+                        setSavingColors(true);
+                        try {
+                          await saveBrandingSettings({ primary: color });
+                          toast.success("Main color updated");
+                        } catch (error) {
+                          toast.error(error.message || 'Failed to save main color');
+                          // Revert on error
+                          const currentBrandingResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/branding`, {
+                            credentials: 'include',
+                          });
+                          if (currentBrandingResponse.ok) {
+                            const currentBranding = await currentBrandingResponse.json();
+                            setMainColor(currentBranding.primary || "#0053F1");
+                          }
+                        } finally {
+                          setSavingColors(false);
+                          isSavingRef.current = false;
+                        }
+                      }, 500);
+                    }}
+                  />
+                  <h4>Main color</h4>
+                </div>
+                <div className="color-box">
+                  <ColorPicker
+                    label=""
+                    name="secondaryColor"
+                    value={secondaryColor}
+                    onChange={async (color) => {
+                      if (!hasCustomBranding) {
+                        toast.error("Brand colors customization is available in Pro plan.");
+                        return;
+                      }
+                      if (isSavingRef.current) return; // Prevent multiple simultaneous saves
+
+                      setSecondaryColor(color);
+
+                      // Clear any existing timeout
+                      if (saveTimeoutRef.current) {
+                        clearTimeout(saveTimeoutRef.current);
+                      }
+
+                      // Debounce the save - wait 500ms after user stops changing color
+                      saveTimeoutRef.current = setTimeout(async () => {
+                        if (isSavingRef.current) return;
+                        isSavingRef.current = true;
+                        setSavingColors(true);
+                        try {
+                          await saveBrandingSettings({ secondary: color });
+                          toast.success("Secondary color updated");
+                        } catch (error) {
+                          toast.error(error.message || 'Failed to save secondary color');
+                          // Revert on error
+                          const currentBrandingResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/branding`, {
+                            credentials: 'include',
+                          });
+                          if (currentBrandingResponse.ok) {
+                            const currentBranding = await currentBrandingResponse.json();
+                            setSecondaryColor(currentBranding.secondary || "#64748B");
+                          }
+                        } finally {
+                          setSavingColors(false);
+                          isSavingRef.current = false;
+                        }
+                      }, 500);
+                    }}
+                  />
+                  <h4>Secondary Color</h4>
+                </div>
+                <div className="color-box">
+                  <ColorPicker
+                    label=""
+                    name="textColor"
+                    value={textColor}
+                    onChange={async (color) => {
+                      if (!hasCustomBranding) {
+                        toast.error("Brand colors customization is available in Pro plan.");
+                        return;
+                      }
+                      if (isSavingRef.current) return; // Prevent multiple simultaneous saves
+
+                      setTextColor(color);
+
+                      // Clear any existing timeout
+                      if (saveTimeoutRef.current) {
+                        clearTimeout(saveTimeoutRef.current);
+                      }
+
+                      // Debounce the save - wait 500ms after user stops changing color
+                      saveTimeoutRef.current = setTimeout(async () => {
+                        if (isSavingRef.current) return;
+                        isSavingRef.current = true;
+                        setSavingColors(true);
+                        try {
+                          await saveBrandingSettings({ accent: color }); // Text color maps to accent
+                          toast.success("Text color updated");
+                        } catch (error) {
+                          toast.error(error.message || 'Failed to save text color');
+                          // Revert on error
+                          const currentBrandingResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/branding`, {
+                            credentials: 'include',
+                          });
+                          if (currentBrandingResponse.ok) {
+                            const currentBranding = await currentBrandingResponse.json();
+                            setTextColor(currentBranding.accent || "#121212");
+                          }
+                        } finally {
+                          setSavingColors(false);
+                          isSavingRef.current = false;
+                        }
+                      }, 500);
+                    }}
+                  />
+                  <h4>Text Color</h4>
+                </div>
+              </div>
+            </div>
+
+            <div className="btn-preview-form">
+              <Button
+                text={"Preview Booking Form"}
+                icon={
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 18 18"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M1.52698 9.2415C1.47522 9.08594 1.47522 8.91781 1.52698 8.76225C2.56723 5.6325 5.51998 3.375 8.99998 3.375C12.4785 3.375 15.4297 5.63025 16.4722 8.7585C16.5247 8.91375 16.5247 9.08175 16.4722 9.23775C15.4327 12.3675 12.48 14.625 8.99998 14.625C5.52148 14.625 2.56948 12.3697 1.52698 9.2415Z"
+                      stroke="#64748B"
+                      stroke-width="1.125"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M11.25 9C11.25 9.59674 11.0129 10.169 10.591 10.591C10.169 11.0129 9.59674 11.25 9 11.25C8.40326 11.25 7.83097 11.0129 7.40901 10.591C6.98705 10.169 6.75 9.59674 6.75 9C6.75 8.40326 6.98705 7.83097 7.40901 7.40901C7.83097 6.98705 8.40326 6.75 9 6.75C9.59674 6.75 10.169 6.98705 10.591 7.40901C11.0129 7.83097 11.25 8.40326 11.25 9Z"
+                      stroke="#64748B"
+                      stroke-width="1.125"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                }
+                style={{
+                  width: "100%",
+                  backgroundColor: "transparent",
+                  color: "#64748B",
+                  border: "1px solid #64748B33",
+                }}
+                onClick={() => setShowPreviewBooking(true)}
+              />
+            </div>
           </div>
-        </div>
         )}
       </div>
       <PreviewBookingModal
@@ -1401,7 +1411,7 @@ const Branding = () => {
         secondaryColor={secondaryColor}
         accentColor={textColor}
       />
-      
+
       {/* Image Crop Editor */}
       <ImageCropEditor
         show={showCropEditor}

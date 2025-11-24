@@ -6,7 +6,8 @@
   justify-content: center;
   align-items: center;
   padding: 40px 20px;
-  overflow: hidden; /* not scrollable */
+  overflow: hidden;
+  /* not scrollable */
   box-sizing: border-box;
 }
 
@@ -80,7 +81,8 @@
 }
 
 .cancelled-event-header h1 {
-  white-space: nowrap; /* one line */
+  white-space: nowrap;
+  /* one line */
   font-family: 'Inter', sans-serif;
   font-style: normal;
   font-weight: 600;
@@ -281,6 +283,7 @@
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }
@@ -371,6 +374,8 @@
     margin-bottom: 0;
     width: 100%;
     max-width: none;
+    justify-content: center;
+    height: auto;
   }
 
   /* Card wrapper */

@@ -6,28 +6,92 @@ import Select from "../ui/Input/Select";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 import { useMobile } from "../../hooks";
 
-const SingleCalendar = ({ 
-  onSelectTime, 
-  onNext, 
-  notShowTime, 
-  availableTimeSlots = [], 
-  onDateSelect, 
-  loadingTimeSlots = false, 
+const SingleCalendar = ({
+  onSelectTime,
+  onNext,
+  notShowTime,
+  availableTimeSlots = [],
+  onDateSelect,
+  loadingTimeSlots = false,
   selectedAppointmentType = null,
   timezoneOptions = [],
   currentTimezone = null,
   onTimezoneChange = null,
   value = null,
-  selectedTime: selectedTimeProp = null
+  selectedTime: selectedTimeProp = null,
+  weeklyAvailability = []
 }) => {
-  const [selectedDate, setSelectedDate] = useState(value || new Date());
+  // Helper function to check if a date is available
+  const isDateAvailable = (date) => {
+    const dayOfWeek = date.getDay();
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayName = dayNames[dayOfWeek];
+
+    const allDayRecords = weeklyAvailability.filter(slot => {
+      const rawWeekday = slot.weekday || '';
+      const wk = String(rawWeekday).toLowerCase().trim();
+      const matches = wk === dayName || wk === dayName.slice(0, 3) || wk === String(dayOfWeek);
+      return matches;
+    });
+
+    if (allDayRecords.length === 0) {
+      return true; // Available by default
+    }
+
+    const hasAvailableSlots = allDayRecords.some(slot => slot.isAvailable !== false);
+    return hasAvailableSlots;
+  };
+
+  // Find the next available date starting from today
+  const getNextAvailableDate = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Check up to 60 days in the future
+    for (let i = 0; i < 60; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(today.getDate() + i);
+
+      if (isDateAvailable(checkDate)) {
+        return checkDate;
+      }
+    }
+
+    return null; // No available date found in the next 60 days
+  };
+
+  // Initialize selectedDate based on availability
+  const getInitialDate = () => {
+    if (value) return value;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // If today is available, use it
+    if (isDateAvailable(today)) {
+      return today;
+    }
+
+    // Otherwise, find the next available date
+    return getNextAvailableDate();
+  };
+
+  const [selectedDate, setSelectedDate] = useState(getInitialDate());
   const [selectedTime, setSelectedTime] = useState(selectedTimeProp);
+  const [internalLoading, setInternalLoading] = useState(false);
   const isMobile = useMobile(999);
-  
+
   // Update selectedTime when prop changes (including null)
   useEffect(() => {
     setSelectedTime(selectedTimeProp);
   }, [selectedTimeProp]);
+
+  // Reset internal loading when parent loading starts or ends
+  useEffect(() => {
+    if (loadingTimeSlots) {
+      setInternalLoading(false);
+    }
+  }, [loadingTimeSlots]);
 
   const timeSlots = availableTimeSlots;
 
@@ -38,9 +102,29 @@ const SingleCalendar = ({
     }
   }, [value]);
 
+  // Update selectedDate when weeklyAvailability loads
+  useEffect(() => {
+    // Only run this if we don't have an explicit value prop
+    if (!value && weeklyAvailability.length > 0) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // If current selectedDate is unavailable, find next available
+      if (selectedDate && !isDateAvailable(selectedDate)) {
+        const nextAvailable = getNextAvailableDate();
+        setSelectedDate(nextAvailable);
+      } else if (!selectedDate) {
+        // If no date selected, set to next available
+        const nextAvailable = getNextAvailableDate();
+        setSelectedDate(nextAvailable);
+      }
+    }
+  }, [weeklyAvailability]);
+
   const handleDateChange = async (date) => {
     setSelectedDate(date);
     setSelectedTime(null);
+    setInternalLoading(true);
 
     // Call the parent's handleDateSelect function to fetch time slots
     let shouldProceed = true;
@@ -51,14 +135,19 @@ const SingleCalendar = ({
           const resolved = await result;
           if (resolved === false) {
             shouldProceed = false;
+            setInternalLoading(false);
           }
         } else if (result === false) {
           shouldProceed = false;
+          setInternalLoading(false);
         }
       } catch (error) {
         console.error("SingleCalendar - Error in onDateSelect:", error);
         shouldProceed = false;
+        setInternalLoading(false);
       }
+    } else {
+      setInternalLoading(false);
     }
 
     // 👇 Automatically move to next step on mobile only if allowed
@@ -97,12 +186,46 @@ const SingleCalendar = ({
           onChange={handleDateChange}
           value={selectedDate}
           minDate={new Date()}
+          tileDisabled={({ date, view }) => {
+            // Only disable tiles in month view
+            if (view !== 'month') return false;
+
+            // Don't disable past dates (already handled by minDate)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (date < today) return false;
+
+            // Check if this day of week is unavailable
+            // Same logic as slots endpoint (routes.ts:3424-3430)
+            const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+            const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const dayName = dayNames[dayOfWeek];
+
+            // Get all records for this weekday (regardless of isAvailable)
+            const allDayRecords = weeklyAvailability.filter(slot => {
+              const rawWeekday = slot.weekday || '';
+              const wk = String(rawWeekday).toLowerCase().trim();
+              const matches = wk === dayName || wk === dayName.slice(0, 3) || wk === String(dayOfWeek);
+              return matches;
+            });
+
+            // If no records exist for this day, it's available by default
+            if (allDayRecords.length === 0) {
+              return false; // Don't disable
+            }
+
+            // Check if ANY record has isAvailable !== false
+            const hasAvailableSlots = allDayRecords.some(slot => slot.isAvailable !== false);
+
+            // Disable the date if ALL records have isAvailable === false
+            return !hasAvailableSlots;
+          }}
           nextLabel={<FaChevronRight size={14} />}
           prevLabel={<FaChevronLeft size={14} />}
           next2Label={null}
           prev2Label={null}
-          // maxDetail="month"
-          // view="month"
+        // maxDetail="month"
+        // view="month"
         />
         <div className="select-con">
           <Select
@@ -128,7 +251,7 @@ const SingleCalendar = ({
         </div>
 
         <div className="time-slot-container">
-          {loadingTimeSlots ? (
+          {loadingTimeSlots || internalLoading ? (
             <div className="time-slots-loading">
               <div className="time-slots-loading-content">
                 <div className="time-slots-spinner"></div>

@@ -24,12 +24,12 @@ import "./Sidebar.css";
 
 // Mock Icons (replace with actual SVG or library icons like Lucide, Feather)
 const Icon = ({ children }) => (
-  <span style={{ 
-    width: "20px", 
-    height: "20px", 
-    display: "flex", 
-    alignItems: "center", 
-    justifyContent: "center" 
+  <span style={{
+    width: "20px",
+    height: "20px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center"
   }}>{children}</span>
 );
 
@@ -103,7 +103,7 @@ const Sidebar = ({ isOpen, toggleSidebar, accountStatus }) => {
     const measureLogoutPosition = () => {
       // First check if we're on a mobile device
       const isMobile = window.innerWidth < 992;
-      
+
       if (!isMobile || !sidebarContainerRef.current || !logoutContainerRef.current) {
         // Not on mobile or refs not ready, reset fallback padding
         if (sidebarContainerRef.current) {
@@ -114,13 +114,13 @@ const Sidebar = ({ isOpen, toggleSidebar, accountStatus }) => {
 
       // Get the logout container's bounding rectangle
       const logoutRect = logoutContainerRef.current.getBoundingClientRect();
-      
+
       // Get the viewport height (visible area)
       const viewportHeight = window.visualViewport?.height || window.innerHeight;
-      
+
       // Calculate how far the logout container is from the bottom of the viewport
       const distanceFromBottom = viewportHeight - logoutRect.bottom;
-      
+
       // If the logout container is too close to or below the viewport bottom (< 5px),
       // it's likely being covered by browser UI
       if (distanceFromBottom < 5) {
@@ -148,7 +148,7 @@ const Sidebar = ({ isOpen, toggleSidebar, accountStatus }) => {
     window.addEventListener('resize', debouncedMeasure);
     window.addEventListener('orientationchange', debouncedMeasure);
     window.addEventListener('scroll', debouncedMeasure);
-    
+
     // Also listen to visual viewport changes if available
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', debouncedMeasure);
@@ -230,6 +230,12 @@ const Sidebar = ({ isOpen, toggleSidebar, accountStatus }) => {
   const handleBellClick = async (e) => {
     e.preventDefault();
 
+    // Close sidebar on mobile when opening notifications
+    const isMobile = window.innerWidth < 992; // Using same breakpoint as CSS
+    if (isMobile && isOpen) {
+      toggleSidebar();
+    }
+
     // Mark all notifications as read when opening modal
     if (unreadCount > 0) {
       try {
@@ -279,18 +285,18 @@ const Sidebar = ({ isOpen, toggleSidebar, accountStatus }) => {
   const handleShowInCalendar = (notification) => {
     // Close notifications modal
     setShowNotifications(false);
-    
+
     // Navigate to booking page with URL params
     const bookingId = notification.relatedBookingId;
     const appointmentDate = notification.appointmentDate;
-    
+
     // Build URL with params
     const params = new URLSearchParams();
     if (bookingId) params.set('bookingId', bookingId);
     if (appointmentDate) params.set('date', appointmentDate);
     params.set('view', 'calendar');
     params.set('dayView', 'true');
-    
+
     navigate(`/booking?${params.toString()}`);
   };
 
@@ -309,9 +315,8 @@ const Sidebar = ({ isOpen, toggleSidebar, accountStatus }) => {
               <li key={item.name} className="nav-item">
                 <Link
                   to={item.path}
-                  className={`nav-link ${
-                    location.pathname === item.path ? "is-active" : ""
-                  } ${isInactive ? "disabled" : ""}`}
+                  className={`nav-link ${location.pathname === item.path ? "is-active" : ""
+                    } ${isInactive ? "disabled" : ""}`}
                   onClick={(e) => {
                     if (isInactive) {
                       e.preventDefault();
@@ -371,8 +376,8 @@ const Sidebar = ({ isOpen, toggleSidebar, accountStatus }) => {
       )}
 
       {/* Notifications Modal */}
-      <NotificationsModal 
-        show={showNotifications} 
+      <NotificationsModal
+        show={showNotifications}
         onClose={() => setShowNotifications(false)}
         notifications={notifications}
         onDelete={handleNotificationDelete}

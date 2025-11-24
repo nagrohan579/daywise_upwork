@@ -22,6 +22,7 @@
     opacity: 0;
     transform: translateX(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -34,6 +35,7 @@
     transform: translateX(0);
     max-height: 200px;
   }
+
   to {
     opacity: 0;
     transform: translateX(-10px);
@@ -135,3 +137,41 @@
   opacity: 1;
 }
 
+/* Desktop text visibility (default) */
+.notification-button-text-desktop {
+  display: inline;
+}
+
+.notification-button-text-mobile {
+  display: none;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .notification-item {
+    margin: 0 12px;
+    /* Reduced from 24px to 12px for less squished appearance */
+    padding: 16px 12px;
+    /* Also reduce internal padding slightly */
+  }
+
+  .notification-action-button {
+    width: auto;
+    /* Remove fixed width */
+    max-width: 70px;
+    /* Smaller max width for mobile */
+    padding: 4px 10px;
+    /* Slightly reduce padding */
+    font-size: 10px;
+    /* Keep font size same */
+  }
+
+  /* Show "View" on mobile, hide "Show in Calendar" */
+  .notification-button-text-desktop {
+    display: none !important;
+  }
+
+  .notification-button-text-mobile {
+    display: inline !important;
+  }
+}

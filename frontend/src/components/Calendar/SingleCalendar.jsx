@@ -19,14 +19,77 @@ const SingleCalendar = ({
   onTimezoneChange = null,
   value = null,
   selectedTime: selectedTimeProp = null,
-  weeklyAvailability = []
+  weeklyAvailability = [],
+  availabilityExceptions = [],
+  blockedDates = []
 }) => {
   // Helper function to check if a date is available
+  // Implements same logic as slots endpoint with priority: custom_hours/special_availability > unavailable checks
   const isDateAvailable = (date) => {
     const dayOfWeek = date.getDay();
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const dayName = dayNames[dayOfWeek];
 
+    // Format date as YYYY-MM-DD for exception matching
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+
+    // Get date timestamp for comparison
+    const dateTimestamp = new Date(dateStr).getTime();
+
+    // Find exceptions for this specific date
+    const dateExceptions = availabilityExceptions.filter(exception => {
+      const exceptionDate = new Date(exception.date);
+      const excYear = exceptionDate.getFullYear();
+      const excMonth = String(exceptionDate.getMonth() + 1).padStart(2, '0');
+      const excDay = String(exceptionDate.getDate()).padStart(2, '0');
+      const excDateStr = `${excYear}-${excMonth}-${excDay}`;
+      return excDateStr === dateStr;
+    });
+
+    // PRIORITY 1: Check for custom_hours or special_availability (these OVERRIDE unavailability)
+    const hasOverride = dateExceptions.some(ex =>
+      ex.type === 'custom_hours' || ex.type === 'special_availability'
+    );
+    if (hasOverride) {
+      return true; // Date is available because it has override hours
+    }
+
+    // PRIORITY 2: Check for closed_months
+    const closedMonthException = availabilityExceptions.find(ex => {
+      if (ex.type !== 'closed_months' || !ex.customSchedule) return false;
+      try {
+        const schedule = JSON.parse(ex.customSchedule);
+        return schedule.month === date.getMonth() && schedule.year === date.getFullYear();
+      } catch {
+        return false;
+      }
+    });
+    if (closedMonthException) {
+      return false; // Entire month is closed
+    }
+
+    // PRIORITY 3: Check for blocked dates (booking window)
+    const isBlocked = blockedDates.some(blocked => {
+      const blockStart = new Date(blocked.startDate);
+      const blockEnd = new Date(blocked.endDate);
+      blockStart.setHours(0, 0, 0, 0);
+      blockEnd.setHours(23, 59, 59, 999);
+      return dateTimestamp >= blockStart.getTime() && dateTimestamp <= blockEnd.getTime();
+    });
+    if (isBlocked) {
+      return false; // Date is in blocked range
+    }
+
+    // PRIORITY 4: Check for unavailable exception
+    const unavailableException = dateExceptions.find(ex => ex.type === 'unavailable');
+    if (unavailableException) {
+      return false; // Date is specifically marked unavailable
+    }
+
+    // PRIORITY 5: Check weekly availability (only if no exceptions apply)
     const allDayRecords = weeklyAvailability.filter(slot => {
       const rawWeekday = slot.weekday || '';
       const wk = String(rawWeekday).toLowerCase().trim();
@@ -35,7 +98,7 @@ const SingleCalendar = ({
     });
 
     if (allDayRecords.length === 0) {
-      return true; // Available by default
+      return true; // Available by default if no records
     }
 
     const hasAvailableSlots = allDayRecords.some(slot => slot.isAvailable !== false);
@@ -102,10 +165,10 @@ const SingleCalendar = ({
     }
   }, [value]);
 
-  // Update selectedDate when weeklyAvailability loads
+  // Update selectedDate when availability data loads (weekly, exceptions, blocked dates)
   useEffect(() => {
     // Only run this if we don't have an explicit value prop
-    if (!value && weeklyAvailability.length > 0) {
+    if (!value && (weeklyAvailability.length > 0 || availabilityExceptions.length > 0 || blockedDates.length > 0)) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -119,7 +182,7 @@ const SingleCalendar = ({
         setSelectedDate(nextAvailable);
       }
     }
-  }, [weeklyAvailability]);
+  }, [weeklyAvailability, availabilityExceptions, blockedDates]);
 
   const handleDateChange = async (date) => {
     setSelectedDate(date);
@@ -195,30 +258,8 @@ const SingleCalendar = ({
             today.setHours(0, 0, 0, 0);
             if (date < today) return false;
 
-            // Check if this day of week is unavailable
-            // Same logic as slots endpoint (routes.ts:3424-3430)
-            const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
-            const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-            const dayName = dayNames[dayOfWeek];
-
-            // Get all records for this weekday (regardless of isAvailable)
-            const allDayRecords = weeklyAvailability.filter(slot => {
-              const rawWeekday = slot.weekday || '';
-              const wk = String(rawWeekday).toLowerCase().trim();
-              const matches = wk === dayName || wk === dayName.slice(0, 3) || wk === String(dayOfWeek);
-              return matches;
-            });
-
-            // If no records exist for this day, it's available by default
-            if (allDayRecords.length === 0) {
-              return false; // Don't disable
-            }
-
-            // Check if ANY record has isAvailable !== false
-            const hasAvailableSlots = allDayRecords.some(slot => slot.isAvailable !== false);
-
-            // Disable the date if ALL records have isAvailable === false
-            return !hasAvailableSlots;
+            // Use the comprehensive isDateAvailable helper
+            return !isDateAvailable(date);
           }}
           nextLabel={<FaChevronRight size={14} />}
           prevLabel={<FaChevronLeft size={14} />}

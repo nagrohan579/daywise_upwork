@@ -54,6 +54,8 @@ const PublicBooking = () => {
   const [uploadedFileUrls, setUploadedFileUrls] = useState({}); // Map of fieldId -> [fileUrls]
   const [submittingForm, setSubmittingForm] = useState(false);
   const [weeklyAvailability, setWeeklyAvailability] = useState([]);
+  const [availabilityExceptions, setAvailabilityExceptions] = useState([]);
+  const [blockedDates, setBlockedDates] = useState([]);
 
   // Get timezone options from utility (limited to 20 supported timezones)
   const timezoneOptions = useMemo(() => {
@@ -383,6 +385,34 @@ const PublicBooking = () => {
         }
       } catch (error) {
         console.warn('PublicBooking - Error fetching availability:', error);
+      }
+
+      // Fetch availability exceptions for calendar disabling
+      try {
+        const exceptionsResponse = await fetch(`${apiUrl}/api/public/availability-exceptions/${user.id}`);
+        if (exceptionsResponse.ok) {
+          const exceptionsData = await exceptionsResponse.json();
+          console.log('PublicBooking - Availability exceptions loaded:', exceptionsData);
+          setAvailabilityExceptions(exceptionsData);
+        } else {
+          console.warn('PublicBooking - Failed to fetch exceptions:', exceptionsResponse.status);
+        }
+      } catch (error) {
+        console.warn('PublicBooking - Error fetching exceptions:', error);
+      }
+
+      // Fetch blocked dates for calendar disabling
+      try {
+        const blockedResponse = await fetch(`${apiUrl}/api/public/blocked-dates/${user.id}`);
+        if (blockedResponse.ok) {
+          const blockedData = await blockedResponse.json();
+          console.log('PublicBooking - Blocked dates loaded:', blockedData);
+          setBlockedDates(blockedData);
+        } else {
+          console.warn('PublicBooking - Failed to fetch blocked dates:', blockedResponse.status);
+        }
+      } catch (error) {
+        console.warn('PublicBooking - Error fetching blocked dates:', error);
       }
 
       setLoading(false);
@@ -911,6 +941,8 @@ const PublicBooking = () => {
                   handleTimezoneChange(value);
                 }}
                 weeklyAvailability={weeklyAvailability}
+                availabilityExceptions={availabilityExceptions}
+                blockedDates={blockedDates}
               />
             </div>
           </div>

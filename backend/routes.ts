@@ -3752,6 +3752,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public availability exceptions endpoint (no authentication required) - for public booking pages
+  app.get("/api/public/availability-exceptions/:userId", async (req, res) => {
+    try {
+      const exceptions = await storage.getAvailabilityExceptionsByUser(req.params.userId);
+      console.log(`GET /api/public/availability-exceptions/${req.params.userId} - Found ${exceptions.length} records`);
+      res.json(exceptions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch availability exceptions", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  // Public blocked dates endpoint (no authentication required) - for public booking pages
+  app.get("/api/public/blocked-dates/:userId", async (req, res) => {
+    try {
+      const blockedDates = await storage.getBlockedDatesByUser(req.params.userId);
+      console.log(`GET /api/public/blocked-dates/${req.params.userId} - Found ${blockedDates.length} records`);
+      res.json(blockedDates);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch blocked dates", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
   app.get("/api/availability/:userId", async (req, res) => {
     try {
       const session = req.session as any;

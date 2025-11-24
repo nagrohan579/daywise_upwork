@@ -41,33 +41,34 @@ const NotificationItem = ({ notification, onDelete, onShowInCalendar }) => {
 
   return (
     <div className={`notification-item ${isDeleting ? 'deleting' : ''}`}>
-      <div 
+      <div
         className="notification-icon-container"
         style={{ backgroundColor: getIconBgColor() }}
       >
         {getIcon()}
       </div>
-      
+
       <div className="notification-content">
         <p className="notification-text">
           <strong>{notification.customerName}</strong> has {notification.type === 'cancelled' ? 'cancelled' : notification.type === 'rescheduled' ? 'rescheduled' : 'scheduled'} <strong>{notification.serviceName}</strong> for <strong>{notification.dateTime}</strong>
         </p>
         <div className="notification-footer">
           <span className="notification-time">{notification.timestamp}</span>
-        {(notification.type === 'scheduled' || notification.type === 'rescheduled') && notification.action && (
-          <button 
-            className="notification-action-button"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onShowInCalendar) {
-                onShowInCalendar(notification);
-              }
-            }}
-          >
-            Show in Calendar
-            <NotifArrowIcon />
-          </button>
-        )}
+          {(notification.type === 'scheduled' || notification.type === 'rescheduled') && notification.action && (
+            <button
+              className="notification-action-button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onShowInCalendar) {
+                  onShowInCalendar(notification);
+                }
+              }}
+            >
+              <span className="notification-button-text-desktop">Show in Calendar</span>
+              <span className="notification-button-text-mobile">View</span>
+              <NotifArrowIcon />
+            </button>
+          )}
         </div>
       </div>
 

@@ -4,13 +4,16 @@
   align-items: start;
   border-bottom: none;
 }
+
 .serviceModal .modal-dialog {
   max-width: 512px;
   font-family: Inter, sans-serif;
 }
+
 .serviceModal .content-wrap {
   max-width: 390px;
 }
+
 .serviceModal .content-wrap .modal-title {
   font-family: Inter;
   font-weight: 600;
@@ -21,6 +24,7 @@
   vertical-align: middle;
   color: var(--text-color);
 }
+
 .serviceModal .content-wrap p {
   font-family: Inter;
   font-weight: 400;
@@ -40,8 +44,10 @@
   line-height: 20px;
   letter-spacing: 0%;
   color: var(--secondary-color);
-  margin-top: 0px; /* No top margin to match spacing between fields */
-  margin-bottom: 16px; /* Same as input-group-comp and select-group */
+  margin-top: 0px;
+  /* No top margin to match spacing between fields */
+  margin-bottom: 16px;
+  /* Same as input-group-comp and select-group */
 }
 
 .serviceModal .close-btn {
@@ -50,9 +56,11 @@
   background-color: transparent;
   cursor: pointer;
 }
+
 .serviceModal .modal-body {
   padding-top: 0px;
 }
+
 .serviceModal .modal-body .btn-wrap {
   margin-top: 24px;
   display: flex;
@@ -98,15 +106,18 @@
   padding: 0px;
   gap: 5px;
   width: 100%;
-  min-height: 46px; /* Default height for pro + stripe (no tooltip) */
+  min-height: 46px;
+  /* Default height for pro + stripe (no tooltip) */
 }
 
 .service-payment-free .service-payment-content {
-  height: 67px; /* Height for free account (with tooltip) */
+  height: 67px;
+  /* Height for free account (with tooltip) */
 }
 
 .service-payment-no-stripe .service-payment-content {
-  height: 67px; /* Height for pro without stripe (with tooltip) */
+  height: 67px;
+  /* Height for pro without stripe (with tooltip) */
 }
 
 .service-payment-header {
@@ -254,14 +265,17 @@
   border-bottom: none;
   padding: 24px 24px 16px 24px;
 }
+
 .changeEmailModal .modal-header .content-wrap {
   flex: 1;
   padding-right: 16px;
 }
+
 .changeEmailModal .modal-dialog {
   max-width: 512px;
   font-family: Inter, sans-serif;
 }
+
 .changeEmailModal .content-wrap .modal-title {
   font-family: Inter;
   font-weight: 600;
@@ -273,6 +287,7 @@
   color: var(--text-color);
   margin: 0 0 8px 0;
 }
+
 .changeEmailModal .content-wrap p {
   font-family: Inter;
   font-weight: 400;
@@ -292,12 +307,15 @@
   cursor: pointer;
   flex-shrink: 0;
 }
+
 .changeEmailModal .modal-body {
   padding: 0 24px 24px 24px;
 }
+
 .changeEmailModal .modal-body .content-wrap {
   width: 100%;
 }
+
 .changeEmailModal .modal-body .btn-wrap {
   margin-top: 24px;
   display: flex;
@@ -306,13 +324,16 @@
   align-items: center;
   width: 100%;
 }
+
 .changeEmailModal .modal-body .input-wrap {
   margin-bottom: 24px;
   width: 100%;
 }
+
 .changeEmailModal .modal-body .input-wrap:last-of-type {
   margin-bottom: 0;
 }
+
 .changeEmailModal .modal-body .input-wrap .input-group-comp {
   width: 100%;
   max-width: 100%;
@@ -326,14 +347,17 @@
   border-bottom: none;
   padding: 24px 24px 16px 24px;
 }
+
 .changePasswordModal .modal-header .content-wrap {
   flex: 1;
   padding-right: 16px;
 }
+
 .changePasswordModal .modal-dialog {
   max-width: 512px;
   font-family: Inter, sans-serif;
 }
+
 .changePasswordModal .content-wrap .modal-title {
   font-family: Inter;
   font-weight: 600;
@@ -345,6 +369,7 @@
   color: var(--text-color);
   margin: 0 0 8px 0;
 }
+
 .changePasswordModal .content-wrap p {
   font-family: Inter;
   font-weight: 400;
@@ -364,12 +389,15 @@
   cursor: pointer;
   flex-shrink: 0;
 }
+
 .changePasswordModal .modal-body {
   padding: 0 24px 24px 24px;
 }
+
 .changePasswordModal .modal-body .content-wrap {
   width: 100%;
 }
+
 .changePasswordModal .modal-body .btn-wrap {
   margin-top: 24px;
   display: flex;
@@ -378,13 +406,16 @@
   align-items: center;
   width: 100%;
 }
+
 .changePasswordModal .modal-body .input-wrap {
   margin-bottom: 24px;
   width: 100%;
 }
+
 .changePasswordModal .modal-body .input-wrap:last-of-type {
   margin-bottom: 0;
 }
+
 .changePasswordModal .modal-body .input-wrap .input-group-comp {
   width: 100%;
   max-width: 100%;
@@ -418,23 +449,28 @@
 }
 
 .changePasswordModal .password-strength-weak {
-  background-color: #ef4444; /* Red */
+  background-color: #ef4444;
+  /* Red */
 }
 
 .changePasswordModal .password-strength-poor {
-  background-color: #f59e0b; /* Orange */
+  background-color: #f59e0b;
+  /* Orange */
 }
 
 .changePasswordModal .password-strength-fair {
-  background-color: #eab308; /* Yellow */
+  background-color: #eab308;
+  /* Yellow */
 }
 
 .changePasswordModal .password-strength-good {
-  background-color: #10b981; /* Green */
+  background-color: #10b981;
+  /* Green */
 }
 
 .changePasswordModal .password-strength-strong {
-  background-color: #059669; /* Dark Green */
+  background-color: #059669;
+  /* Dark Green */
 }
 
 .changePasswordModal .password-strength-label {
@@ -489,18 +525,20 @@
 }
 
 /* dateSpecificHour */
-.dateSpecificHour {
-}
+.dateSpecificHour {}
+
 .dateSpecificHour .modal-dialog {
   max-width: 640px;
   font-family: Inter, sans-serif;
 }
+
 .dateSpecificHour .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: start;
   border-bottom: none;
 }
+
 .dateSpecificHour .modal-header .content-wrap h4 {
   font-family: Inter;
   font-weight: 600;
@@ -510,6 +548,7 @@
   letter-spacing: 0%;
   color: var(--text-color);
 }
+
 .dateSpecificHour .modal-header .content-wrap p {
   font-family: Inter;
   font-weight: 400;
@@ -518,12 +557,14 @@
   letter-spacing: 0%;
   color: var(--secondary-color);
 }
+
 .dateSpecificHour .modal-header .close-btn {
   border: none;
   outline: none;
   background-color: transparent;
   cursor: pointer;
 }
+
 .dateSpecificHour .input-wrap {
   display: flex;
   justify-content: space-between;
@@ -536,6 +577,7 @@
     margin-bottom: 16px;
   }
 }
+
 .dateSpecificHour .input-wrap .input-group-comp,
 .dateSpecificHour .input-wrap .select-group {
   flex: 1;
@@ -551,6 +593,7 @@
     margin-bottom: 16px;
   }
 }
+
 .dateSpecificHour .btn-wrap {
   display: flex;
   justify-content: end;
@@ -618,18 +661,18 @@
     gap: 16px !important;
     margin-bottom: 16px;
   }
-  
+
   .dateSpecificHour .input-wrap .input-group-comp,
   .dateSpecificHour .input-wrap .select-group {
     flex: 1;
     margin-bottom: 0 !important;
     width: 100%;
   }
-  
+
   .dateSpecificHour .closed-months-grid {
     grid-template-columns: repeat(3, 1fr);
   }
-  
+
   /* Prevent iOS Safari zoom on date/time inputs - font-size must be at least 16px */
   /* Also ensure font-family and all styling matches other inputs exactly */
   /* Match the styling approach from Week Hours section which works perfectly */
@@ -638,8 +681,10 @@
   .dateSpecificHour .input-group-comp .input-field[type="date"],
   .dateSpecificHour .input-group-comp .input-field[type="time"] {
     /* Font styling to match regular inputs - must match Week Hours exactly */
-    font-size: 16px !important; /* Prevent iOS zoom (requires 16px or larger) */
-    -webkit-text-size-adjust: 100% !important; /* Prevent text size adjustment */
+    font-size: 16px !important;
+    /* Prevent iOS zoom (requires 16px or larger) */
+    -webkit-text-size-adjust: 100% !important;
+    /* Prevent text size adjustment */
     font-family: Inter, sans-serif !important;
     font-weight: 400 !important;
     font-style: normal !important;
@@ -664,7 +709,7 @@
     /* Hide calendar picker indicator but keep functionality */
     cursor: pointer !important;
   }
-  
+
   /* Hide calendar picker indicator visually but keep functionality - like Week Hours */
   .dateSpecificHour .input-group-comp input[type="date"]::-webkit-calendar-picker-indicator,
   .dateSpecificHour .input-group-comp input[type="time"]::-webkit-calendar-picker-indicator,
@@ -680,29 +725,35 @@
 }
 
 /* addAppointmentModal */
-.addAppointmentModal {
-}
+.addAppointmentModal {}
+
 .addAppointmentModal .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: start;
   border-bottom: none;
 }
+
 .addAppointmentModal .modal-dialog {
   max-width: 512px;
   font-family: Inter, sans-serif;
 }
+
 .addAppointmentModal.view-mode .modal-dialog {
-  max-width: 480px; /* Slightly smaller for view mode */
+  max-width: 480px;
+  /* Slightly smaller for view mode */
 }
+
 /* Force left alignment for all inputs in view mode */
 .addAppointmentModal.view-mode .input-group-comp input,
 .addAppointmentModal.view-mode .input-group-comp .input-field {
   text-align: left !important;
 }
+
 .addAppointmentModal .content-wrap {
   max-width: 390px;
 }
+
 .addAppointmentModal .content-wrap .modal-title {
   font-family: Inter;
   font-weight: 600;
@@ -713,6 +764,7 @@
   vertical-align: middle;
   color: var(--text-color);
 }
+
 .addAppointmentModal .content-wrap p {
   font-family: Inter;
   font-weight: 400;
@@ -730,9 +782,11 @@
   background-color: transparent;
   cursor: pointer;
 }
+
 .addAppointmentModal .modal-body {
   padding-top: 0px;
 }
+
 .addAppointmentModal .modal-body .btn-wrap {
   margin-top: 24px;
   display: flex;
@@ -740,51 +794,73 @@
   gap: 12px;
   align-items: center;
 }
+
 .addAppointmentModal .input-wrap {
   display: flex;
   gap: 35px;
   align-items: center;
-  margin-bottom: 16px; /* Add vertical spacing between fields */
+  margin-bottom: 16px;
+  /* Add vertical spacing between fields */
 }
+
 /* Ensure all inputs in addAppointmentModal are left-aligned */
 .addAppointmentModal .input-wrap .input-group-comp input,
 .addAppointmentModal .input-wrap .input-group-comp .input-field {
   text-align: left !important;
 }
+
 .addAppointmentModal .input-wrap:last-of-type {
-  margin-bottom: 0; /* Remove spacing after last field */
+  margin-bottom: 0;
+  /* Remove spacing after last field */
 }
+
 .addAppointmentModal .input-wrap .input-group-comp {
   width: 100%;
-  margin-bottom: 0; /* Remove margin that affects alignment */
-  gap: 0; /* Remove gap inside input-group-comp */
+  margin-bottom: 0;
+  /* Remove margin that affects alignment */
+  gap: 0;
+  /* Remove gap inside input-group-comp */
 }
+
 .addAppointmentModal .input-wrap .input-group-comp .input-label {
-  display: none; /* Hide label if present since we use h5 outside */
+  display: none;
+  /* Hide label if present since we use h5 outside */
 }
+
 .addAppointmentModal .input-wrap .input-group-comp .input-field {
-  margin: 0; /* Remove any margin that might affect alignment */
-  text-align: left; /* Ensure left alignment by default */
+  margin: 0;
+  /* Remove any margin that might affect alignment */
+  text-align: left;
+  /* Ensure left alignment by default */
 }
+
 .addAppointmentModal .input-wrap .input-group-comp input::placeholder {
   color: var(--text-color);
 }
+
 .addAppointmentModal .input-wrap .select-group {
   width: 100%;
-  margin-bottom: 0; /* Remove margin that affects alignment */
-  gap: 0; /* Remove gap inside select-group */
+  margin-bottom: 0;
+  /* Remove margin that affects alignment */
+  gap: 0;
+  /* Remove gap inside select-group */
   display: flex;
   flex-direction: column;
-  justify-content: center; /* Center the select box vertically */
+  justify-content: center;
+  /* Center the select box vertically */
 }
+
 .addAppointmentModal .input-wrap .select-group .select-box {
-  margin: 0; /* Remove any margin that might affect alignment */
+  margin: 0;
+  /* Remove any margin that might affect alignment */
 }
+
 .addAppointmentModal .input-wrap .textarea-group {
   width: 100%;
   margin: 0;
   gap: 0;
 }
+
 .addAppointmentModal .input-wrap .textarea-group .textarea-field {
   width: 100%;
   border: none !important;
@@ -800,55 +876,68 @@
   font-family: Inter, sans-serif;
   box-sizing: border-box;
 }
+
 .addAppointmentModal .input-wrap .textarea-group .textarea-field:focus {
   outline: none;
   border: none !important;
 }
+
 .addAppointmentModal .input-wrap .textarea-group .textarea-field:disabled {
   opacity: 1;
   cursor: default;
 }
+
 .addAppointmentModal .input-wrap.comments-wrap {
   align-items: flex-start;
 }
+
 .addAppointmentModal .input-wrap.comments-wrap h5 {
   align-items: flex-start;
   height: auto;
   padding-top: 14px;
 }
+
 .addAppointmentModal .input-wrap h5 {
   font-family: Inter;
   font-weight: 600;
   font-style: Semi Bold;
   font-size: 14px;
-  line-height: 1; /* Reset line-height */
+  line-height: 1;
+  /* Reset line-height */
   letter-spacing: 0%;
   color: var(--text-color);
   min-width: 45px;
-  margin: 0; /* Remove any default margins */
-  height: 44px; /* Match input field height exactly */
+  margin: 0;
+  /* Remove any default margins */
+  height: 44px;
+  /* Match input field height exactly */
   display: flex;
-  align-items: center; /* Center text vertically within the label */
-  padding: 0; /* Remove any padding */
+  align-items: center;
+  /* Center text vertically within the label */
+  padding: 0;
+  /* Remove any padding */
 }
 
 /* previewBookingModal */
-.previewBookingModal {
-}
+.previewBookingModal {}
+
 .previewBookingModal .modal-dialog {
   max-width: 1220px;
 }
+
 .previewBookingModal .close-btn {
   border: none;
   outline: none;
   background-color: transparent;
   cursor: pointer;
 }
+
 .previewBookingModal .modal-body {
   padding: 24px;
   max-height: 90vh;
   overflow: auto;
 }
+
 .previewBookingModal .modal-header {
   display: flex;
   justify-content: space-between;
@@ -856,10 +945,12 @@
   border-bottom: none;
   padding: 24px 24px 10px 40px;
 }
+
 .previewBookingModal .content-wrap {
   max-width: 390px;
   padding-right: 16px;
 }
+
 .previewBookingModal .content-wrap .modal-title {
   font-family: Inter;
   font-weight: 600;
@@ -897,6 +988,7 @@
   min-width: 0 !important;
   padding: 0 !important;
 }
+
 .previewBookingModal .main-wrapper {
   border: 1px solid color-mix(in srgb, var(--secondary-color) 20%, transparent);
   border-radius: 20px;
@@ -1108,11 +1200,51 @@
 /* Ensure each day cell has enough space for the circle */
 .previewBookingModal .react-calendar__month-view__days__day {
   width: auto !important;
-  min-width: 54px !important;
+  min-width: 0 !important;
+  min-height: 48px !important;
+  /* Allow shrinking below 54px */
   padding: 0 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  box-sizing: border-box !important;
+}
+
+.previewBookingModal .react-calendar__tile {
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+.previewBookingModal .react-calendar__tile abbr {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.previewBookingModal .react-calendar__tile--active,
+.previewBookingModal .react-calendar__tile--active:enabled:hover,
+.previewBookingModal .react-calendar__tile--active:enabled:focus {
+  background: var(--main-color) !important;
+  color: #FFFFFF !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  margin: auto !important;
+  aspect-ratio: 1 !important;
 }
 
 /* Force the active tile to be a perfect circle */
@@ -1132,31 +1264,113 @@
   box-sizing: border-box !important;
   aspect-ratio: 1 / 1 !important;
   flex-shrink: 0 !important;
+  /* Prevent shrinking */
+  flex: 0 0 44px !important;
+  /* Enforce size in flex container */
   line-height: 44px !important;
   vertical-align: middle !important;
 }
 
 @media (max-width: 768px) {
+  .previewBookingModal .react-calendar__month-view__days__day .react-calendar__tile--active {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    max-width: 34px !important;
+    max-height: 34px !important;
+    flex: 0 0 34px !important;
+    line-height: 34px !important;
+    margin: 2px auto !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .previewBookingModal .react-calendar__month-view__days__day .react-calendar__tile--active abbr {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1 !important;
+  }
+}
+
+@media (max-width: 999px) {
+  .previewBookingModal .single-calendar-container .time-slot-wrapper {
+    display: none !important;
+  }
+
+  .previewBookingModal .single-calendar-container {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .previewBookingModal .preview-main-wrapper {
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .previewBookingModal .modal-body {
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 0;
+  }
+
   .previewBookingModal .preview-steps-one {
     flex-direction: column;
+    max-height: none;
+    overflow: visible;
   }
-  
+
   .previewBookingModal .preview-left {
     border-right: none;
     padding: 20px;
+    width: 100%;
+    max-height: none;
+    /* Remove height constraint on mobile */
+    overflow: visible;
   }
-  
+
   .previewBookingModal .preview-left .profile-con .business-wrapper {
     margin-bottom: 20px;
   }
-  
+
   .previewBookingModal .preview-right {
-    padding: 20px;
+    display: block;
+    /* Show calendar */
+    width: 100%;
+    padding: 10px;
+    /* Reduced padding to give more space to calendar */
+    overflow: visible;
+    /* Allow calendar to flow */
+    height: auto;
+  }
+
+  .previewBookingModal .modal-body {
+    padding: 0;
+    /* Maximize space on mobile */
+  }
+
+  /* Fix calendar width on mobile */
+  .previewBookingModal .single-calendar-container .calendar-date-wrapper {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .previewBookingModal .react-calendar {
+    width: 100% !important;
   }
 }
+
 .previewBookingModal .main-wrapper .containerr .left .daywise-branding {
   margin-bottom: 21px;
 }
+
 .previewBookingModal .main-wrapper .containerr .left .daywise-branding button {
   font-size: 11px;
   line-height: 16px;
@@ -1164,15 +1378,18 @@
   height: 30px;
   font-weight: 500;
 }
+
 .previewBookingModal .main-wrapper .containerr .left .profile-wrapper {
   margin-bottom: 21px;
 }
+
 .previewBookingModal .main-wrapper .containerr .left .profile-wrapper img {
   width: 49px;
   height: 49px;
   object-fit: contain;
   margin-bottom: 6px;
 }
+
 .previewBookingModal .main-wrapper .containerr .left .profile-wrapper h5 {
   margin: 0;
   color: var(--text-color);
@@ -1183,9 +1400,11 @@
   line-height: 20px;
   vertical-align: middle;
 }
+
 .previewBookingModal .main-wrapper .containerr .left .business-wrapper {
   margin-bottom: 65px;
 }
+
 .previewBookingModal .main-wrapper .containerr .left .business-wrapper h2 {
   font-family: Inter, sans-serif;
   font-weight: 600;
@@ -1196,6 +1415,7 @@
   color: var(--text-color);
   margin-bottom: 6px;
 }
+
 .previewBookingModal .main-wrapper .containerr .left .business-wrapper p {
   font-family: Inter, sans-serif;
   font-weight: 400;
@@ -1206,9 +1426,11 @@
   color: var(--secondary-color);
   margin: 0;
 }
+
 .previewBookingModal .main-wrapper .containerr .left .select-con {
   margin-bottom: 30px;
 }
+
 .previewBookingModal .main-wrapper .containerr .left .select-con h4 {
   font-family: Inter;
   font-weight: 600;
@@ -1218,6 +1440,7 @@
   vertical-align: middle;
   color: var(--text-color);
 }
+
 .previewBookingModal .main-wrapper .containerr .left .description {
   color: var(--secondary-color);
   font-family: Inter, sans-serif;
@@ -1240,6 +1463,7 @@
   .previewBookingModal .modal-dialog {
     max-width: 1000px;
   }
+
   .previewBookingModal .modal-body {
     padding: 30px;
   }
@@ -1247,22 +1471,27 @@
   .previewBookingModal .main-wrapper .containerr .left {
     padding: 20px;
   }
+
   .previewBookingModal .main-wrapper .containerr .right {
     padding: 20px;
   }
 }
+
 @media screen and (max-width: 999px) {
   .previewBookingModal .modal-dialog {
     width: 95%;
     margin-inline: auto;
   }
+
   .previewBookingModal .main-wrapper .containerr {
     flex-direction: column;
   }
+
   .previewBookingModal .main-wrapper .containerr .left {
     border-right: none;
     padding: 12px;
   }
+
   .previewBookingModal .main-wrapper .containerr .left .business-wrapper {
     margin-bottom: 20px;
   }
@@ -1270,31 +1499,38 @@
   .previewBookingModal .main-wrapper .containerr .right {
     padding: 12px;
   }
+
   .previewBookingModal .modal-header {
     padding-bottom: 0px;
   }
+
   .previewBookingModal .modal-body {
     padding: 16px;
   }
 }
+
 @media (max-width: 991px) {
   .modal-dialog {
     width: 95% !important;
   }
+
   .dateSpecificHour .input-wrap {
     flex-direction: column;
     gap: 0px;
   }
-  
+
   /* Ensure modals appear above hamburger button (1300), sidebar (1200), and "How this Works" button (1100) on mobile */
   .modal {
-    z-index: 1500 !important; /* Higher than all other elements */
+    z-index: 1500 !important;
+    /* Higher than all other elements */
   }
-  
+
   .modal-backdrop {
-    z-index: 1499 !important; /* Just below modal */
+    z-index: 1499 !important;
+    /* Just below modal */
   }
 }
+
 @media (max-width: 768px) {
   .addAppointmentModal .input-wrap {
     flex-direction: column;
@@ -1302,17 +1538,21 @@
     gap: 0px;
     margin-bottom: 12px;
   }
+
   .addAppointmentModal .input-wrap.view-wrap {
     flex-direction: row;
     align-items: center;
     gap: 20px;
   }
+
   .addAppointmentModal .input-wrap.view-wrap h5 {
     margin: 0px;
   }
+
   .addAppointmentModal .input-wrap.view-wrap .input-group-comp {
     margin-bottom: 0px;
   }
+
   /* Ensure date and time inputs are left-aligned in view mode on mobile */
   /* Safari/iOS specific fixes */
   .addAppointmentModal .input-wrap.view-wrap .input-group-comp input[type="date"],
@@ -1339,6 +1579,7 @@
 
 /* iOS Safari specific fix for date/time inputs */
 @supports (-webkit-touch-callout: none) {
+
   .addAppointmentModal .input-wrap.view-wrap .input-group-comp input[type="date"],
   .addAppointmentModal .input-wrap.view-wrap .input-group-comp input[type="time"],
   .addAppointmentModal.view-mode .input-wrap .input-group-comp input[type="date"],
@@ -1520,6 +1761,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -1622,6 +1864,7 @@
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1867,7 +2110,7 @@
     align-items: center !important;
     justify-content: center !important;
   }
-  
+
   .reschedule-modal-content {
     width: 100% !important;
     max-width: 346px !important;
@@ -1891,17 +2134,17 @@
     margin: 1rem auto;
     min-height: calc(100% - 2rem);
   }
-  
+
   .cancel-modal-content {
     width: 100%;
     max-width: 100%;
     padding: 16px;
   }
-  
+
   .cancel-modal-text {
     width: 100%;
   }
-  
+
   .cancel-modal-buttons {
     width: 100%;
   }
@@ -2529,4 +2772,72 @@
 .previewFormModal input[type="radio"]:disabled {
   opacity: 0.6 !important;
   cursor: not-allowed !important;
+}
+
+/* Preview modal calendar - ensure dates remain perfectly circular */
+.previewFormModal .react-calendar__month-view__days__day {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  position: relative;
+  padding: 0;
+}
+
+.previewFormModal .react-calendar__tile {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.previewFormModal .react-calendar__tile abbr {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  line-height: 1;
+  text-align: center;
+  margin: 0;
+  padding: 0;
+}
+
+.previewFormModal .react-calendar__tile--active,
+.previewFormModal .react-calendar__tile--active:enabled:hover,
+.previewFormModal .react-calendar__tile--active:enabled:focus {
+  background: var(--main-color) !important;
+  color: #fff !important;
+  border-radius: 50% !important;
+  aspect-ratio: 1 !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
+  padding: 0 !important;
+  margin: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.previewFormModal .react-calendar__tile--active abbr,
+.previewFormModal .react-calendar__tile--active:enabled:hover abbr,
+.previewFormModal .react-calendar__tile--active:enabled:focus abbr {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  line-height: 1 !important;
 }

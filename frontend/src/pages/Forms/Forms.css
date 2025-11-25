@@ -4,17 +4,19 @@
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  padding: 8px 30px;
+  padding: 8px 40px;
+  /* Increased padding */
   gap: 6px;
   isolation: isolate;
   position: fixed;
-  width: 100vw;
+  width: 100%;
   height: auto;
   min-height: 36px;
   left: 0px;
   top: 0px;
   background: rgba(202, 65, 65, 1);
-  z-index: 1000;
+  z-index: 2000;
+  /* Increased z-index */
   box-sizing: border-box;
 }
 
@@ -23,11 +25,11 @@
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   flex: 1;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  position: relative;
+  /* Changed from absolute */
+  max-width: 100%;
 }
 
 .forms-warning-icon {
@@ -56,6 +58,8 @@
   text-align: center;
   z-index: 1;
   margin: 0;
+  white-space: nowrap;
+  /* Prevent wrapping on desktop */
 }
 
 .forms-warning-close {
@@ -87,6 +91,7 @@
   margin-top: 0;
   padding-top: 0;
 }
+
 .forms-page .top-con h1 {
   font-family: Inter, sans-serif;
   font-weight: 600;
@@ -101,6 +106,7 @@
   color: #121212;
   margin: 0;
 }
+
 .forms-page .top-con p {
   color: #64748b;
   font-family: Inter, sans-serif;
@@ -112,12 +118,14 @@
   vertical-align: middle;
   margin: 0;
 }
+
 .forms-page .add-new-btn-wrap {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
 }
+
 .forms-page .add-new-btn-wrap p {
   color: #64748b;
   font-family: Inter, sans-serif;
@@ -129,6 +137,7 @@
   vertical-align: middle;
   margin: 0;
 }
+
 .forms-page .add-new-btn-wrap .forms-count-text {
   color: #64748b;
   font-family: Inter, sans-serif;
@@ -139,6 +148,7 @@
   letter-spacing: 0%;
   margin: 0;
 }
+
 .forms-page .add-new-btn-wrap .forms-count-text strong {
   font-weight: 600;
   color: #121212;
@@ -147,12 +157,14 @@
 .forms-page .add-new-btn-wrap .forms-count-text-over-limit strong {
   color: #FA5151;
 }
+
 .forms-page .forms-card-list {
   margin-top: 60px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 19px;
 }
+
 .forms-page .forms-card-list .cardd {
   border: 1px solid #64748b33;
   border-radius: 12px;
@@ -160,11 +172,13 @@
   padding: 28px 20px;
   background-color: #f9faff;
 }
+
 .forms-page .forms-card-list .cardd .top {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
+
 .forms-page .forms-card-list .cardd .top h2 {
   font-family: Inter, sans-serif;
   font-weight: 600;
@@ -176,18 +190,22 @@
   margin: 0;
   color: #121212;
 }
+
 .forms-page .forms-card-list .bottom {
   margin-top: 16px;
 }
+
 .forms-page .forms-card-list .bottom .wrap {
   display: flex;
   align-items: center;
   gap: 6px;
   margin-bottom: 12px;
 }
+
 .forms-page .forms-card-list .bottom .wrap:last-child {
   margin-bottom: 0;
 }
+
 .forms-page .forms-card-list .bottom .wrap span {
   font-family: Inter;
   font-weight: 400;
@@ -411,7 +429,9 @@
 
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Form Builder Styles */
@@ -603,7 +623,7 @@
   margin-top: 24px;
 }
 
-.field-config-section + .field-config-section {
+.field-config-section+.field-config-section {
   margin-top: 12px;
 }
 
@@ -684,21 +704,21 @@
 }
 
 /* Remove bottom margin from the question input field container */
-.field-config-content > .field-config-item:first-child .input-group-comp {
+.field-config-content>.field-config-item:first-child .input-group-comp {
   margin-bottom: 0px !important;
 }
 
 /* Add small spacing for the Required checkbox to look nice (4-6px gap from question input) */
-.field-config-content > .field-config-item:nth-child(2) {
+.field-config-content>.field-config-item:nth-child(2) {
   margin-top: 6px;
 }
 
-.field-config-content > .field-config-item:nth-child(2) .checkbox-wrapper {
+.field-config-content>.field-config-item:nth-child(2) .checkbox-wrapper {
   margin-top: 0px !important;
 }
 
 /* Add moderate spacing after Required checkbox to next section (15-20px gap) */
-.field-config-content > .field-config-item:nth-child(3) {
+.field-config-content>.field-config-item:nth-child(3) {
   margin-top: 18px;
 }
 
@@ -1075,41 +1095,118 @@
 }
 
 /* RESPONSIVE */
+@media screen and (max-width: 1300px) {
+  .forms-top-warning-banner {
+    height: auto;
+    min-height: 36px;
+    padding: 12px 40px;
+    align-items: flex-start;
+  }
+
+  .forms-warning-content {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .forms-warning-text {
+    white-space: normal;
+    /* Allow wrapping */
+    text-align: left;
+  }
+
+  .forms-warning-icon {
+    margin-top: 2px;
+    /* Align with first line of text */
+  }
+
+  .forms-warning-close {
+    top: 12px;
+  }
+}
+
 @media screen and (max-width: 991px) {
+  .forms-top-warning-banner {
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    position: fixed !important;
+    z-index: 9999 !important;
+    background: rgba(202, 65, 65, 1) !important;
+    padding: 12px 16px !important;
+    height: auto !important;
+    min-height: auto !important;
+    align-items: flex-start !important;
+  }
+
+  .forms-warning-content {
+    justify-content: flex-start !important;
+    text-align: left !important;
+    width: 100% !important;
+    padding-right: 20px !important;
+    /* Space for close button */
+    align-items: flex-start !important;
+  }
+
+  .forms-warning-text {
+    white-space: normal !important;
+    text-align: left !important;
+    font-size: 12px !important;
+    line-height: 16px !important;
+  }
+
+  .forms-warning-icon {
+    margin-top: 2px !important;
+    /* Align with first line of text */
+  }
+
+  .forms-warning-close {
+    right: 16px !important;
+    top: 12px !important;
+  }
+
   .forms-page {
     margin-top: 42px;
   }
+
   .forms-page .top-con {
     margin-bottom: 20px;
   }
+
   .form-description-preview-grid {
     grid-template-columns: 1fr;
   }
+
   .form-builder-preview {
     position: relative;
     top: 0;
     display: none;
   }
+
   .form-builder-header-top {
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
   }
+
   .form-builder-actions {
     width: 100%;
     justify-content: flex-end;
     order: -1;
   }
+
   .form-name-header {
     width: 100%;
   }
+
   .form-builder-mobile-toolbar {
     display: flex;
   }
+
   .form-builder-container {
     padding-bottom: 120px;
   }
 }
+
 /* Preview File Input Styles */
 .preview-file-input::file-selector-button {
   display: none;
@@ -1132,29 +1229,56 @@
     margin-top: 20px;
     grid-template-columns: repeat(1, 1fr);
   }
+
   .forms-page .forms-card-list .cardd {
     padding: 20px;
   }
+
   .forms-page .top-con h1 {
     font-size: 18px;
   }
+
   .field-type-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
   .form-name-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
   }
+
   .form-builder-actions {
     width: 100%;
     justify-content: flex-end;
     order: -1;
   }
 }
+
 @media screen and (max-width: 480px) {
   .field-type-grid {
     grid-template-columns: 1fr;
   }
 }
 
+/* Global override for form title input */
+.form-title-input {
+  font-size: 24px !important;
+  line-height: 32px !important;
+  height: auto !important;
+  padding: 4px 0 !important;
+  border: none !important;
+  border-bottom: 2px solid #3B82F6 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  font-weight: 600 !important;
+  color: #121212 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.form-title-input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border-bottom: 2px solid #3B82F6 !important;
+}

@@ -7,6 +7,12 @@ import Select from "../Input/Select";
 import Button from "../Button";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const DateSpecificHourModal = ({
   showDateSpecificHour,
@@ -14,6 +20,7 @@ const DateSpecificHourModal = ({
   mode = "create",
   editData = null,
   onSuccess,
+  userTimezone,
 }) => {
   const isEdit = mode === "edit";
 
@@ -27,14 +34,14 @@ const DateSpecificHourModal = ({
   const [endDate, setEndDate] = useState("");
   const [selectedMonths, setSelectedMonths] = useState([]);
   const [submitting, setSubmitting] = useState(false);
-  
+
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  
+
   // Year selection state for closed months
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [showYearDropdown, setShowYearDropdown] = useState(false);
-  
+
   // Generate year options (2026-2036, excluding current year)
   const yearOptions = Array.from({ length: 11 }, (_, i) => currentYear + 1 + i);
 
@@ -114,22 +121,32 @@ const DateSpecificHourModal = ({
           // Handle blocked dates (booking windows)
           setSelectedType("Booking Window");
           // Handle both timestamp (number) and date string formats
-          const startDateObj = typeof editData.startDate === 'number' 
-            ? new Date(editData.startDate) 
-            : new Date(editData.startDate);
-          const endDateObj = typeof editData.endDate === 'number' 
-            ? new Date(editData.endDate) 
-            : new Date(editData.endDate);
-          setStartDate(startDateObj.toISOString().split('T')[0]);
-          setEndDate(endDateObj.toISOString().split('T')[0]);
+          // Use user's timezone if available to ensure correct date is displayed
+          if (userTimezone) {
+            setStartDate(dayjs(editData.startDate).tz(userTimezone).format('YYYY-MM-DD'));
+            setEndDate(dayjs(editData.endDate).tz(userTimezone).format('YYYY-MM-DD'));
+          } else {
+            const startDateObj = typeof editData.startDate === 'number'
+              ? new Date(editData.startDate)
+              : new Date(editData.startDate);
+            const endDateObj = typeof editData.endDate === 'number'
+              ? new Date(editData.endDate)
+              : new Date(editData.endDate);
+            setStartDate(startDateObj.toISOString().split('T')[0]);
+            setEndDate(endDateObj.toISOString().split('T')[0]);
+          }
         } else {
           // Handle regular exceptions (unavailable, custom_hours, special_availability)
           // Handle both timestamp (number) and date string formats
-          const dateObj = typeof editData.date === 'number' 
-            ? new Date(editData.date) 
-            : new Date(editData.date);
-          setSelectedDate(dateObj.toISOString().split('T')[0]);
-          
+          if (userTimezone) {
+            setSelectedDate(dayjs(editData.date).tz(userTimezone).format('YYYY-MM-DD'));
+          } else {
+            const dateObj = typeof editData.date === 'number'
+              ? new Date(editData.date)
+              : new Date(editData.date);
+            setSelectedDate(dateObj.toISOString().split('T')[0]);
+          }
+
           if (editData.type === 'unavailable') {
             setSelectedType("Unavailable");
           } else if (editData.type === 'custom_hours') {
@@ -137,11 +154,11 @@ const DateSpecificHourModal = ({
           } else if (editData.type === 'special_availability') {
             setSelectedType("Special Availability");
           }
-          
+
           if (editData.startTime) setStartTime(editData.startTime);
           if (editData.endTime) setEndTime(editData.endTime);
           if (editData.reason) setReason(editData.reason);
-          
+
           // Set selected service for special_availability or unavailable with appointmentTypeId
           if (editData.appointmentTypeId) {
             // We'll need to fetch services and find the matching one
@@ -180,7 +197,7 @@ const DateSpecificHourModal = ({
         setShowYearDropdown(false);
       }
     };
-    
+
     if (showYearDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -191,11 +208,11 @@ const DateSpecificHourModal = ({
     setLoadingServices(true);
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      
+
       const response = await fetch(`${apiUrl}/api/appointment-types`, {
         credentials: 'include',
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setServices(data);
@@ -211,7 +228,7 @@ const DateSpecificHourModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validation based on type
     if (!selectedType) {
       toast.error("Please select a type");
@@ -265,8 +282,8 @@ const DateSpecificHourModal = ({
           originalId = editData.year ? null : editData._id; // For grouped closed months, we'll delete all
         } else {
           originalType = editData.type === 'unavailable' ? "Unavailable" :
-                        editData.type === 'custom_hours' ? "Custom Hours" :
-                        editData.type === 'special_availability' ? "Special Availability" : null;
+            editData.type === 'custom_hours' ? "Custom Hours" :
+              editData.type === 'special_availability' ? "Special Availability" : null;
           originalId = editData._id;
         }
       }
@@ -275,16 +292,16 @@ const DateSpecificHourModal = ({
       if (selectedType === "Closed Months") {
         // Map month names to numbers (0-11)
         const monthMap = { "Jan": 0, "Feb": 1, "Mar": 2, "Apr": 3, "May": 4, "Jun": 5, "Jul": 6, "Aug": 7, "Sep": 8, "Oct": 9, "Nov": 10, "Dec": 11 };
-        
+
         // Get current user ID
         const meResponse = await fetch(`${apiUrl}/api/auth/me`, {
           credentials: 'include',
         });
-        
+
         if (meResponse.status === 401) {
           throw new Error('Please log in to set closed months');
         }
-        
+
         const meData = await meResponse.json();
         const currentUserId = meData.user.id;
 
@@ -307,12 +324,12 @@ const DateSpecificHourModal = ({
         const existingExceptionsResponse = await fetch(`${apiUrl}/api/availability-exceptions`, {
           credentials: 'include',
         });
-        
+
         if (existingExceptionsResponse.ok) {
           const allExceptions = await existingExceptionsResponse.json();
-          const closedMonthsExceptions = allExceptions.filter(ex => 
-            ex.type === 'closed_months' && 
-            ex.customSchedule && 
+          const closedMonthsExceptions = allExceptions.filter(ex =>
+            ex.type === 'closed_months' &&
+            ex.customSchedule &&
             (() => {
               try {
                 const schedule = JSON.parse(ex.customSchedule);
@@ -322,7 +339,7 @@ const DateSpecificHourModal = ({
               }
             })()
           );
-          
+
           // Delete existing closed months for this year
           for (const exception of closedMonthsExceptions) {
             await fetch(`${apiUrl}/api/availability-exceptions/${exception._id}`, {
@@ -337,7 +354,7 @@ const DateSpecificHourModal = ({
           const monthNumber = monthMap[monthName];
           // Use first day of the month as the date (for storage/querying purposes)
           const firstDayOfMonth = new Date(selectedYear, monthNumber, 1);
-          
+
           const exceptionData = {
             date: firstDayOfMonth.toISOString(),
             type: "closed_months",
@@ -360,12 +377,22 @@ const DateSpecificHourModal = ({
         toast.success('Closed months updated successfully!');
       }
       else if (selectedType === "Booking Window") {
-        // Convert dates to UTC ISO format
-        const startDateObj = new Date(startDate);
-        const endDateObj = new Date(endDate);
+        // Convert dates to UTC ISO format using user's timezone
+        let startDateIso, endDateIso;
 
-        if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
-          throw new Error('Invalid date range');
+        if (userTimezone) {
+          // Create date in user's timezone at start of day, then convert to UTC
+          startDateIso = dayjs.tz(startDate, userTimezone).startOf('day').utc().format();
+          endDateIso = dayjs.tz(endDate, userTimezone).startOf('day').utc().format();
+        } else {
+          // Fallback to local time if no timezone
+          const startDateObj = new Date(startDate);
+          const endDateObj = new Date(endDate);
+          if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+            throw new Error('Invalid date range');
+          }
+          startDateIso = startDateObj.toISOString();
+          endDateIso = endDateObj.toISOString();
         }
 
         // If editing and original type was Booking Window, update it
@@ -375,8 +402,8 @@ const DateSpecificHourModal = ({
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify({
-              startDate: startDateObj.toISOString(),
-              endDate: endDateObj.toISOString(),
+              startDate: startDateIso,
+              endDate: endDateIso,
               isAllDay: true,
             }),
           });
@@ -408,8 +435,8 @@ const DateSpecificHourModal = ({
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify({
-              startDate: startDateObj.toISOString(),
-              endDate: endDateObj.toISOString(),
+              startDate: startDateIso,
+              endDate: endDateIso,
               isAllDay: true,
             }),
           });
@@ -424,16 +451,24 @@ const DateSpecificHourModal = ({
       }
       else {
         // Unavailable, Custom Hours, Special Availability - all use availability exceptions
-        const dateObj = new Date(selectedDate);
-        if (isNaN(dateObj.getTime())) {
-          throw new Error('Invalid date selected');
+        let dateIso;
+
+        if (userTimezone) {
+          // Create date in user's timezone at start of day, then convert to UTC
+          dateIso = dayjs.tz(selectedDate, userTimezone).startOf('day').utc().format();
+        } else {
+          const dateObj = new Date(selectedDate);
+          if (isNaN(dateObj.getTime())) {
+            throw new Error('Invalid date selected');
+          }
+          dateIso = dateObj.toISOString();
         }
 
         const newType = selectedType === "Unavailable" ? "unavailable" :
-                       selectedType === "Custom Hours" ? "custom_hours" : "special_availability";
+          selectedType === "Custom Hours" ? "custom_hours" : "special_availability";
 
         let exceptionData = {
-          date: dateObj.toISOString(),
+          date: dateIso,
           type: newType,
           reason: reason || undefined,
           startTime: showTimeInputs ? startTime : undefined,
@@ -549,9 +584,9 @@ const DateSpecificHourModal = ({
         <form onSubmit={handleSubmit}>
           <div className="input-wrap">
             {showSingleDate && (
-              <Input 
-                label={"Date*"} 
-                type="date" 
+              <Input
+                label={"Date*"}
+                type="date"
                 placeholder={"2025-09-29"}
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
@@ -590,16 +625,16 @@ const DateSpecificHourModal = ({
           {/* Date Fields for Booking Window */}
           {showBookingWindowDates && (
             <div className="input-wrap">
-              <Input 
-                label={"Start Date*"} 
-                type="date" 
+              <Input
+                label={"Start Date*"}
+                type="date"
                 placeholder={"2025-09-29"}
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
-              <Input 
-                label={"End Date*"} 
-                type="date" 
+              <Input
+                label={"End Date*"}
+                type="date"
                 placeholder={"2025-09-30"}
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
@@ -612,11 +647,11 @@ const DateSpecificHourModal = ({
             <div className="closed-months-con">
               <h4 className="closed-months-title">Closed Months</h4>
               <p className="closed-months-subtitle">Block entire months from bookings</p>
-              
+
               {/* Year Selection */}
-              <div style={{ 
-                display: 'flex', 
-                gap: '10px', 
+              <div style={{
+                display: 'flex',
+                gap: '10px',
                 marginBottom: '20px',
                 alignItems: 'center'
               }}>
@@ -641,7 +676,7 @@ const DateSpecificHourModal = ({
                 >
                   Current Year ({currentYear})
                 </button>
-                
+
                 <div style={{ position: 'relative' }} data-year-selector>
                   <button
                     type="button"
@@ -667,8 +702,8 @@ const DateSpecificHourModal = ({
                       {showYearDropdown ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
                     </span>
                   </button>
-                  
-                    {showYearDropdown && (
+
+                  {showYearDropdown && (
                     <div data-year-selector style={{
                       position: 'absolute',
                       top: '100%',
@@ -721,7 +756,7 @@ const DateSpecificHourModal = ({
                   )}
                 </div>
               </div>
-              
+
               <div className="closed-months-grid">
                 {months.map((month) => {
                   const isPast = isMonthPast(month);
@@ -767,7 +802,7 @@ const DateSpecificHourModal = ({
               <Select
                 label={"Services Affected (optional)"}
                 placeholder="All services"
-                style={{ backgroundColor: "#F9FAFF",borderRadius:"12px" }}
+                style={{ backgroundColor: "#F9FAFF", borderRadius: "12px" }}
                 options={["All services", ...services.map(service => service.name)]}
                 value={selectedService}
                 onChange={setSelectedService}
@@ -785,9 +820,9 @@ const DateSpecificHourModal = ({
               }}
               onClick={() => setShowDateSpecificHour(false)}
             />
-            <Button 
-              text={submitting ? "Creating..." : (isEdit ? "Save Changes" : "Create")} 
-              type="submit" 
+            <Button
+              text={submitting ? "Creating..." : (isEdit ? "Save Changes" : "Create")}
+              type="submit"
               disabled={submitting}
             />
           </div>

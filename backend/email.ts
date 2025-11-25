@@ -20,8 +20,6 @@ if (SENDGRID_API_KEY) {
   console.warn("⚠️  SendGrid not initialized - SENDGRID_API_KEY missing");
 }
 
-const isDevelopment = process.env.NODE_ENV === 'development';
-
 async function handleEmailSend(emailType: string, emailConfig: any): Promise<boolean> {
   try {
     // Validate configuration before sending
@@ -39,7 +37,7 @@ async function handleEmailSend(emailType: string, emailConfig: any): Promise<boo
 
     // Send email via SendGrid
     console.log(`📧 Sending ${emailType} email to ${emailConfig.to}...`);
-    const result = await sgMail.send(emailConfig);
+    await sgMail.send(emailConfig);
     console.log(`✅ ${emailType} email sent successfully via SendGrid`);
     return true;
   } catch (error: any) {
@@ -67,16 +65,26 @@ interface BookingEmailData {
   bookingUrl?: string; // Unique shareable booking confirmation link
 }
 
+function renderLogoSection(logoUrl?: string, businessName?: string) {
+  if (!logoUrl) {
+    return '';
+  }
+
+  const safeBusinessName = businessName || 'Business';
+
+  return `
+    <div style="width: 100%; min-height: 80px; max-height: 120px; margin-bottom: 21px; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; overflow: hidden;">
+      <img src="${logoUrl}" alt="${safeBusinessName} Logo" style="max-width: calc(100% - 40px); max-height: calc(100% - 40px); width: auto; height: auto; object-fit: contain; display: block;" />
+    </div>`;
+}
+
 export async function sendCustomerConfirmation(data: BookingEmailData): Promise<boolean> {
   console.log('sendCustomerConfirmation called with bookingUrl:', data.bookingUrl);
 
   const primaryColor = '#0053F1';
   const secondaryColor = '#64748B';
   const textColor = '#121212';
-  const logoSection = data.businessLogo ? `
-    <div style="text-align: center; margin-bottom: 20px;">
-      <img src="${data.businessLogo}" alt="${data.businessName} Logo" style="max-width: 120px; max-height: 60px; object-fit: contain;" />
-    </div>` : '';
+  const logoSection = renderLogoSection(data.businessLogo, data.businessName);
   const platformBadge = data.usePlatformBranding ? `
     <div style="text-align: center; margin-top: 20px;">
       <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by Daywise</span>
@@ -168,10 +176,7 @@ export async function sendBusinessNotification(data: BookingEmailData): Promise<
   const primaryColor = '#0053F1';
   const secondaryColor = '#64748B';
   const textColor = '#121212';
-  const logoSection = data.businessLogo ? `
-    <div style="text-align: center; margin-bottom: 20px;">
-      <img src="${data.businessLogo}" alt="${data.businessName} Logo" style="max-width: 120px; max-height: 60px; object-fit: contain;" />
-    </div>` : '';
+  const logoSection = renderLogoSection(data.businessLogo, data.businessName);
   const platformBadge = data.usePlatformBranding ? `
     <div style="text-align: center; margin-top: 20px;">
       <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by Daywise</span>
@@ -229,10 +234,7 @@ export async function sendAppointmentReminder(data: BookingEmailData): Promise<b
   const primaryColor = '#0053F1';
   const secondaryColor = '#64748B';
   const textColor = '#121212';
-  const logoSection = data.businessLogo ? `
-    <div style="text-align: center; margin-bottom: 20px;">
-      <img src="${data.businessLogo}" alt="${data.businessName} Logo" style="max-width: 120px; max-height: 60px; object-fit: contain;" />
-    </div>` : '';
+  const logoSection = renderLogoSection(data.businessLogo, data.businessName);
   const platformBadge = data.usePlatformBranding ? `
     <div style="text-align: center; margin-top: 20px;">
       <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by Daywise</span>
@@ -293,10 +295,7 @@ export async function sendRescheduleConfirmation(data: BookingEmailData & {
   const primaryColor = '#0053F1';
   const secondaryColor = '#64748B';
   const textColor = '#121212';
-  const logoSection = data.businessLogo ? `
-    <div style="text-align: center; margin-bottom: 20px;">
-      <img src="${data.businessLogo}" alt="${data.businessName} Logo" style="max-width: 120px; max-height: 60px; object-fit: contain;" />
-    </div>` : '';
+  const logoSection = renderLogoSection(data.businessLogo, data.businessName);
   const platformBadge = data.usePlatformBranding ? `
     <div style="text-align: center; margin-top: 20px;">
       <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by Daywise</span>
@@ -362,10 +361,7 @@ export async function sendRescheduleBusinessNotification(data: BookingEmailData 
   const primaryColor = '#0053F1';
   const secondaryColor = '#64748B';
   const textColor = '#121212';
-  const logoSection = data.businessLogo ? `
-    <div style="text-align: center; margin-bottom: 20px;">
-      <img src="${data.businessLogo}" alt="${data.businessName} Logo" style="max-width: 120px; max-height: 60px; object-fit: contain;" />
-    </div>` : '';
+  const logoSection = renderLogoSection(data.businessLogo, data.businessName);
   const platformBadge = data.usePlatformBranding ? `
     <div style="text-align: center; margin-top: 20px;">
       <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by Daywise</span>
@@ -417,10 +413,7 @@ export async function sendRescheduleBusinessNotification(data: BookingEmailData 
 export async function sendCancellationConfirmation(data: BookingEmailData): Promise<boolean> {
   const secondaryColor = '#64748B';
   const textColor = '#121212';
-  const logoSection = data.businessLogo ? `
-    <div style="text-align: center; margin-bottom: 20px;">
-      <img src="${data.businessLogo}" alt="${data.businessName} Logo" style="max-width: 120px; max-height: 60px; object-fit: contain;" />
-    </div>` : '';
+  const logoSection = renderLogoSection(data.businessLogo, data.businessName);
   const platformBadge = data.usePlatformBranding ? `
     <div style="text-align: center; margin-top: 20px;">
       <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by Daywise</span>
@@ -474,10 +467,7 @@ export async function sendCancellationBusinessNotification(data: BookingEmailDat
   const primaryColor = '#0053F1';
   const secondaryColor = '#64748B';
   const textColor = '#121212';
-  const logoSection = data.businessLogo ? `
-    <div style="text-align: center; margin-bottom: 20px;">
-      <img src="${data.businessLogo}" alt="${data.businessName} Logo" style="max-width: 120px; max-height: 60px; object-fit: contain;" />
-    </div>` : '';
+  const logoSection = renderLogoSection(data.businessLogo, data.businessName);
   const platformBadge = data.usePlatformBranding ? `
     <div style="text-align: center; margin-top: 20px;">
       <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by Daywise</span>
@@ -526,10 +516,7 @@ export async function sendBusinessCancellationConfirmation(data: BookingEmailDat
   const secondaryColor = '#64748B';
   const textColor = '#121212';
 
-  const logoSection = data.businessLogo ? `
-    <div style="text-align: center; margin-bottom: 20px;">
-      <img src="${data.businessLogo}" alt="${data.businessName} Logo" style="max-width: 120px; max-height: 60px; object-fit: contain;" />
-    </div>` : '';
+  const logoSection = renderLogoSection(data.businessLogo, data.businessName);
   const platformBadge = data.usePlatformBranding ? `
     <div style="text-align: center; margin-top: 20px;">
       <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by Daywise</span>

@@ -1248,11 +1248,11 @@ const PublicBooking = () => {
                   <button className="back-arrow-btn" onClick={goToPrev}>
                     <BackArrowIcon />
                   </button>
-                  {branding?.usePlatformBranding !== false && (
-                    <div className="daywise-branding">
+                  <div className="daywise-branding">
+                    {branding?.usePlatformBranding !== false && (
                       <button className="powered-by-button">Powered by Daywise</button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
                 <div className="heading-con">
                   <h1 className="appoint-name">{selectedAppointmentType?.name || "30 Minute Appointment"}</h1>

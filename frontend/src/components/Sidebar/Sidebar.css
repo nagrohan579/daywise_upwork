@@ -271,14 +271,15 @@
   /* Sidebar is already 100vh from base styles */
   /* Logout container stays at bottom via flexbox */
   
-  /* Ensure sidebar appears above "How this Works" button (z-index: 1100) on mobile */
+  /* Ensure sidebar appears above "How this Works" button (z-index: 1100) and form builder bottom bar (z-index: 1400) on mobile */
+  /* Sidebar z-index is below modals (z-index: 1500) to ensure modals appear on top */
   .sidebar-container {
-    z-index: 1200; /* Higher than HowThisWorksButton (1100) */
+    z-index: 1450; /* Higher than HowThisWorksButton (1100) and form builder mobile toolbar (1400), below modals (1500) */
   }
   
   /* Ensure hamburger button (with X icon) appears above sidebar on mobile */
   .hamburger-button {
-    z-index: 1300; /* Higher than sidebar (1200) to ensure X and logo are visible */
+    z-index: 1460; /* Higher than sidebar (1450) to ensure X and logo are visible, below modals (1500) */
   }
   
   .sidebar-header {

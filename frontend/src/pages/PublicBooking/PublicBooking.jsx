@@ -817,6 +817,298 @@ const PublicBooking = () => {
     console.log('PublicBooking - Should show form?', ((step === 3 && !isMobile && intakeForm) || (step === 3 && isMobile && intakeForm)));
   }, [intakeForm, step, isMobile]);
 
+  // Lock body and html scroll on mobile step 2 to ensure fixed top section
+  useEffect(() => {
+    let scrollHandler, touchHandler, wheelHandler;
+    
+    if (isMobile && step === 2) {
+      // Store current scroll position
+      const scrollY = window.scrollY;
+      
+      // Calculate top section height for bottom padding
+      setTimeout(() => {
+        const topSection = document.querySelector('.step-two-mobile .top');
+        const topHeight = topSection ? topSection.offsetHeight : 220;
+        const bottomSection = document.querySelector('.step-two-mobile .bottom');
+        if (bottomSection) {
+          bottomSection.style.setProperty('padding-top', `${topHeight}px`, 'important');
+        }
+      }, 0);
+      
+      // Prevent ALL scrolling on window - only allow in bottom section
+      scrollHandler = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.scrollTo(0, 0);
+        return false;
+      };
+      
+      touchHandler = (e) => {
+        const target = e.target;
+        const isBottomSection = target.closest('.step-two-mobile .bottom');
+        if (!isBottomSection) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }
+      };
+      
+      wheelHandler = (e) => {
+        const target = e.target;
+        const isBottomSection = target.closest('.step-two-mobile .bottom');
+        if (!isBottomSection) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }
+      };
+      
+      // Add multiple event listeners to prevent scroll
+      window.addEventListener('scroll', scrollHandler, { passive: false, capture: true });
+      document.addEventListener('touchmove', touchHandler, { passive: false, capture: true });
+      document.addEventListener('wheel', wheelHandler, { passive: false, capture: true });
+      
+      // Lock body
+      document.body.style.setProperty('overflow', 'hidden', 'important');
+      document.body.style.setProperty('position', 'fixed', 'important');
+      document.body.style.setProperty('top', `-${scrollY}px`, 'important');
+      document.body.style.setProperty('left', '0', 'important');
+      document.body.style.setProperty('width', '100%', 'important');
+      document.body.style.setProperty('height', '100%', 'important');
+      document.body.style.setProperty('overscroll-behavior', 'none', 'important');
+      document.body.style.setProperty('touch-action', 'none', 'important');
+      document.body.style.setProperty('overscroll-behavior-y', 'none', 'important');
+
+      // Lock html
+      document.documentElement.style.setProperty('overflow', 'hidden', 'important');
+      document.documentElement.style.setProperty('position', 'fixed', 'important');
+      document.documentElement.style.setProperty('top', `-${scrollY}px`, 'important');
+      document.documentElement.style.setProperty('left', '0', 'important');
+      document.documentElement.style.setProperty('width', '100%', 'important');
+      document.documentElement.style.setProperty('height', '100%', 'important');
+      document.documentElement.style.setProperty('overscroll-behavior', 'none', 'important');
+      document.documentElement.style.setProperty('touch-action', 'none', 'important');
+      document.documentElement.style.setProperty('overscroll-behavior-y', 'none', 'important');
+
+      // Lock window scroll
+      window.scrollTo(0, 0);
+      
+      // Also lock the booking container and main-wrapper
+      const container = document.querySelector('.booking-steps-container');
+      if (container) {
+        container.style.setProperty('overflow', 'hidden', 'important');
+        container.style.setProperty('position', 'fixed', 'important');
+        container.style.setProperty('top', '0', 'important');
+        container.style.setProperty('left', '0', 'important');
+        container.style.setProperty('width', '100vw', 'important');
+        container.style.setProperty('height', '100vh', 'important');
+        container.style.setProperty('max-height', '100vh', 'important');
+        container.style.setProperty('overscroll-behavior', 'none', 'important');
+        container.style.setProperty('padding', '0', 'important');
+        container.style.setProperty('margin', '0', 'important');
+      }
+
+      const mainWrapper = document.querySelector('.main-wrapper');
+      if (mainWrapper) {
+        mainWrapper.style.setProperty('overflow', 'hidden', 'important');
+        mainWrapper.style.setProperty('margin', '0', 'important');
+        mainWrapper.style.setProperty('padding', '0', 'important');
+        mainWrapper.style.setProperty('width', '100%', 'important');
+        mainWrapper.style.setProperty('height', '100%', 'important');
+        mainWrapper.style.setProperty('max-width', '100%', 'important');
+        mainWrapper.style.setProperty('max-height', '100%', 'important');
+      }
+    } else {
+      // Unlock everything when not on step 2
+      const scrollY = document.body.style.top;
+      
+      // Remove event listeners
+      if (scrollHandler) window.removeEventListener('scroll', scrollHandler, { capture: true });
+      if (touchHandler) document.removeEventListener('touchmove', touchHandler, { capture: true });
+      if (wheelHandler) document.removeEventListener('wheel', wheelHandler, { capture: true });
+      
+      document.body.style.removeProperty('overflow');
+      document.body.style.removeProperty('position');
+      document.body.style.removeProperty('top');
+      document.body.style.removeProperty('left');
+      document.body.style.removeProperty('width');
+      document.body.style.removeProperty('height');
+      document.body.style.removeProperty('overscroll-behavior');
+      document.body.style.removeProperty('touch-action');
+      document.body.style.removeProperty('overscroll-behavior-y');
+
+      document.documentElement.style.removeProperty('overflow');
+      document.documentElement.style.removeProperty('position');
+      document.documentElement.style.removeProperty('top');
+      document.documentElement.style.removeProperty('left');
+      document.documentElement.style.removeProperty('width');
+      document.documentElement.style.removeProperty('height');
+      document.documentElement.style.removeProperty('overscroll-behavior');
+      document.documentElement.style.removeProperty('touch-action');
+      document.documentElement.style.removeProperty('overscroll-behavior-y');
+
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
+
+      const container = document.querySelector('.booking-steps-container');
+      if (container) {
+        container.style.removeProperty('overflow');
+        container.style.removeProperty('position');
+        container.style.removeProperty('top');
+        container.style.removeProperty('left');
+        container.style.removeProperty('width');
+        container.style.removeProperty('height');
+        container.style.removeProperty('max-height');
+        container.style.removeProperty('overscroll-behavior');
+        container.style.removeProperty('padding');
+        container.style.removeProperty('margin');
+      }
+
+      const mainWrapper = document.querySelector('.main-wrapper');
+      if (mainWrapper) {
+        mainWrapper.style.removeProperty('overflow');
+        mainWrapper.style.removeProperty('margin');
+        mainWrapper.style.removeProperty('padding');
+        mainWrapper.style.removeProperty('width');
+        mainWrapper.style.removeProperty('height');
+        mainWrapper.style.removeProperty('max-width');
+        mainWrapper.style.removeProperty('max-height');
+      }
+
+      const bottomSection = document.querySelector('.step-two-mobile .bottom');
+      if (bottomSection) {
+        bottomSection.style.removeProperty('padding-top');
+      }
+    }
+
+    return () => {
+      // Cleanup on unmount
+      const scrollY = document.body.style.top;
+      
+      if (scrollHandler) window.removeEventListener('scroll', scrollHandler, { capture: true });
+      if (touchHandler) document.removeEventListener('touchmove', touchHandler, { capture: true });
+      if (wheelHandler) document.removeEventListener('wheel', wheelHandler, { capture: true });
+      
+      document.body.style.removeProperty('overflow');
+      document.body.style.removeProperty('position');
+      document.body.style.removeProperty('top');
+      document.body.style.removeProperty('left');
+      document.body.style.removeProperty('width');
+      document.body.style.removeProperty('height');
+      document.body.style.removeProperty('overscroll-behavior');
+      document.body.style.removeProperty('touch-action');
+      document.body.style.removeProperty('overscroll-behavior-y');
+
+      document.documentElement.style.removeProperty('overflow');
+      document.documentElement.style.removeProperty('position');
+      document.documentElement.style.removeProperty('top');
+      document.documentElement.style.removeProperty('left');
+      document.documentElement.style.removeProperty('width');
+      document.documentElement.style.removeProperty('height');
+      document.documentElement.style.removeProperty('overscroll-behavior');
+      document.documentElement.style.removeProperty('touch-action');
+      document.documentElement.style.removeProperty('overscroll-behavior-y');
+
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
+
+      const container = document.querySelector('.booking-steps-container');
+      if (container) {
+        container.style.removeProperty('overflow');
+        container.style.removeProperty('position');
+        container.style.removeProperty('top');
+        container.style.removeProperty('left');
+        container.style.removeProperty('width');
+        container.style.removeProperty('height');
+        container.style.removeProperty('max-height');
+        container.style.removeProperty('overscroll-behavior');
+        container.style.removeProperty('padding');
+        container.style.removeProperty('margin');
+      }
+
+      const mainWrapper = document.querySelector('.main-wrapper');
+      if (mainWrapper) {
+        mainWrapper.style.removeProperty('overflow');
+        mainWrapper.style.removeProperty('margin');
+        mainWrapper.style.removeProperty('padding');
+        mainWrapper.style.removeProperty('width');
+        mainWrapper.style.removeProperty('height');
+        mainWrapper.style.removeProperty('max-width');
+        mainWrapper.style.removeProperty('max-height');
+      }
+
+      const bottomSection = document.querySelector('.step-two-mobile .bottom');
+      if (bottomSection) {
+        bottomSection.style.removeProperty('padding-top');
+      }
+    }
+
+    return () => {
+      // Cleanup on unmount
+      const scrollY = document.body.style.top;
+      
+      if (scrollHandler) window.removeEventListener('scroll', scrollHandler, { capture: true });
+      if (touchHandler) document.removeEventListener('touchmove', touchHandler, { capture: true });
+      if (wheelHandler) document.removeEventListener('wheel', wheelHandler, { capture: true });
+      
+      document.body.style.removeProperty('overflow');
+      document.body.style.removeProperty('position');
+      document.body.style.removeProperty('top');
+      document.body.style.removeProperty('left');
+      document.body.style.removeProperty('width');
+      document.body.style.removeProperty('height');
+      document.body.style.removeProperty('overscroll-behavior');
+      document.body.style.removeProperty('touch-action');
+      document.body.style.removeProperty('overscroll-behavior-y');
+
+      document.documentElement.style.removeProperty('overflow');
+      document.documentElement.style.removeProperty('position');
+      document.documentElement.style.removeProperty('top');
+      document.documentElement.style.removeProperty('left');
+      document.documentElement.style.removeProperty('width');
+      document.documentElement.style.removeProperty('height');
+      document.documentElement.style.removeProperty('overscroll-behavior');
+      document.documentElement.style.removeProperty('touch-action');
+      document.documentElement.style.removeProperty('overscroll-behavior-y');
+
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
+
+      const container = document.querySelector('.booking-steps-container');
+      if (container) {
+        container.style.removeProperty('overflow');
+        container.style.removeProperty('position');
+        container.style.removeProperty('top');
+        container.style.removeProperty('left');
+        container.style.removeProperty('width');
+        container.style.removeProperty('height');
+        container.style.removeProperty('max-height');
+        container.style.removeProperty('overscroll-behavior');
+        container.style.removeProperty('padding');
+        container.style.removeProperty('margin');
+      }
+
+      const mainWrapper = document.querySelector('.main-wrapper');
+      if (mainWrapper) {
+        mainWrapper.style.removeProperty('overflow');
+        mainWrapper.style.removeProperty('margin');
+        mainWrapper.style.removeProperty('padding');
+        mainWrapper.style.removeProperty('width');
+        mainWrapper.style.removeProperty('height');
+        mainWrapper.style.removeProperty('max-width');
+        mainWrapper.style.removeProperty('max-height');
+      }
+
+      const bottomSection = document.querySelector('.step-two-mobile .bottom');
+      if (bottomSection) {
+        bottomSection.style.removeProperty('padding-top');
+      }
+    };
+  }, [isMobile, step]);
+
   if (loading) {
     return (
       <div className="booking-steps-container">
@@ -1174,7 +1466,7 @@ const PublicBooking = () => {
                               className="custom-file-upload-container"
                               onClick={() => document.getElementById(`file-input-${field.id}`).click()}
                             >
-                              <span className="file-name-display">
+                              <span className="file-name-display" style={{ color: formResponses[field.id]?.name ? 'var(--text-color)' : 'var(--secondary-color)' }}>
                                 {formResponses[field.id]?.name || "No file chosen"}
                               </span>
                             </div>

@@ -6,8 +6,21 @@
   height: 100vh;
   margin: 0;
   padding: 20px;
-  background-color: color-mix(in srgb, var(--secondary-color) 4%, transparent);
+  background-color: #FFFFFF;
   box-sizing: border-box;
+}
+
+/* Prevent scrolling on booking-steps-container when step-two-mobile is active */
+.booking-steps-container:has(.step-two-mobile) {
+  overflow: hidden !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 /* Loading and error states */
@@ -43,7 +56,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .booking-steps-container .loading-container p {
@@ -76,11 +91,13 @@
   background-color: #FFFFFF;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 }
+
 .booking-steps-container .main-wrapper .steps-one {
   display: flex;
   width: 100%;
   max-height: 95vh;
 }
+
 .booking-steps-container .main-wrapper .steps-one .left {
   flex: 0.5;
   padding: 30px;
@@ -88,9 +105,11 @@
   overflow-y: auto;
   max-height: 95vh;
 }
+
 .booking-steps-container .main-wrapper .steps-one .left .daywise-branding {
   margin-bottom: 21px;
 }
+
 .booking-steps-container .daywise-branding button {
   font-size: 12px;
   line-height: 1.2;
@@ -173,9 +192,11 @@
   line-height: 20px;
   vertical-align: middle;
 }
+
 .steps-one .left .business-wrapper {
   margin-bottom: 65px;
 }
+
 .steps-one .left .business-wrapper h2 {
   font-family: Inter, sans-serif;
   font-weight: 600;
@@ -186,6 +207,7 @@
   color: var(--text-color);
   margin-bottom: 6px;
 }
+
 .steps-one .left .business-wrapper p {
   font-family: Inter, sans-serif;
   font-weight: 400;
@@ -196,9 +218,11 @@
   color: var(--secondary-color);
   margin: 0;
 }
+
 .steps-one .left .select-con {
   margin-bottom: 30px;
 }
+
 .steps-one .left .select-con h4 {
   font-family: Inter;
   font-weight: 600;
@@ -222,6 +246,7 @@
   width: 100% !important;
   margin-top: 0 !important;
 }
+
 .steps-one .left .description {
   color: var(--secondary-color);
   font-family: Inter, sans-serif;
@@ -256,6 +281,7 @@
 .booking-steps-container .step-two {
   display: flex;
 }
+
 .booking-steps-container .step-two .left {
   flex: 0.5;
   padding: 30px;
@@ -263,20 +289,25 @@
   overflow-y: auto;
   max-height: 95vh;
 }
+
 .booking-steps-container .step-two .left .back-arrow {
   margin-bottom: 22px;
 }
+
 .booking-steps-container .step-two .left .back-arrow img {
   width: 25px;
   height: 25px;
   cursor: pointer;
 }
+
 .booking-steps-container .step-two .left .daywise-branding {
   margin-bottom: 21px;
 }
+
 .booking-steps-container .step-two .left .appointment-wrapper {
   margin-bottom: 33px;
 }
+
 .booking-steps-container .step-two .left .appointment-wrapper h2 {
   margin-bottom: 12px;
   font-family: Inter, sans-serif;
@@ -288,6 +319,7 @@
   vertical-align: middle;
   color: var(--text-color);
 }
+
 .booking-steps-container .step-two .left .appointment-wrapper p {
   font-family: Inter, sans-serif;
   font-weight: 400;
@@ -303,16 +335,19 @@
   overflow-wrap: break-word;
   max-width: 100%;
 }
+
 .booking-steps-container .step-two .left .booking-details {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
+
 .booking-steps-container .step-two .left .booking-details .wrap {
   display: flex;
   gap: 7px;
   align-items: center;
 }
+
 .booking-steps-container .step-two .left .booking-details .wrap h4 {
   font-family: Inter, sans-serif;
   font-weight: 500;
@@ -324,6 +359,7 @@
   margin: 0px;
   color: var(--secondary-color);
 }
+
 .booking-steps-container .step-two .right {
   flex: 1;
   padding: 30px;
@@ -347,6 +383,7 @@
 .booking-steps-container .step-two .right .input-group-comp {
   margin-bottom: 27px;
 }
+
 .booking-steps-container .step-two .right .terms-con-desc {
   font-family: Inter, sans-serif;
   font-weight: 400;
@@ -358,6 +395,7 @@
   color: var(--secondary-color);
   margin-bottom: 46px;
 }
+
 .booking-steps-container .step-two .right .terms-con-desc a {
   color: var(--secondary-color);
 }
@@ -380,6 +418,7 @@
 .booking-steps-container .step-three .containerr .heading-container {
   margin-bottom: 25px;
 }
+
 .booking-steps-container .step-three .containerr .heading-container .wrap {
   display: flex;
   align-items: center;
@@ -392,11 +431,13 @@
 .booking-steps-container .step-three .containerr .heading-container .wrap svg path {
   fill: var(--main-color) !important;
 }
+
 .booking-steps-container .step-three .containerr .heading-container .wrap img {
   width: 19px;
   height: 19px;
   object-fit: contain;
 }
+
 .booking-steps-container .step-three .containerr .heading-container .wrap h3 {
   font-family: Inter, sans-serif;
   font-weight: 600;
@@ -408,6 +449,7 @@
   color: var(--text-color);
   margin: 0;
 }
+
 .booking-steps-container .step-three .containerr .heading-container p {
   color: var(--secondary-color);
   font-family: Inter, sans-serif;
@@ -419,6 +461,7 @@
   vertical-align: middle;
   margin: 0px;
 }
+
 .booking-steps-container .step-three .containerr .appointment-container {
   border: 1px solid color-mix(in srgb, var(--secondary-color) 20%, transparent);
   padding: 20px;
@@ -432,11 +475,13 @@
 .step-three .containerr .appointment-container .daywise-branding {
   margin-bottom: 21px;
 }
+
 .step-three .containerr .appointment-container .booking-details {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
+
 .step-three .containerr .appointment-container .booking-details h1 {
   color: var(--text-color);
   font-family: Inter, sans-serif;
@@ -447,11 +492,13 @@
   vertical-align: middle;
   margin: 0;
 }
+
 .step-three .containerr .appointment-container .booking-details .wrap {
   display: flex;
   align-items: center;
   gap: 7px;
 }
+
 .step-three .containerr .appointment-container .booking-details .wrap h4 {
   margin: 0;
   color: var(--secondary-color);
@@ -495,6 +542,7 @@
   line-height: 20px;
   text-align: center;
 }
+
 .step-two-mobile {
   padding: 0;
   width: 100%;
@@ -518,14 +566,17 @@
   width: 100%;
   box-sizing: border-box;
 }
+
 .step-two-mobile .containerr .top .back-arrow img {
   width: 25px;
   height: 25px;
   cursor: pointer;
 }
+
 .step-two-mobile .containerr .top .back-arrow {
   margin-bottom: 0;
 }
+
 .step-two-mobile .containerr .heading-con {
   display: flex;
   justify-content: center;
@@ -537,6 +588,7 @@
   width: 100%;
   box-sizing: border-box;
 }
+
 .step-two-mobile .containerr .top .top-row {
   position: relative;
   display: flex;
@@ -579,6 +631,7 @@
 .step-two-mobile .containerr .top .top-row .powered-by-button {
   padding: 10px 24px;
 }
+
 .step-two-mobile .containerr .heading-con .appoint-name {
   margin: 0px;
   font-family: Inter, sans-serif;
@@ -590,6 +643,7 @@
   vertical-align: middle;
   color: var(--text-color);
 }
+
 .step-two-mobile .containerr .heading-con p {
   margin: 0px;
   color: var(--text-color);
@@ -601,24 +655,27 @@
   text-align: center;
   vertical-align: middle;
 }
-.step-two-mobile .containerr .heading-con .select-group{
+
+.step-two-mobile .containerr .heading-con .select-group {
   width: 100%;
   margin-bottom: 0;
 }
 
-.step-two-mobile .containerr .heading-con > div {
+.step-two-mobile .containerr .heading-con>div {
   margin-bottom: 0;
 }
 
 .step-two-mobile .containerr .heading-con .select-group .select-box {
   background-color: color-mix(in srgb, var(--main-color) 2%, transparent) !important;
 }
+
 .step-two-mobile .bottom {
   margin-top: 30px;
   padding: 0 18px;
   width: 100%;
   box-sizing: border-box;
 }
+
 .step-two-mobile .time-slot-wrapper {
   border: 1px solid color-mix(in srgb, var(--secondary-color) 20%, transparent);
   padding: 24px 20px 20px;
@@ -631,7 +688,9 @@
   align-items: center;
   width: 100%;
   box-sizing: border-box;
+  margin-top: 20px;
 }
+
 .step-two-mobile .time-slot-wrapper .time-slot-container {
   display: grid;
   grid-template-columns: 1fr;
@@ -647,8 +706,10 @@
 }
 
 .step-two-mobile .time-slot-wrapper .time-slot-container::-webkit-scrollbar {
-  display: none; /* WebKit */
+  display: none;
+  /* WebKit */
 }
+
 .step-two-mobile .time-slot-wrapper .time-slot-container .time-slot-row {
   width: 100%;
   margin-bottom: 4px;
@@ -656,9 +717,11 @@
   align-items: stretch;
   gap: 10px;
 }
+
 .step-two-mobile .time-slot-wrapper .time-slot-container .time-slot-row:last-child {
   margin-bottom: 8px;
 }
+
 .step-two-mobile .time-slot-wrapper .time-slot-container .time-slot-btn {
   border: 1px solid var(--main-color);
   outline: none;
@@ -747,6 +810,7 @@
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }
@@ -789,15 +853,19 @@
   .booking-steps-container .step-two .left {
     padding: 20px;
   }
+
   .booking-steps-container .step-two .right {
     padding: 20px;
   }
+
   .booking-steps-container .main-wrapper .steps-one .left {
     padding: 20px 20px;
   }
+
   .booking-steps-container .main-wrapper .steps-one .right {
     padding: 40px 20px;
   }
+
   .booking-steps-container {
     height: 100vh;
     min-height: 100vh;
@@ -805,7 +873,7 @@
     margin: 0;
     padding: 20px;
   }
-  
+
   /* Ensure loading/error states are centered on mobile */
   .booking-steps-container:has(.loading-container),
   .booking-steps-container:has(.error-container) {
@@ -815,29 +883,57 @@
     min-height: 100vh !important;
   }
 }
+
 @media (max-width: 999px) {
-.booking-steps-container .main-wrapper.border-hide {
-  border: none;
-  background: transparent;
-  box-shadow: none;
-  max-height: none;
-  height: auto;
-  overflow: visible;
+  .booking-steps-container .main-wrapper.border-hide {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    max-height: none;
+    height: auto;
+    overflow: visible;
+  }
 }
-}
+
 @media (max-width: 768px) {
+
   /* Minimal horizontal padding on container, allow bottom spacing */
   .booking-steps-container {
     padding: 0 18px 48px 18px;
     min-height: 100vh !important;
     height: auto !important;
   }
-  
+
+  /* Override padding when step-two-mobile is active */
+  .booking-steps-container:has(.step-two-mobile) {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+  }
+
+  /* Prevent main-wrapper from causing scroll when step-two-mobile is active */
+  .booking-steps-container:has(.step-two-mobile) .main-wrapper {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+  }
+
   /* Ensure step-two (form page) background covers full height */
   .booking-steps-container:has(.step-two) {
     min-height: 100vh !important;
   }
-  
+
   /* Ensure loading/error states are centered on mobile */
   .booking-steps-container:has(.loading-container),
   .booking-steps-container:has(.error-container) {
@@ -847,29 +943,37 @@
     min-height: 100vh !important;
     padding: 20px !important;
   }
-  
+
   /* Override padding for step-two to add proper spacing */
   .booking-steps-container:has(.step-two) {
     padding: 80px 18px 48px 18px;
     position: relative;
   }
-  
+
   /* Full screen background for step-two-mobile */
   .booking-steps-container .step-two-mobile {
-    margin: 0 -18px;
-    padding: 0;
-    width: calc(100% + 36px);
-    min-height: 100vh;
-    background-color: color-mix(in srgb, var(--secondary-color) 4%, transparent);
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100vw !important;
+    min-height: 100vh !important;
+    max-height: 100vh !important;
+    height: 100vh !important;
+    background-color: #FFFFFF !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    overflow: hidden !important;
   }
-  
+
   .booking-steps-container .main-wrapper .steps-one {
     flex-direction: column;
     max-height: none;
   }
+
   .steps-one .left .business-wrapper {
     margin-bottom: 20px;
   }
+
   .booking-steps-container .main-wrapper {
     max-width: none;
     margin-top: 48px;
@@ -883,17 +987,21 @@
     overflow: visible;
     max-height: none;
   }
+
   .booking-steps-container .main-wrapper .steps-one .left {
     border-right: none;
     overflow: visible;
     max-height: none;
   }
+
   .booking-steps-container .step-two {
     flex-direction: column;
   }
+
   .booking-steps-container .step-two .left {
     border-right: none;
   }
+
   .booking-steps-container .step-two .right h1 {
     margin-top: 0px;
     margin-bottom: 20px;
@@ -902,10 +1010,12 @@
   .booking-steps-container .step-three .containerr .heading-container .wrap h3 {
     font-size: 20px;
   }
+
   .step-three .containerr .appointment-container .booking-details h1 {
     font-size: 16px;
     line-height: 23px;
   }
+
   .booking-steps-container .main-wrapper.border-hide {
     border: none;
     background: transparent;
@@ -916,7 +1026,7 @@
     margin: 0;
     padding: 0;
   }
-  
+
   /* Remove main-wrapper card styling when step-two is present */
   .booking-steps-container .main-wrapper:has(.step-two) {
     background: transparent !important;
@@ -929,37 +1039,39 @@
     margin-top: 0 !important;
     margin-bottom: 0 !important;
   }
-  
+
   .booking-steps-container .step-three {
     width: 100%;
     min-height: 100dvh;
   }
-  .booking-steps-container .step-three .containerr{
+
+  .booking-steps-container .step-three .containerr {
     width: 100%;
   }
+
   .booking-steps-container .step-three .containerr .appointment-container {
     min-width: 0px;
   }
-  
+
   /* Make success buttons display in one row on mobile */
   .step-three .containerr .success-buttons {
     flex-direction: row !important;
     flex-wrap: nowrap !important;
     gap: 12px;
   }
-  
+
   .step-three .containerr .success-buttons button {
     flex: 1;
     min-width: 0;
   }
-  
+
   .booking-steps-container .step-two .left,
   .booking-steps-container .step-two .right {
     max-height: none !important;
     overflow-y: visible !important;
     overflow-x: visible !important;
   }
-  
+
   /* Mobile: Move back button outside card, everything else in one single card */
   .booking-steps-container .step-two {
     position: relative;
@@ -969,7 +1081,7 @@
     border: 1px solid color-mix(in srgb, var(--secondary-color) 20%, transparent);
     margin: 0;
   }
-  
+
   .booking-steps-container:has(.step-two) .step-two .left .back-arrow {
     position: absolute;
     top: -60px;
@@ -977,12 +1089,12 @@
     margin-bottom: 0;
     z-index: 10;
   }
-  
+
   .booking-steps-container .step-two .left .back-arrow svg {
     width: 25px;
     height: 25px;
   }
-  
+
   .booking-steps-container .step-two .left {
     background: transparent;
     border-radius: 0;
@@ -990,20 +1102,20 @@
     margin-bottom: 0;
     border: none;
   }
-  
+
   .booking-steps-container .step-two .left .daywise-branding {
     margin-bottom: 16px;
   }
-  
+
   .booking-steps-container .step-two .left .appointment-wrapper {
     margin-bottom: 16px;
   }
-  
+
   .booking-steps-container .step-two .left .booking-details {
     margin-bottom: 0;
     gap: 12px;
   }
-  
+
   .booking-steps-container .step-two .right {
     background: transparent;
     border-radius: 0;
@@ -1011,16 +1123,16 @@
     border: none;
     margin-top: 16px;
   }
-  
+
   .booking-steps-container .step-two .right h1 {
     margin-top: 0;
     margin-bottom: 16px;
   }
-  
+
   .booking-steps-container .step-two .right .input-group-comp {
     margin-bottom: 16px;
   }
-  
+
   /* Remove scroll constraints from step-one left and right sections on mobile */
   .booking-steps-container .main-wrapper .steps-one .left,
   .booking-steps-container .main-wrapper .steps-one .right {
@@ -1028,7 +1140,7 @@
     overflow-x: visible !important;
     max-height: none !important;
   }
-  
+
   /* Left-align "Select a Date & Time" heading on mobile to match other headings */
   .booking-steps-container .main-wrapper .steps-one .right .single-calendar-container .calendar-date-wrapper h2 {
     text-align: left !important;
@@ -1249,6 +1361,7 @@
   min-height: auto !important;
   max-height: none !important;
   height: auto !important;
+  margin-top: 20px;
 }
 
 .step-two-mobile .time-slot-wrapper .time-slot-container {
@@ -1259,17 +1372,22 @@
   max-height: none !important;
   min-height: auto !important;
   height: auto !important;
-  overflow-y: auto; /* Enable vertical scrolling */
-  padding-right: 8px; /* Add padding for scrollbar */
+  overflow-y: auto;
+  /* Enable vertical scrolling */
+  padding-right: 8px;
+  /* Add padding for scrollbar */
   /* Hide scrollbar */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* Internet Explorer 10+ */
   justify-items: stretch;
   width: 100%;
 }
 
 .step-two-mobile .time-slot-wrapper .time-slot-container::-webkit-scrollbar {
-  display: none; /* WebKit */
+  display: none;
+  /* WebKit */
 }
 
 .step-two-mobile .time-slot-wrapper .time-slot-container .time-slot-btn {
@@ -1544,29 +1662,29 @@
     min-height: 100vh !important;
     height: auto !important;
   }
-  
+
   .booking-steps-container .step-two {
     flex-direction: column;
   }
-  
+
   .booking-steps-container .step-two .left {
     border-right: none;
   }
-  
+
   .booking-steps-container .step-two .right {
     min-height: auto;
   }
-  
+
   .booking-steps-container .step-two .right h1 {
     margin-top: 0px;
     margin-bottom: 20px;
   }
-  
+
   /* Match input placeholder font size with textarea on mobile */
   .booking-steps-container .step-two .right .input-group-comp .input-field {
     font-size: 14px !important;
   }
-  
+
   .booking-steps-container .step-two .right .input-group-comp .input-field::placeholder {
     font-size: 14px !important;
   }
@@ -1598,7 +1716,7 @@
 
 /* Reduce margin for h1 when description exists in intake form */
 .booking-steps-container .step-two .right h1:has(+ .intake-form-description),
-.booking-steps-container .step-two .right .intake-form-fields ~ * h1:has(+ .intake-form-description) {
+.booking-steps-container .step-two .right .intake-form-fields~* h1:has(+ .intake-form-description) {
   margin-bottom: 8px !important;
 }
 
@@ -1617,7 +1735,8 @@
 }
 
 .intake-form-label .required-asterisk {
-  color: #DC2626; /* Error color - keep as is for consistency */
+  color: #DC2626;
+  /* Error color - keep as is for consistency */
 }
 
 /* Input and Textarea styling for intake form */
@@ -1902,6 +2021,49 @@
   gap: 8px;
 }
 
+.intake-form-file-upload-wrapper .custom-file-upload-container {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--secondary-color) 20%, transparent);
+  border-radius: 12px;
+  background-color: color-mix(in srgb, var(--main-color) 2%, transparent);
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: border-color 0.2s ease-in-out;
+  box-sizing: border-box;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.intake-form-file-upload-wrapper .custom-file-upload-container:hover {
+  border-color: color-mix(in srgb, var(--main-color) 40%, transparent);
+}
+
+.intake-form-file-upload-wrapper .custom-file-upload-container:focus,
+.intake-form-file-upload-wrapper .custom-file-upload-container:focus-visible,
+.intake-form-file-upload-wrapper .custom-file-upload-container:active {
+  border-color: var(--main-color);
+  outline: none;
+}
+
+.intake-form-file-upload-wrapper .file-name-display {
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  width: 100%;
+  color: var(--text-color);
+}
+
+/* Style the container when no file is selected - "No file chosen" should look like placeholder */
+.intake-form-file-upload-wrapper .custom-file-upload-container:has(.file-name-display:empty),
+.intake-form-file-upload-wrapper .custom-file-upload-container .file-name-display {
+  /* Default to text color, will be overridden by JS if needed */
+}
+
 .intake-form-file-input {
   width: 100%;
   padding: 12px 14px;
@@ -1948,16 +2110,137 @@
   font-family: Inter, sans-serif;
   font-size: 12px;
   line-height: 16px;
-  color: #DC2626; /* Error color - keep as is for consistency */
+  color: #DC2626;
+  /* Error color - keep as is for consistency */
   margin: 4px 0 0 0;
 }
 
 /* Continue button in intake form - match input field width */
-.intake-form-fields > .btn-comp,
-.intake-form-fields > button[type="button"],
-.intake-form-fields > .btn-comp.btn-primary {
+.intake-form-fields>.btn-comp,
+.intake-form-fields>button[type="button"],
+.intake-form-fields>.btn-comp.btn-primary {
   width: auto;
   max-width: fit-content;
   align-self: flex-start;
   margin-top: 8px;
+}
+
+@media screen and (max-width: 1000px) {
+
+  /* Prevent body scroll when this view is active */
+  body:has(.step-two-mobile),
+  html:has(.step-two-mobile),
+  body:has(.step-two-mobile) * {
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  body:has(.step-two-mobile),
+  html:has(.step-two-mobile) {
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+    top: 0 !important;
+    left: 0 !important;
+  }
+
+  /* Prevent booking-steps-container from scrolling */
+  .booking-steps-container:has(.step-two-mobile) {
+    overflow: hidden !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overscroll-behavior: none !important;
+  }
+
+  .booking-steps-container .step-two-mobile {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    /* Use dvh for better mobile support */
+    z-index: 9999;
+    background-color: #FFFFFF !important;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overscroll-behavior: none !important;
+    touch-action: none !important;
+    /* Prevent browser handling of gestures */
+  }
+
+  .booking-steps-container .step-two-mobile .containerr {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+    width: 100% !important;
+    position: relative !important;
+    background: #FFFFFF !important;
+    border: none;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .booking-steps-container .step-two-mobile .containerr .top {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+    background-color: #FFFFFF !important;
+    z-index: 100 !important;
+    /* Ensure top content doesn't scroll */
+    overflow: hidden !important;
+    touch-action: none !important;
+    /* Prevent scroll on top section */
+    box-sizing: border-box;
+    transform: translateZ(0);
+    /* Force hardware acceleration */
+    will-change: transform;
+    pointer-events: auto !important;
+  }
+
+  .booking-steps-container .step-two-mobile .bottom {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    background-color: #FFFFFF !important;
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+    padding-bottom: 80px;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    /* Ensure bottom content scrolls */
+    z-index: 10;
+    touch-action: pan-y !important;
+    /* Allow vertical scroll only */
+    box-sizing: border-box;
+  }
+
+  /* Calculate top section height and push bottom content down */
+  .booking-steps-container .step-two-mobile .containerr .top {
+    /* Top section will be measured dynamically, but estimate ~220px */
+  }
+
+  .booking-steps-container .step-two-mobile .bottom {
+    /* Push content below fixed top - will be set via JS or use padding-top */
+    padding-top: 220px !important;
+  }
 }

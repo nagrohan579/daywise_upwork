@@ -242,12 +242,13 @@ export const sendDueReminders = internalAction({
 
     console.log(`[Reminder Cron] Found ${bookings.length} bookings due for reminders`);
 
+    // Get the backend URL from environment and log it
+    const backendUrl = process.env.BACKEND_URL || "http://localhost:3000";
+    console.log(`[Reminder Cron] Using backend URL: ${backendUrl}`);
+
     // Send reminder for each booking
     for (const booking of bookings) {
       try {
-        // Get the backend URL from environment
-        const backendUrl = process.env.BACKEND_URL || "http://localhost:3000";
-
         // Call backend API to send the reminder
         const response = await fetch(`${backendUrl}/api/cron/send-reminder`, {
           method: "POST",
@@ -259,11 +260,14 @@ export const sendDueReminders = internalAction({
           }),
         });
 
+        console.log(`[Reminder Cron] Response status for booking ${booking._id}: ${response.status}`);
+        const responseText = await response.text();
+        console.log(`[Reminder Cron] Response body for booking ${booking._id}: ${responseText}`);
+
         if (response.ok) {
           console.log(`[Reminder Cron] Successfully sent reminder for booking ${booking._id}`);
         } else {
-          const errorText = await response.text();
-          console.error(`[Reminder Cron] Failed to send reminder for booking ${booking._id}: ${errorText}`);
+          console.error(`[Reminder Cron] Failed to send reminder for booking ${booking._id} - Status: ${response.status}, Body: ${responseText}`);
         }
       } catch (error) {
         console.error(`[Reminder Cron] Error sending reminder for booking ${booking._id}:`, error);

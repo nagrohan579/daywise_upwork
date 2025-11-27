@@ -41,8 +41,9 @@ async function handleEmailSend(emailType: string, emailConfig: any): Promise<boo
     console.log(`✅ ${emailType} email sent successfully via SendGrid`);
     return true;
   } catch (error: any) {
-    console.error(`❌ ${emailType} email error:`, error.response?.body || error.message || error);
-    throw error; // Propagate error to caller so frontend can show it
+    const errorDetail = error.response?.body || error.message || error;
+    console.error(`❌ ${emailType} email error:`, errorDetail);
+    throw new Error(`Failed to send ${emailType} email: ${JSON.stringify(errorDetail)}`);
   }
 }
 

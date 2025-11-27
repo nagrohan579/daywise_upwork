@@ -174,31 +174,52 @@ const Select = ({
 
   // Position the dropdown dynamically when it opens
   useEffect(() => {
-    if (open && containerRef.current) {
-      const selectBox = containerRef.current.querySelector('.select-box');
-      const dropdown = containerRef.current.querySelector('.select-dropdown');
-      
-      if (selectBox && dropdown) {
-        // Check if this select is within an intake form field (should use absolute positioning)
-        const isInIntakeForm = containerRef.current.closest('.intake-form-field');
-        // Check if this select is in step 1 of public booking page (should use absolute positioning)
-        const isInStepOne = containerRef.current.closest('.steps-one .left .select-con');
-        
-        if (isInIntakeForm || isInStepOne) {
-          // For intake forms and step 1, use absolute positioning relative to select-group
-          const rect = selectBox.getBoundingClientRect();
-          dropdown.style.width = `${rect.width}px`;
-          dropdown.style.position = 'absolute';
-          dropdown.style.left = '0';
-          dropdown.style.top = 'calc(100% + 4px)';
-        } else {
-          // For other contexts, use fixed positioning
-          const rect = selectBox.getBoundingClientRect();
-          dropdown.style.width = `${rect.width}px`;
-          dropdown.style.left = `${rect.left}px`;
-          dropdown.style.top = `${rect.bottom + 4}px`;
-        }
+    if (!open || !containerRef.current) return;
+
+    const selectBox = containerRef.current.querySelector(".select-box");
+    const dropdown = containerRef.current.querySelector(".select-dropdown");
+
+    if (!selectBox || !dropdown) return;
+
+    // Check if this select is within an intake form field (should use absolute positioning)
+    const isInIntakeForm =
+      containerRef.current.closest(".intake-form-field");
+    // Check if this select is in step 1 of public booking page (should use absolute positioning)
+    const isInStepOne = containerRef.current.closest(
+      ".steps-one .left .select-con"
+    );
+    const isInStepTwoMobileTop = containerRef.current.closest(
+      ".step-two-mobile .containerr .top"
+    );
+    const useAbsolute = isInIntakeForm || isInStepOne || isInStepTwoMobileTop;
+
+    const applyPosition = () => {
+      const rect = selectBox.getBoundingClientRect();
+      dropdown.style.width = `${rect.width}px`;
+      dropdown.style.zIndex = "9999";
+
+      if (useAbsolute) {
+        dropdown.style.position = "absolute";
+        dropdown.style.left = "0";
+        dropdown.style.top = "calc(100% + 4px)";
+      } else {
+        dropdown.style.position = "fixed";
+        dropdown.style.left = `${rect.left}px`;
+        dropdown.style.top = `${rect.bottom + 4}px`;
       }
+    };
+
+    applyPosition();
+
+    if (!useAbsolute) {
+      const handleReposition = () => applyPosition();
+      window.addEventListener("scroll", handleReposition, true);
+      window.addEventListener("resize", handleReposition);
+
+      return () => {
+        window.removeEventListener("scroll", handleReposition, true);
+        window.removeEventListener("resize", handleReposition);
+      };
     }
   }, [open]);
 

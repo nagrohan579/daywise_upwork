@@ -7969,7 +7969,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('[Cron] Send reminder error:', error);
-      res.status(500).json({ message: "Failed to send reminder emails" });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : '';
+      console.error('[Cron] Error details:', { errorMessage, errorStack });
+      res.status(500).json({
+        message: "Failed to send reminder emails",
+        error: errorMessage
+      });
     }
   });
 

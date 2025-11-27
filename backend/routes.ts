@@ -7203,6 +7203,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin: Grant trial subscription to user
+  app.post("/api/admin/users/:id/trial", requireAdmin, async (req, res) => {
+    const requestId = Math.random().toString(36).substring(7);
+    console.log(`[Admin Trial API ${requestId}] ========================================`);
+    console.log(`[Admin Trial API ${requestId}] POST /api/admin/users/:id/trial`);
+    console.log(`[Admin Trial API ${requestId}] userId: ${req.params.id}`);
+    console.log(`[Admin Trial API ${requestId}] body:`, req.body);
+
+    try {
+      const userId = req.params.id;
+      const { trialDuration } = req.body;
+
+      const session = req.session as any;
+      if (!session?.userId) {
+        console.warn(`[Admin Trial API ${requestId}] ❌ No session userId found`);
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      console.log(`[Admin Trial API ${requestId}] Session userId: ${session.userId}`);
+
+      const adminUser = await storage.getUserById(session.userId);
+      if (!adminUser) {
+        console.warn(`[Admin Trial API ${requestId}] ❌ Admin user ${session.userId} not found`);
+        return res.status(403).json({ message: "Admin user not found" });
+      }
+
+      if (!adminUser.isAdmin) {
+        console.warn(`[Admin Trial API ${requestId}] ❌ User ${session.userId} is not admin (isAdmin: ${adminUser.isAdmin})`);
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      console.log(`[Admin Trial API ${requestId}] ✅ Admin verified: ${adminUser.email}`);
+
+      if (!trialDuration || trialDuration <= 0) {
+        console.warn(`[Admin Trial API ${requestId}] ❌ Invalid trial duration: ${trialDuration}`);
+        return res.status(400).json({ message: "Invalid trial duration" });
+      }
+
+      console.log(`[Admin Trial API ${requestId}] Validated trial duration: ${trialDuration}s`);
+
+      const targetUser = await storage.getUserById(userId);
+      if (!targetUser) {
+        console.warn(`[Admin Trial API ${requestId}] ❌ Target user ${userId} not found`);
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      console.log(`[Admin Trial API ${requestId}] Target user: ${targetUser.email}`);
+
+      console.log(`[Admin Trial API ${requestId}] Creating trial subscription...`);
+      const subscriptionId = await storage.createTrialSubscription(userId, trialDuration);
+
+      const expiresAt = Date.now() + (trialDuration * 1000);
+      console.log(`[Admin Trial API ${requestId}] ✅ Trial subscription created successfully`);
+      console.log(`[Admin Trial API ${requestId}] subscriptionId: ${subscriptionId}`);
+      console.log(`[Admin Trial API ${requestId}] expiresAt: ${new Date(expiresAt).toISOString()}`);
+      console.log(`[Admin Trial API ${requestId}] ========================================`);
+
+      res.json({
+        message: "Trial subscription created successfully",
+        subscriptionId,
+        expiresAt,
+      });
+    } catch (error) {
+      console.error(`[Admin Trial API ${requestId}] ❌ Error creating trial subscription:`, error);
+      console.error(`[Admin Trial API ${requestId}] Stack:`, error instanceof Error ? error.stack : 'No stack trace');
+      console.log(`[Admin Trial API ${requestId}] ========================================`);
+
+      res.status(500).json({
+        message: "Failed to create trial subscription",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Admin user suspension endpoint
   app.patch("/api/admin/users/:id/suspend", requireAdmin, async (req, res) => {
     try {

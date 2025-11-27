@@ -174,6 +174,10 @@ export default defineSchema({
     startDate: v.optional(v.number()), // Subscription start date (timestamp)
     lifetimeSpend: v.optional(v.number()), // Total amount spent (in cents)
     updatedAt: v.number(),
+    // Trial subscription fields
+    isTrial: v.optional(v.boolean()), // Mark if this is a trial subscription
+    trialDuration: v.optional(v.number()), // Duration in seconds (e.g., 30, 86400 for 1 day)
+    trialExpiresAt: v.optional(v.number()), // Timestamp when trial expires
   })
     .index("by_userId", ["userId"])
     .index("by_stripeCustomerId", ["stripeCustomerId"])

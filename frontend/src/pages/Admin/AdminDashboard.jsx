@@ -1509,22 +1509,45 @@ const ManageSubscriptionModal = ({ user, onClose, onSuccess }) => {
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      const response = await fetch(`${apiUrl}/api/admin/users/${user.id}/subscription`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          plan: billingCycle,
-        }),
-      });
 
-      if (!response.ok) {
-        throw new Error('Failed to update subscription');
+      if (billingCycle === 'ProTrial') {
+        // Create trial subscription
+        const response = await fetch(`${apiUrl}/api/admin/users/${user.id}/trial`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            trialDuration: 30, // 30 seconds
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create trial subscription');
+        }
+
+        toast.success('Trial subscription activated (expires in 30 seconds)');
+      } else {
+        // Regular subscription update
+        const response = await fetch(`${apiUrl}/api/admin/users/${user.id}/subscription`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            plan: billingCycle,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update subscription');
+        }
+
+        toast.success('Subscription updated successfully');
       }
 
-      toast.success('Subscription updated successfully');
       onSuccess();
     } catch (error) {
       console.error('Error updating subscription:', error);
@@ -1594,6 +1617,17 @@ const ManageSubscriptionModal = ({ user, onClose, onSuccess }) => {
                   />
                   <span className="manage-subscription-radio-custom"></span>
                   <span className="manage-subscription-radio-label">Pro</span>
+                </label>
+                <label className="manage-subscription-radio-option">
+                  <input
+                    type="radio"
+                    name="billingCycle"
+                    value="ProTrial"
+                    checked={billingCycle === 'ProTrial'}
+                    onChange={(e) => setBillingCycle(e.target.value)}
+                  />
+                  <span className="manage-subscription-radio-custom"></span>
+                  <span className="manage-subscription-radio-label">Pro (30 sec)</span>
                 </label>
               </div>
             </div>

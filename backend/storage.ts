@@ -412,6 +412,13 @@ export const storage = {
     });
   },
 
+  async createTrialSubscription(userId: string, trialDuration: number) {
+    return await convex.mutation(api.subscriptions.createTrialSubscription, {
+      userId: userId as Id<"users">,
+      trialDuration,
+    });
+  },
+
   // Branding operations
   async getBranding(userId: string) {
     return await convex.query(api.branding.getByUser, {

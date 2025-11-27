@@ -347,9 +347,8 @@
 .payments-page .stripe-disconnect-button {
   display: flex;
   flex-direction: row;
-  justify-content: center;
   align-items: center;
-  padding: 10px 11px;
+  padding: 10px 11px 10px 0px;
   gap: 6px;
   width: 198px;
   height: 40px;
@@ -362,6 +361,7 @@
   order: 2;
   flex-grow: 0;
   margin-top: 8px;
+  margin-left: 0;
 }
 
 .payments-page .stripe-disconnect-button:hover:not(:disabled) {
@@ -374,8 +374,8 @@
 }
 
 .payments-page .stripe-disconnect-button svg {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   flex: none;
   order: 0;
   flex-grow: 0;

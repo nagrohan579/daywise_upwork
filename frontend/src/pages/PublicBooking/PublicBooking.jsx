@@ -820,11 +820,11 @@ const PublicBooking = () => {
   // Lock body and html scroll on mobile step 2 to ensure fixed top section
   useEffect(() => {
     let scrollHandler, touchHandler, wheelHandler;
-    
+
     if (isMobile && step === 2) {
       // Store current scroll position
       const scrollY = window.scrollY;
-      
+
       // Calculate top section height for bottom padding
       setTimeout(() => {
         const topSection = document.querySelector('.step-two-mobile .top');
@@ -834,65 +834,36 @@ const PublicBooking = () => {
           bottomSection.style.setProperty('padding-top', `${topHeight}px`, 'important');
         }
       }, 0);
-      
-      // Prevent ALL scrolling on window - only allow in bottom section
-      scrollHandler = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        window.scrollTo(0, 0);
-        return false;
-      };
-      
-      touchHandler = (e) => {
-        const target = e.target;
-        const isBottomSection = target.closest('.step-two-mobile .bottom');
-        if (!isBottomSection) {
-          e.preventDefault();
-          e.stopPropagation();
-          return false;
-        }
-      };
-      
-      wheelHandler = (e) => {
-        const target = e.target;
-        const isBottomSection = target.closest('.step-two-mobile .bottom');
-        if (!isBottomSection) {
-          e.preventDefault();
-          e.stopPropagation();
-          return false;
-        }
-      };
-      
-      // Add multiple event listeners to prevent scroll
-      window.addEventListener('scroll', scrollHandler, { passive: false, capture: true });
-      document.addEventListener('touchmove', touchHandler, { passive: false, capture: true });
-      document.addEventListener('wheel', wheelHandler, { passive: false, capture: true });
-      
+
+      // REMOVED BLOCKING EVENT HANDLERS (scroll, touchmove, wheel) to allow dropdown interaction
+
       // Lock body
-      document.body.style.setProperty('overflow', 'hidden', 'important');
-      document.body.style.setProperty('position', 'fixed', 'important');
+      // document.body.style.setProperty('overflow', 'hidden', 'important'); // REMOVED to fix interaction
+      // document.body.style.setProperty('position', 'fixed', 'important'); // REMOVED to fix interaction
       document.body.style.setProperty('top', `-${scrollY}px`, 'important');
       document.body.style.setProperty('left', '0', 'important');
       document.body.style.setProperty('width', '100%', 'important');
       document.body.style.setProperty('height', '100%', 'important');
-      document.body.style.setProperty('overscroll-behavior', 'none', 'important');
-      document.body.style.setProperty('touch-action', 'none', 'important');
-      document.body.style.setProperty('overscroll-behavior-y', 'none', 'important');
+      document.body.style.setProperty('height', '100%', 'important');
+      // document.body.style.setProperty('overscroll-behavior', 'none', 'important'); // REMOVED
+      // document.body.style.setProperty('touch-action', 'none', 'important'); // REMOVED
+      // document.body.style.setProperty('overscroll-behavior-y', 'none', 'important'); // REMOVED
 
       // Lock html
-      document.documentElement.style.setProperty('overflow', 'hidden', 'important');
-      document.documentElement.style.setProperty('position', 'fixed', 'important');
+      // document.documentElement.style.setProperty('overflow', 'hidden', 'important'); // REMOVED to fix interaction
+      // document.documentElement.style.setProperty('position', 'fixed', 'important'); // REMOVED to fix interaction
       document.documentElement.style.setProperty('top', `-${scrollY}px`, 'important');
       document.documentElement.style.setProperty('left', '0', 'important');
       document.documentElement.style.setProperty('width', '100%', 'important');
       document.documentElement.style.setProperty('height', '100%', 'important');
-      document.documentElement.style.setProperty('overscroll-behavior', 'none', 'important');
-      document.documentElement.style.setProperty('touch-action', 'none', 'important');
-      document.documentElement.style.setProperty('overscroll-behavior-y', 'none', 'important');
+      document.documentElement.style.setProperty('height', '100%', 'important');
+      // document.documentElement.style.setProperty('overscroll-behavior', 'none', 'important'); // REMOVED
+      // document.documentElement.style.setProperty('touch-action', 'none', 'important'); // REMOVED
+      // document.documentElement.style.setProperty('overscroll-behavior-y', 'none', 'important'); // REMOVED
 
       // Lock window scroll
       window.scrollTo(0, 0);
-      
+
       // Also lock the booking container and main-wrapper
       const container = document.querySelector('.booking-steps-container');
       if (container) {
@@ -921,12 +892,12 @@ const PublicBooking = () => {
     } else {
       // Unlock everything when not on step 2
       const scrollY = document.body.style.top;
-      
+
       // Remove event listeners
       if (scrollHandler) window.removeEventListener('scroll', scrollHandler, { capture: true });
       if (touchHandler) document.removeEventListener('touchmove', touchHandler, { capture: true });
       if (wheelHandler) document.removeEventListener('wheel', wheelHandler, { capture: true });
-      
+
       document.body.style.removeProperty('overflow');
       document.body.style.removeProperty('position');
       document.body.style.removeProperty('top');
@@ -985,11 +956,11 @@ const PublicBooking = () => {
     return () => {
       // Cleanup on unmount
       const scrollY = document.body.style.top;
-      
+
       if (scrollHandler) window.removeEventListener('scroll', scrollHandler, { capture: true });
       if (touchHandler) document.removeEventListener('touchmove', touchHandler, { capture: true });
       if (wheelHandler) document.removeEventListener('wheel', wheelHandler, { capture: true });
-      
+
       document.body.style.removeProperty('overflow');
       document.body.style.removeProperty('position');
       document.body.style.removeProperty('top');
@@ -1048,11 +1019,11 @@ const PublicBooking = () => {
     return () => {
       // Cleanup on unmount
       const scrollY = document.body.style.top;
-      
+
       if (scrollHandler) window.removeEventListener('scroll', scrollHandler, { capture: true });
       if (touchHandler) document.removeEventListener('touchmove', touchHandler, { capture: true });
       if (wheelHandler) document.removeEventListener('wheel', wheelHandler, { capture: true });
-      
+
       document.body.style.removeProperty('overflow');
       document.body.style.removeProperty('position');
       document.body.style.removeProperty('top');

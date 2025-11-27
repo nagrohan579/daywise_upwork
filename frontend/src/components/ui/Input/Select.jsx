@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 import moment from "moment-timezone";
 import "./Input.css";
@@ -20,13 +21,14 @@ const Select = ({
   const [open, setOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
   const containerRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   // Function to get timezone value from timezone label
   const getTimezoneFromLabel = (label) => {
     // Create a reverse mapping from the Account.jsx timezoneMap
     const timezoneMap = {
       "Pacific Time (US & Canada)": "America/Los_Angeles",
-      "Mountain Time (US & Canada)": "America/Denver", 
+      "Mountain Time (US & Canada)": "America/Denver",
       "Central Time (US & Canada)": "America/Chicago",
       "Eastern Time (US & Canada)": "America/New_York",
       "Atlantic Time (Canada)": "America/Halifax",
@@ -133,14 +135,14 @@ const Select = ({
       "Galapagos Time": "Pacific/Galapagos",
       "Norfolk Time": "Pacific/Norfolk"
     };
-    
+
     return timezoneMap[label] || null;
   };
 
   // Update current time every second when showCurrentTime is true
   useEffect(() => {
     if (!showCurrentTime) return;
-    
+
     const updateTime = () => {
       const timezoneValue = getTimezoneFromLabel(value);
       if (timezoneValue) {
@@ -150,17 +152,21 @@ const Select = ({
         setCurrentTime("");
       }
     };
-    
+
     updateTime();
     const interval = setInterval(updateTime, 1000);
-    
+
     return () => clearInterval(interval);
   }, [showCurrentTime, value]);
 
   useEffect(() => {
     const onDocClick = (e) => {
       if (!containerRef.current) return;
-      if (!containerRef.current.contains(e.target)) setOpen(false);
+      // Check if click is inside container or dropdown (portal)
+      if (containerRef.current.contains(e.target)) return;
+      if (dropdownRef.current && dropdownRef.current.contains(e.target)) return;
+
+      setOpen(false);
     };
     document.addEventListener("click", onDocClick);
     return () => document.removeEventListener("click", onDocClick);
@@ -174,53 +180,55 @@ const Select = ({
 
   // Position the dropdown dynamically when it opens
   useEffect(() => {
-    if (!open || !containerRef.current) return;
+    if (!open || !containerRef.current || !dropdownRef.current) return;
 
     const selectBox = containerRef.current.querySelector(".select-box");
-    const dropdown = containerRef.current.querySelector(".select-dropdown");
+    const dropdown = dropdownRef.current;
 
     if (!selectBox || !dropdown) return;
-
-    // Check if this select is within an intake form field (should use absolute positioning)
-    const isInIntakeForm =
-      containerRef.current.closest(".intake-form-field");
-    // Check if this select is in step 1 of public booking page (should use absolute positioning)
-    const isInStepOne = containerRef.current.closest(
-      ".steps-one .left .select-con"
-    );
-    const isInStepTwoMobileTop = containerRef.current.closest(
-      ".step-two-mobile .containerr .top"
-    );
-    const useAbsolute = isInIntakeForm || isInStepOne || isInStepTwoMobileTop;
 
     const applyPosition = () => {
       const rect = selectBox.getBoundingClientRect();
       dropdown.style.width = `${rect.width}px`;
-      dropdown.style.zIndex = "9999";
+      dropdown.style.zIndex = "2147483647"; // Max z-index
 
-      if (useAbsolute) {
-        dropdown.style.position = "absolute";
-        dropdown.style.left = "0";
-        dropdown.style.top = "calc(100% + 4px)";
-      } else {
-        dropdown.style.position = "fixed";
-        dropdown.style.left = `${rect.left}px`;
-        dropdown.style.top = `${rect.bottom + 4}px`;
+      // Always use fixed positioning with Portal to bypass overflow clipping
+      dropdown.style.position = "fixed";
+      dropdown.style.left = `${rect.left}px`;
+      dropdown.style.top = `${rect.bottom + 4}px`;
+      dropdown.style.pointerEvents = "auto"; // Ensure interaction
+      dropdown.style.touchAction = "auto"; // Allow all gestures
+
+      // Check if dropdown goes off screen at bottom
+      const dropdownRect = dropdown.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+
+      if (dropdownRect.bottom > viewportHeight - 10) {
+        // If it goes off screen, try positioning above
+        const topSpace = rect.top;
+        const bottomSpace = viewportHeight - rect.bottom;
+
+        if (topSpace > bottomSpace) {
+          dropdown.style.top = "auto";
+          dropdown.style.bottom = `${viewportHeight - rect.top + 4}px`;
+        }
       }
     };
 
     applyPosition();
 
-    if (!useAbsolute) {
-      const handleReposition = () => applyPosition();
-      window.addEventListener("scroll", handleReposition, true);
-      window.addEventListener("resize", handleReposition);
+    const handleReposition = (e) => {
+      // Ignore scroll events from the dropdown itself to prevent jitter/freezing
+      if (e && e.target === dropdownRef.current) return;
+      applyPosition();
+    };
+    window.addEventListener("scroll", handleReposition, true);
+    window.addEventListener("resize", handleReposition);
 
-      return () => {
-        window.removeEventListener("scroll", handleReposition, true);
-        window.removeEventListener("resize", handleReposition);
-      };
-    }
+    return () => {
+      window.removeEventListener("scroll", handleReposition, true);
+      window.removeEventListener("resize", handleReposition);
+    };
   }, [open]);
 
   // If children (option elements) are provided, render them inside a native <select> for accessibility
@@ -278,14 +286,20 @@ const Select = ({
               )}
             </div>
 
-            {open && (
-              <ul className="select-dropdown">
+            {open && createPortal(
+              <ul
+                className="select-dropdown"
+                ref={dropdownRef}
+                onScroll={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+                onWheel={(e) => e.stopPropagation()}
+              >
                 {options.length > 0 ? (
                   options.map((opt, index) => {
                     const timezoneValue = getTimezoneFromLabel(opt);
                     const optionTime = timezoneValue ? moment().tz(timezoneValue).format('h:mm A') : '';
                     const displayText = showCurrentTime && optionTime ? `${opt} ${optionTime}` : opt;
-                    
+
                     return (
                       <li
                         key={index}
@@ -299,7 +313,8 @@ const Select = ({
                 ) : (
                   <li className="select-option disabled">No options available</li>
                 )}
-              </ul>
+              </ul>,
+              document.body
             )}
           </>
         )}

@@ -455,9 +455,33 @@ input:checked+.slider:before {
 }
 
 @media (max-width: 991px) {
-  .input-group-comp .input-field {
+  /* Prevent iOS Safari auto-zoom by ensuring minimum 16px font-size for all input types */
+  .input-group-comp .input-field,
+  .input-group-comp input[type="text"],
+  .input-group-comp input[type="email"],
+  .input-group-comp input[type="password"],
+  .input-group-comp input[type="number"],
+  .input-group-comp input[type="tel"],
+  .input-group-comp input[type="url"],
+  .input-group-comp input[type="search"],
+  .input-group-comp input[type="datetime-local"],
+  .input-group-comp input[type="month"],
+  .input-group-comp input[type="week"] {
     width: 100%;
-    /* Prevent iOS Safari auto-zoom by ensuring minimum 16px font-size */
+    font-size: 16px !important;
+    -webkit-text-size-adjust: 100% !important;
+  }
+
+  /* Also ensure textarea has 16px font-size on mobile */
+  .textarea-group .textarea-field {
+    font-size: 16px !important;
+    -webkit-text-size-adjust: 100% !important;
+  }
+
+  /* Also ensure select box has 16px font-size on mobile */
+  .select-group .select-box,
+  .select-group .select-text,
+  .select-group select.input-field {
     font-size: 16px !important;
     -webkit-text-size-adjust: 100% !important;
   }

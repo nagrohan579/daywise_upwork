@@ -51,54 +51,110 @@
 @media screen and (max-width: 991px) {
 }
 @media screen and (max-width: 768px) {
+  .pricing-grid {
+    /* Slightly more space for Features column on mobile */
+    grid-template-columns: 46% 27% 27% !important;
+  }
   .cell {
     min-height: 110px;
-    padding: 12px;
-    word-break: break-all;
+    padding: 16px 14px;
+    word-break: normal;
+    overflow-wrap: break-word;
+    hyphens: none;
+    white-space: normal;
   }
   .cell.feature-column {
-    padding-left: 0px;
-    padding: 12px !important;
-    text-align: center;
-    word-break: auto-phrase;
-  }
-  .cell.feature-column {
+    padding: 16px 14px;
+    gap: 3px;
+    text-align: left;
+    word-break: normal;
+    overflow-wrap: break-word;
+    hyphens: none;
+    white-space: normal;
+    min-width: 0; /* Allows flex items to shrink below content size */
   }
   .feature-name {
-    font-size: 10px;
+    max-width: 100%; /* Ensures text doesn't overflow */
+  }
+  .feature-name {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 15px;
+    word-break: normal;
+    overflow-wrap: break-word;
+    hyphens: none;
+    white-space: normal;
   }
   .feature-description {
-    font-size: 10px !important;
-  }
-  .feature-value {
-    font-size: 12px;
-  }
-  .cell svg {
-    width: 20px;
-  }
-  .header-cell.pro {
-    font-size: 12px;
-    word-break: auto-phrase;
-    gap: 2px;
-  }
-  .feature-description {
-    word-break: auto-phrase;
-    line-height: 12px;
+    font-size: 8px !important;
+    font-weight: 400;
+    line-height: 10px;
+    word-break: normal;
+    overflow-wrap: break-word;
+    hyphens: none;
+    white-space: normal;
     text-align: start !important;
   }
+  .feature-value {
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 20px;
+    word-break: normal;
+    overflow-wrap: break-word;
+    hyphens: none;
+    white-space: normal;
+  }
+  .cell svg {
+    width: 24px;
+    height: 24px;
+  }
+  .header-cell.pro {
+    font-size: 14px;
+    word-break: normal;
+    overflow-wrap: break-word;
+    hyphens: none;
+    white-space: normal;
+    gap: 4px;
+  }
   .feature-description.two {
+    font-size: 8px !important;
+    font-weight: 400;
+    line-height: 10px;
     text-align: center !important;
+    color: #64748B;
+    word-break: normal;
+    overflow-wrap: break-word;
+    hyphens: none;
+    white-space: normal;
   }
   .limited-options {
-    text-align: start;
-    font-size: 12px !important;
-    line-height: 16px !important;
-    margin-bottom: 4px !important;
+    font-size: 14px !important;
+    font-weight: 400;
+    line-height: 20px !important;
+    text-align: center;
+    margin: 0px !important;
+    word-break: normal;
+    overflow-wrap: break-word;
+    hyphens: none;
+    white-space: normal;
   }
   .header-cell.plan {
-    font-size: 12px;
+    font-size: 14px;
+    word-break: normal;
+    overflow-wrap: break-word;
+    hyphens: none;
+    white-space: normal;
   }
   .header-cell.feature {
+    font-size: 14px;
+    word-break: normal;
+    overflow-wrap: break-word;
+    hyphens: none;
+    white-space: normal;
+  }
+  .header-cell .price-detail {
     font-size: 12px;
+    font-weight: 600;
+    line-height: 14px;
   }
 }

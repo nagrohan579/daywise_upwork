@@ -85,7 +85,7 @@ const pricingData = {
 const PricingCheck = () => (
   //   <Check className="check-icon" aria-hidden="true" />
   <svg
-    width="25"
+    width="24"
     height="24"
     viewBox="0 0 25 24"
     fill="none"
@@ -127,11 +127,14 @@ const TableRow = ({ feature, index }) => {
   const featureBgClass = isEvenIndex ? "odd-row-bg" : "even-row-bg";
   const planBgClass = isEvenIndex ? "even-row-bg" : "odd-row-bg";
 
+  // Check if this is the Email Notifications row (index 2)
+  const isEmailNotifications = feature.name === "Email Notifications";
+  
   return (
     <div className="contents">
       {/* Feature Name Column (Col 1) */}
       <div
-        className={`cell cell-right-border feature-column ${featureBgClass}`}
+        className={`cell cell-right-border feature-column ${featureBgClass} ${isEmailNotifications ? 'email-notifications-row' : ''}`}
       >
         <p className="feature-name">{feature.name}</p>
         {feature.desc && <p className="feature-description">{feature.desc}</p>}
@@ -139,14 +142,14 @@ const TableRow = ({ feature, index }) => {
 
       {/* Free Plan Column (Col 2) */}
       <div
-        className={`cell cell-right-border feature-column column-2 ${planBgClass}`}
+        className={`cell cell-right-border feature-column column-2 ${planBgClass} ${isEmailNotifications ? 'email-notifications-row' : ''}`}
       >
         {renderCellContent(feature.free)}
         {feature.desc && <p className="feature-description two">{feature.desc2}</p>}
       </div>
 
       {/* Pro Plan Column (Col 3) */}
-      <div className={`cell ${planBgClass}`}>
+      <div className={`cell ${planBgClass} ${isEmailNotifications ? 'email-notifications-row' : ''}`}>
         {renderCellContent(feature.pro)}
       </div>
     </div>
@@ -169,26 +172,33 @@ const PricingTable = () => {
           
           .table-wrapper {
               background-color: white;
-              border-radius: 0.75rem; 
+              border-radius: 14px; 
               overflow: hidden;
-              border: 1px solid #64748B33;
+              border: 1px solid rgba(100, 116, 139, 0.2);
           }
           
           /* === Grid Layout === */
           .pricing-grid {
               display: grid;
-              /* Mobile default: approx 40% / 30% / 30% */
-              grid-template-columns: 40% 30% 30%;
+              /* Mobile default: 45% / 27.5% / 27.5% - gives more space to Features column */
+              grid-template-columns: 45% 27.5% 27.5%;
               font-size: 0.875rem; /* text-sm */
               text-align: center;
           }
           
-          /* Tablet/Desktop breakpoint */
-          @media (min-width: 640px) {
+          /* Tablet/Desktop breakpoint - Based on Figma: 393px / 341.5px / 341.5px = 36.5% / 31.75% / 31.75% */
+          @media (min-width: 769px) {
               .pricing-grid {
-                  /* sm: 2fr / 1fr / 1fr */
-                  grid-template-columns: 2fr 1fr 1fr;
-                  font-size: 1rem; /* md:text-base */
+                  grid-template-columns: 36.5% 31.75% 31.75%;
+                  font-size: 1rem;
+              }
+          }
+          
+          /* Mobile specific adjustments */
+          @media (max-width: 768px) {
+              .pricing-grid {
+                  /* Slightly more space for Features column on mobile */
+                  grid-template-columns: 46% 27% 27%;
               }
           }
           
@@ -199,14 +209,26 @@ const PricingTable = () => {
 
           /* === Cell/Row Styles === */
           .cell {
-            //   padding: 1rem;
-              border-bottom: 1px solid #64748B33;
+              border-bottom: 1px solid rgba(100, 116, 139, 0.2);
               display: flex;
               align-items: center;
               justify-content: center;
               min-height: 52px; 
               transition: background-color 0.15s ease-in-out;
-              font-size:14px
+              font-size: 14px;
+              word-break: normal;
+              overflow-wrap: break-word;
+              hyphens: none;
+              white-space: normal;
+              padding: 16px 14px;
+              background: #FFFFFF;
+          }
+          
+          /* Desktop/Tablet cell padding - Figma: 16px 20px */
+          @media (min-width: 769px) {
+              .cell {
+                  padding: 16px 20px;
+              }
           }
           .cell-right-border {
               border-right: 1px solid #64748B33; 
@@ -219,83 +241,201 @@ const PricingTable = () => {
               text-align: left;
               align-items: flex-start;
               flex-direction: column;
-              padding-left:20px
+              padding: 16px 14px;
+              gap: 3px;
+              word-break: normal;
+              overflow-wrap: break-word;
+              hyphens: none;
+              white-space: normal;
+              min-width: 0; /* Allows flex items to shrink below content size */
+          }
+          
+          /* Desktop/Tablet feature column padding - Figma: 16px 20px */
+          @media (min-width: 769px) {
+              .cell.feature-column {
+                  padding: 16px 20px;
+              }
           }
           
           /* === Header Styles (First Row) === */
           .header-cell {
               font-weight: 600;
-              border-bottom: 1px solid #e5e7eb;
+              border-bottom: 1px solid rgba(100, 116, 139, 0.2);
               background-color:#F9FAFF;
               min-height:68px;
-              font-size:14px
+              font-size:14px;
+              line-height: 20px;
+              word-break: normal;
+              overflow-wrap: break-word;
+              hyphens: none;
+              white-space: normal;
+              padding: 16px 14px;
           }
           .header-cell.feature {
               color: #121212; 
               text-align: left;
-                  display: flex;
-    align-items: center;
-    padding-left: 20px;
+              display: flex;
+              align-items: center;
+              padding: 16px 14px;
+              border-radius: 14px 0px 0px 0px;
           }
           .header-cell.plan {
-              color: #121212; /* text-gray-900 */
-                  display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+              color: #121212;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              padding: 16px 20px;
+              gap: 4px;
           }
           .header-cell.pro {
-              background-color: #2563eb; /* bg-blue-600 */
-              color: white;
-                  display: flex;
-                flex-direction: column;
-            align-items: center;
-            justify-content: center;
+              background-color: #0053F1;
+              color: #FFFFFF;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              padding: 16px 20px;
+              gap: 4px;
+              border-radius: 0px 14px 0px 0px;
+          }
+          
+          /* Desktop/Tablet header padding - Figma: 16px 20px */
+          @media (min-width: 769px) {
+              .header-cell.feature {
+                  padding: 16px 20px;
+              }
+              /* Email Notifications row - Figma: 12px 20px */
+              .cell.email-notifications-row {
+                  padding: 12px 20px;
+              }
           }
           .header-cell .price-detail {
-              font-weight: 400; /* font-normal */
-              font-size: 0.75rem; 
-              margin:0
+              font-weight: 600;
+              font-size: 12px;
+              line-height: 14px;
+              margin: 0;
+              text-align: center;
+          }
+          .header-cell.pro .price-detail {
+              color: #FFFFFF;
+          }
+          
+          /* Desktop/Tablet price detail - Figma: 14px/22px */
+          @media (min-width: 769px) {
+              .header-cell .price-detail {
+                  font-size: 14px;
+                  line-height: 22px;
+              }
           }
           
           /* === Content Styles === */
           .feature-name {
-              font-weight: 600;
+              font-weight: 500;
+              font-size: 12px;
+              line-height: 15px;
               color: #121212; 
-              margin:0px
+              margin: 0px;
+              text-transform: capitalize;
+              word-break: normal;
+              overflow-wrap: break-word;
+              hyphens: none;
+              white-space: normal;
+              max-width: 100%; /* Ensures text doesn't overflow */
           }
           .feature-description {
-              font-size: 0.75rem; /* text-xs */
+              font-size: 8px;
+              font-weight: 400;
+              line-height: 10px;
               color: #64748B;  
-              margin:0px
+              margin: 0px;
+              word-break: normal;
+              overflow-wrap: break-word;
+              hyphens: none;
+              white-space: normal;
+          }
+          
+          /* Desktop/Tablet typography - Figma: feature-name 14px, feature-description 12px */
+          @media (min-width: 769px) {
+              .feature-name {
+                  font-size: 14px;
+                  line-height: 20px;
+              }
+              .feature-description {
+                  font-size: 12px;
+                  line-height: 12px;
+              }
+          }
+          .feature-description.two {
+              font-size: 8px;
+              font-weight: 400;
+              line-height: 10px;
+              color: #64748B;
+              text-align: center;
+              margin: 0px;
+              word-break: normal;
+              overflow-wrap: break-word;
+              hyphens: none;
+              white-space: normal;
+          }
+          
+          /* Desktop/Tablet desc2 text - Figma: 12px */
+          @media (min-width: 769px) {
+              .feature-description.two {
+                  font-size: 12px;
+                  line-height: 12px;
+              }
           }
           .feature-value {
-              color: #121212; /* text-gray-700 */
-              font-weight: 500; /* font-medium */
+              font-size: 14px;
+              font-weight: 400;
+              line-height: 20px;
+              color: #121212;
+              text-transform: capitalize;
+              word-break: normal;
+              overflow-wrap: break-word;
+              hyphens: none;
+              white-space: normal;
           }
           .limited-options {
-              color: #121212; 
-              font-size: 14px; 
-              white-space: pre-line; /* Allows \n for line breaks */
+              font-size: 14px;
+              font-weight: 400;
+              line-height: 20px;
+              color: #121212;
               text-align: center;
-              margin:0px
+              text-transform: capitalize;
+              margin: 0px;
+              word-break: normal;
+              overflow-wrap: break-word;
+              hyphens: none;
+              white-space: normal;
           }
           
           /* Checkmark */
           .check-icon {
-              width: 1.25rem; /* h-5 */
-              height: 1.25rem; /* w-5 */
-              color: #2563eb; /* text-blue-600 */
+              width: 24px;
+              height: 24px;
+              color: #0053F1;
+          }
+          .cell svg {
+              width: 24px;
+              height: 24px;
           }
 
           /* === Last Row (Email Support) Specific Styles === */
           .last-row .cell {
             border-bottom: none;
           }
-            .column-2{
+          .last-row .cell.feature-column {
+            border-radius: 0px 0px 0px 14px;
+          }
+          .last-row .cell:last-child {
+            border-radius: 0px 0px 14px 0px;
+          }
+          .column-2 {
             text-align: center;
-            align-items:center !important;
-            }
+            align-items: center !important;
+          }
     
 
         `}

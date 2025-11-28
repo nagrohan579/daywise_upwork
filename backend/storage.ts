@@ -10,6 +10,10 @@ export const storage = {
     return await convex.query(api.users.getById, { id: id as Id<"users"> });
   },
 
+  async getUserById(id: string) {
+    return await convex.query(api.users.getById, { id: id as Id<"users"> });
+  },
+
   async getUserByEmail(email: string) {
     return await convex.query(api.users.getByEmail, { email });
   },

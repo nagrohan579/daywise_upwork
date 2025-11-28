@@ -275,46 +275,198 @@ export const markRemindersSent = mutation({
   },
 });
 
-// Internal action to send due reminders (called by cron)
+// Enhanced query that fetches bookings WITH all related data (eliminates backend re-queries)
+export const getDueForRemindersWithData = query({
+  handler: async (ctx) => {
+    const now = Date.now();
+    const twentyFourHoursFromNow = now + 24 * 60 * 60 * 1000;
+    const windowMinutes = 30;
+    const windowStart = twentyFourHoursFromNow - (windowMinutes * 60 * 1000);
+    const windowEnd = twentyFourHoursFromNow + (windowMinutes * 60 * 1000);
+
+    console.log(`[Reminder Query] Searching for bookings between:`);
+    console.log(`[Reminder Query]   windowStart: ${new Date(windowStart).toISOString()}`);
+    console.log(`[Reminder Query]   windowEnd: ${new Date(windowEnd).toISOString()}`);
+
+    const bookings = await ctx.db
+      .query("bookings")
+      .withIndex("by_appointmentDate")
+      .filter((q) =>
+        q.and(
+          q.gte(q.field("appointmentDate"), windowStart),
+          q.lte(q.field("appointmentDate"), windowEnd),
+          q.eq(q.field("status"), "confirmed")
+        )
+      )
+      .collect();
+
+    console.log(`[Reminder Query] Found ${bookings.length} confirmed bookings in time window`);
+
+    // Build complete data objects with all related info
+    const bookingsWithData = [];
+    let skippedAlreadySent = 0;
+    let skippedNoProSubscription = 0;
+
+    for (const booking of bookings) {
+      console.log(`[Reminder Query] Checking booking ${booking._id}:`);
+      console.log(`[Reminder Query]   appointmentDate: ${new Date(booking.appointmentDate).toISOString()}`);
+      console.log(`[Reminder Query]   userId: ${booking.userId}`);
+      console.log(`[Reminder Query]   customerReminderSentAt: ${booking.customerReminderSentAt ? new Date(booking.customerReminderSentAt).toISOString() : 'NOT SENT'}`);
+      console.log(`[Reminder Query]   businessReminderSentAt: ${booking.businessReminderSentAt ? new Date(booking.businessReminderSentAt).toISOString() : 'NOT SENT'}`);
+
+      // Check if reminders already sent
+      if (booking.customerReminderSentAt && booking.businessReminderSentAt) {
+        console.log(`[Reminder Query]   ❌ SKIPPED - Both reminders already sent`);
+        skippedAlreadySent++;
+        continue;
+      }
+
+      // Check Pro subscription
+      const subscription = await ctx.db
+        .query("userSubscriptions")
+        .withIndex("by_userId", (q) => q.eq("userId", booking.userId))
+        .first();
+
+      console.log(`[Reminder Query]   Subscription: planId=${subscription?.planId}, status=${subscription?.status}, isTrial=${subscription?.isTrial}`);
+
+      if (!subscription || subscription.status !== "active" || subscription.planId !== "pro") {
+        console.log(`[Reminder Query]   ❌ SKIPPED - No active Pro subscription`);
+        skippedNoProSubscription++;
+        continue;
+      }
+
+      // Fetch all related data NOW (eliminates backend re-fetching)
+      const user = await ctx.db.get(booking.userId);
+      if (!user) {
+        console.log(`[Reminder Query]   ❌ SKIPPED - User not found`);
+        continue;
+      }
+
+      const appointmentType = booking.appointmentTypeId
+        ? await ctx.db.get(booking.appointmentTypeId)
+        : null;
+
+      const branding = await ctx.db
+        .query("branding")
+        .withIndex("by_userId", (q) => q.eq("userId", booking.userId))
+        .first();
+
+      console.log(`[Reminder Query]   ✅ ELIGIBLE - Adding to reminder list`);
+
+      bookingsWithData.push({
+        booking,
+        user,
+        appointmentType,
+        branding,
+      });
+    }
+
+    console.log(`[Reminder Query] ========================================`);
+    console.log(`[Reminder Query] SUMMARY:`);
+    console.log(`[Reminder Query]   Total bookings in window: ${bookings.length}`);
+    console.log(`[Reminder Query]   Skipped (reminders sent): ${skippedAlreadySent}`);
+    console.log(`[Reminder Query]   Skipped (no Pro): ${skippedNoProSubscription}`);
+    console.log(`[Reminder Query]   ELIGIBLE: ${bookingsWithData.length}`);
+    console.log(`[Reminder Query] ========================================`);
+
+    return bookingsWithData;
+  },
+});
+
+// Internal action to send due reminders (called by cron) - BATCH VERSION
 export const sendDueReminders = internalAction({
   handler: async (ctx) => {
-    // Get all eligible bookings
-    const bookings = await ctx.runQuery(internal.bookings.getDueForReminders);
+    // Get all eligible bookings WITH complete data
+    const bookingsWithData = await ctx.runQuery(
+      internal.bookings.getDueForRemindersWithData
+    );
 
-    console.log(`[Reminder Cron] Found ${bookings.length} bookings due for reminders`);
+    console.log(`[Reminder Cron] Found ${bookingsWithData.length} bookings due for reminders`);
 
-    // Get the backend URL from environment and log it
+    if (bookingsWithData.length === 0) {
+      return { processed: 0, successful: 0, failed: 0 };
+    }
+
     const backendUrl = process.env.BACKEND_URL || "http://localhost:3000";
     console.log(`[Reminder Cron] Using backend URL: ${backendUrl}`);
 
-    // Send reminder for each booking
-    for (const booking of bookings) {
-      try {
-        // Call backend API to send the reminder
-        const response = await fetch(`${backendUrl}/api/cron/send-reminder`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            bookingId: booking._id,
-          }),
-        });
+    const BATCH_SIZE = 10; // Process 10 bookings per HTTP call
+    const results = { processed: 0, successful: 0, failed: 0 };
 
-        console.log(`[Reminder Cron] Response status for booking ${booking._id}: ${response.status}`);
-        const responseText = await response.text();
-        console.log(`[Reminder Cron] Response body for booking ${booking._id}: ${responseText}`);
+    // Split into batches to prevent overwhelming backend
+    for (let i = 0; i < bookingsWithData.length; i += BATCH_SIZE) {
+      const batch = bookingsWithData.slice(i, i + BATCH_SIZE);
+      const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(bookingsWithData.length / BATCH_SIZE);
+
+      console.log(`[Reminder Cron] Processing batch ${batchNumber}/${totalBatches} (${batch.length} bookings)`);
+
+      try {
+        // Single HTTP call for entire batch
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+
+        const response = await fetch(
+          `${backendUrl}/api/cron/send-reminder-batch`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bookings: batch }),
+            signal: controller.signal,
+          }
+        );
+
+        clearTimeout(timeoutId);
 
         if (response.ok) {
-          console.log(`[Reminder Cron] Successfully sent reminder for booking ${booking._id}`);
+          const result = await response.json();
+
+          console.log(`[Reminder Cron] Batch ${batchNumber} response:`, {
+            total: result.total,
+            successful: result.successful?.length || 0,
+            failed: result.failed?.length || 0,
+          });
+
+          // Mark successful reminders as sent
+          if (result.successful && result.successful.length > 0) {
+            for (const success of result.successful) {
+              try {
+                await ctx.runMutation(internal.bookings.markRemindersSent, {
+                  id: success.bookingId,
+                  which: success.which,
+                });
+                results.successful++;
+              } catch (markError) {
+                console.error(`[Reminder Cron] Failed to mark ${success.bookingId} as sent:`, markError);
+              }
+            }
+          }
+
+          results.processed += batch.length;
+          console.log(`[Reminder Cron] Batch ${batchNumber} completed: ${result.successful?.length || 0}/${batch.length} successful`);
         } else {
-          console.error(`[Reminder Cron] Failed to send reminder for booking ${booking._id} - Status: ${response.status}, Body: ${responseText}`);
+          const errorText = await response.text();
+          console.error(`[Reminder Cron] Batch ${batchNumber} failed: ${response.status} - ${errorText}`);
+          results.failed += batch.length;
         }
       } catch (error) {
-        console.error(`[Reminder Cron] Error sending reminder for booking ${booking._id}:`, error);
+        console.error(`[Reminder Cron] Batch ${batchNumber} error:`, error);
+        results.failed += batch.length;
+      }
+
+      // Small delay between batches to avoid overwhelming backend
+      if (i + BATCH_SIZE < bookingsWithData.length) {
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // 1s delay
       }
     }
 
-    return { processed: bookings.length };
+    console.log(`[Reminder Cron] ========================================`);
+    console.log(`[Reminder Cron] FINAL RESULTS:`);
+    console.log(`[Reminder Cron]   Total processed: ${results.processed}`);
+    console.log(`[Reminder Cron]   Successful: ${results.successful}`);
+    console.log(`[Reminder Cron]   Failed: ${results.failed}`);
+    console.log(`[Reminder Cron] ========================================`);
+
+    return results;
   },
 });

@@ -8061,6 +8061,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // NEW: Batch endpoint for sending multiple reminders efficiently
+  app.post("/api/cron/send-reminder-batch", async (req, res) => {
+    try {
+      const { bookings } = req.body;
+
+      if (!bookings || !Array.isArray(bookings)) {
+        return res.status(400).json({
+          message: "Bookings array is required"
+        });
+      }
+
+      // Limit batch size to prevent overwhelming SendGrid
+      const MAX_BATCH_SIZE = 50;
+      if (bookings.length > MAX_BATCH_SIZE) {
+        return res.status(400).json({
+          message: `Batch size exceeds limit of ${MAX_BATCH_SIZE}`,
+          received: bookings.length
+        });
+      }
+
+      console.log(`[Batch Cron] Processing batch of ${bookings.length} reminders`);
+      const startTime = Date.now();
+
+      // Process all bookings in parallel using Promise.allSettled
+      const results = await Promise.allSettled(
+        bookings.map(async (data) => {
+          const { booking, user, appointmentType, branding } = data;
+
+          if (!booking || !user) {
+            throw new Error("Missing required booking or user data");
+          }
+
+          // Determine timezones for email formatting
+          const customerTimezone = booking.customerTimezone || user.timezone || 'Etc/UTC';
+          const businessTimezone = user.timezone || 'Etc/UTC';
+
+          // Prepare customer email data
+          const customerEmailData = {
+            customerName: booking.customerName,
+            customerEmail: booking.customerEmail,
+            businessName: user.businessName || user.name,
+            businessEmail: user.email,
+            appointmentDate: formatDateForEmail(
+              new Date(booking.appointmentDate),
+              customerTimezone
+            ),
+            appointmentTime: formatTimeForEmail(
+              new Date(booking.appointmentDate),
+              customerTimezone
+            ),
+            appointmentType: appointmentType?.name || "Appointment",
+            appointmentDuration: appointmentType?.duration || booking.duration || 30,
+            businessColors: branding ? {
+              primary: branding.primary,
+              secondary: branding.secondary
+            } : undefined,
+            businessLogo: branding?.logoUrl,
+            usePlatformBranding: branding?.usePlatformBranding ?? true,
+          };
+
+          // Prepare business email data (different timezone)
+          const businessEmailData = {
+            ...customerEmailData,
+            customerEmail: user.email, // Send to business owner
+            appointmentDate: formatDateForEmail(
+              new Date(booking.appointmentDate),
+              businessTimezone
+            ),
+            appointmentTime: formatTimeForEmail(
+              new Date(booking.appointmentDate),
+              businessTimezone
+            ),
+          };
+
+          // Send both emails in parallel
+          const [customerResult, businessResult] = await Promise.allSettled([
+            sendAppointmentReminder(customerEmailData),
+            sendAppointmentReminder({
+              ...businessEmailData,
+              customerName: `Business Reminder: ${booking.customerName}`,
+            }),
+          ]);
+
+          const customerEmailSent = customerResult.status === 'fulfilled' && customerResult.value;
+          const businessEmailSent = businessResult.status === 'fulfilled' && businessResult.value;
+
+          // Determine which reminders were successfully sent
+          let which: "customer" | "business" | "both" = "both";
+          if (customerEmailSent && !businessEmailSent) which = "customer";
+          if (!customerEmailSent && businessEmailSent) which = "business";
+
+          if (!customerEmailSent && !businessEmailSent) {
+            throw new Error("Both email sends failed");
+          }
+
+          return {
+            bookingId: booking._id,
+            customerEmailSent,
+            businessEmailSent,
+            which,
+            success: true,
+          };
+        })
+      );
+
+      // Separate successful and failed results
+      const successful = [];
+      const failed = [];
+
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          successful.push(result.value);
+        } else {
+          failed.push({
+            bookingId: bookings[index].booking._id,
+            error: result.reason?.message || 'Unknown error',
+          });
+        }
+      });
+
+      const duration = Date.now() - startTime;
+      console.log(`[Batch Cron] Batch completed in ${duration}ms`);
+      console.log(`[Batch Cron] Results: ${successful.length} successful, ${failed.length} failed`);
+
+      res.json({
+        message: "Batch processing complete",
+        total: bookings.length,
+        successful,
+        failed,
+        durationMs: duration,
+      });
+    } catch (error) {
+      console.error('[Batch Cron] Critical error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : '';
+      console.error('[Batch Cron] Error details:', { errorMessage, errorStack });
+
+      res.status(500).json({
+        message: "Batch processing failed",
+        error: errorMessage
+      });
+    }
+  });
+
   // Initialize default subscription plans if they don't exist
   const initializeDefaultPlans = async () => {
     try {

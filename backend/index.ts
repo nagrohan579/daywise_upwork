@@ -132,6 +132,13 @@ app.get("/robots.txt", (_req, res) => {
   const { initializeAdmin } = await import("./lib/admin-init");
   await initializeAdmin();
 
+  // Add timeout protection for cron endpoints to prevent 502 errors
+  app.use('/api/cron', (req, res, next) => {
+    req.setTimeout(90000); // 90 second timeout for cron endpoints
+    res.setTimeout(90000);
+    next();
+  });
+
   const server = await registerRoutes(app);
 
   // Start the 24-hour reminder job for Pro users

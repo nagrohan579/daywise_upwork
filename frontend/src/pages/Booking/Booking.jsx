@@ -56,6 +56,7 @@ const BookingsPage = () => {
   const [userTimezone, setUserTimezone] = useState('Etc/UTC'); // Default to UTC
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' or 'past'
   const { accountStatus } = useAccountStatus();
+  const isInactive = accountStatus === 'inactive';
   const [showOnboardingVideo, setShowOnboardingVideo] = useState(false);
   const [hasCustomBranding, setHasCustomBranding] = useState(false); // Track if user is on paid plan
 
@@ -627,6 +628,11 @@ const BookingsPage = () => {
     };
   }, [bookings, userTimezone]);
 
+  const currentMonthBookingsCount = getCurrentMonthBookingsCount();
+  const isBookingLimitReached = bookingLimit !== null && currentMonthBookingsCount >= bookingLimit;
+  const googleButtonDisabled = isInactive || isCalendarConnected || isCheckingCalendarStatus || isDisconnecting;
+  const addAppointmentDisabled = isInactive || isBookingLimitReached;
+
   return (
     <AppLayout>
       <div className="booking-page ">
@@ -652,31 +658,39 @@ const BookingsPage = () => {
                     width: isMobile ? (isCalendarConnected ? "140px" : "110px") : "240px",
                     paddingLeft: isMobile && isCalendarConnected ? "14px" : undefined,
                     paddingRight: isMobile && isCalendarConnected ? "8px" : undefined,
-                    justifyContent: isMobile && isCalendarConnected ? "flex-start" : "center"
+                    justifyContent: isMobile && isCalendarConnected ? "flex-start" : "center",
+                    opacity: isInactive ? 0.5 : 1,
+                    cursor: isInactive ? 'not-allowed' : undefined
                   }}
                   onClick={handleConnectGoogleCalendar}
-                  disabled={isCalendarConnected || isCheckingCalendarStatus || isDisconnecting}
+                  disabled={googleButtonDisabled}
                 />
                 {isCalendarConnected && !isDisconnecting && (
                   <button
                     onClick={() => setShowGoogleCalendarDisconnectModal(true)}
-                    disabled={isDisconnecting}
+                    disabled={isInactive || isDisconnecting}
                     style={{
                       position: 'absolute',
                       right: '8px',
                       background: 'transparent',
                       border: 'none',
-                      cursor: 'pointer',
+                      cursor: isInactive ? 'not-allowed' : 'pointer',
                       padding: '4px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       color: '#64748B',
-                      opacity: 0.7,
+                      opacity: isInactive ? 0.4 : 0.7,
                       transition: 'opacity 0.2s',
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                    onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
+                    onMouseEnter={(e) => {
+                      if (isInactive) return;
+                      e.currentTarget.style.opacity = '1';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (isInactive) return;
+                      e.currentTarget.style.opacity = '0.7';
+                    }}
                     title="Disconnect Google Calendar"
                   >
                     <CrossIcon />
@@ -797,6 +811,7 @@ const BookingsPage = () => {
                     setShowBookingCalendar(true);
                   }}
                   className={showBookingCalendar ? "active" : ""}
+                  disabled={isInactive}
                 >
                   <svg
                     width="19"
@@ -807,10 +822,10 @@ const BookingsPage = () => {
                   >
                     <path
                       d="M5.29688 2.25V3.9375M13.1719 2.25V3.9375M2.48438 14.0625V5.625C2.48437 5.17745 2.66216 4.74823 2.97863 4.43176C3.2951 4.11529 3.72432 3.9375 4.17188 3.9375H14.2969C14.7444 3.9375 15.1736 4.11529 15.4901 4.43176C15.8066 4.74823 15.9844 5.17745 15.9844 5.625V14.0625M2.48438 14.0625C2.48437 14.5101 2.66216 14.9393 2.97863 15.2557C3.2951 15.5722 3.72432 15.75 4.17188 15.75H14.2969C14.7444 15.75 15.1736 15.5722 15.4901 15.2557C15.8066 14.9393 15.9844 14.5101 15.9844 14.0625M2.48438 14.0625V8.4375C2.48437 7.98995 2.66216 7.56073 2.97863 7.24426C3.2951 6.92779 3.72432 6.75 4.17188 6.75H14.2969C14.7444 6.75 15.1736 6.92779 15.4901 7.24426C15.8066 7.56073 15.9844 7.98995 15.9844 8.4375V14.0625"
-                      stroke={showBookingCalendar ? "#fff" : "#64748B"}
-                      stroke-width="1.125"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
+                      stroke={isInactive ? "#A0AEC0" : (showBookingCalendar ? "#fff" : "#64748B")}
+                      strokeWidth="1.125"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     />
                   </svg>
                   Calendar
@@ -822,18 +837,22 @@ const BookingsPage = () => {
                     text={isMobile ? "New" : "Add Appointment"}
                     style={{
                       width: isMobile ? "75px" : "",
-                      ...(bookingLimit !== null && getCurrentMonthBookingsCount() >= bookingLimit ? {
+                      ...(addAppointmentDisabled ? {
                         backgroundColor: '#64748B33',
                         border: 'none',
-                        cursor: 'pointer',
+                        cursor: 'not-allowed',
                         color: '#64748B80',
                       } : {})
                     }}
                     icon={<FaPlus color={
-                      bookingLimit !== null && getCurrentMonthBookingsCount() >= bookingLimit ? "#64748B80" : "#fff"
+                      addAppointmentDisabled ? "#64748B80" : "#fff"
                     } />}
                     variant="primary"
+                    disabled={addAppointmentDisabled}
                     onClick={() => {
+                      if (isInactive) {
+                        return;
+                      }
                       // Check if user has reached monthly booking limit
                       if (bookingLimit !== null) {
                         const currentMonthBookingsCount = getCurrentMonthBookingsCount();
@@ -878,7 +897,7 @@ const BookingsPage = () => {
                     {!isLoadingData && bookingLimit !== null && (
                       <div className="booking-limit-text-wrap">
                         <p className="booking-limit-text">
-                          <strong>{getCurrentMonthBookingsCount()} of {bookingLimit}</strong> bookings used this month. Upgrade to add more.
+                          <strong>{currentMonthBookingsCount} of {bookingLimit}</strong> bookings used this month. Upgrade to add more.
                         </p>
                       </div>
                     )}
@@ -980,6 +999,7 @@ const BookingsPage = () => {
                         </button>
                       )}
                       <ActionMenu
+                        disabled={isInactive}
                         items={[
                           {
                             label: "View",
@@ -1023,7 +1043,7 @@ const BookingsPage = () => {
                     {!isLoadingData && bookingLimit !== null && (
                       <div className="booking-limit-text-wrap">
                         <p className="booking-limit-text">
-                          <strong>{getCurrentMonthBookingsCount()} of {bookingLimit}</strong> bookings used this month. Upgrade to add more.
+                          <strong>{currentMonthBookingsCount} of {bookingLimit}</strong> bookings used this month. Upgrade to add more.
                         </p>
                       </div>
                     )}
@@ -1125,6 +1145,7 @@ const BookingsPage = () => {
                         </button>
                       )}
                       <ActionMenu
+                        disabled={isInactive}
                         items={[
                           {
                             label: "View",

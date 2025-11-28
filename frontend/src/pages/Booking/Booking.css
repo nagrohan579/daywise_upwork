@@ -109,6 +109,17 @@
   border: none;
 }
 
+.booking-page .center-con .wrap button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: #E2E8F0;
+  color: #A0AEC0;
+}
+
+.booking-page .center-con .wrap button:disabled svg path {
+  stroke: #A0AEC0 !important;
+}
+
 .booking-page .add-appointment-btn-wrap {
   display: flex;
   align-items: center;

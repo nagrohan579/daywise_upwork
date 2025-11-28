@@ -16,6 +16,16 @@
   line-height: 20px;
 }
 
+.btn-comp:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btn-comp.btn-primary:disabled {
+  background: #64748B33;
+  color: #64748B80;
+}
+
 /* Variants */
 .btn-primary {
   background: #0053F1;

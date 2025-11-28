@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import "./ActionMenu.css";
 
-const ActionMenu = ({ items = [], isOpen: controlledIsOpen, onOpenChange }) => {
+const ActionMenu = ({ items = [], isOpen: controlledIsOpen, onOpenChange, disabled = false }) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const menuRef = useRef();
   
@@ -10,6 +10,12 @@ const ActionMenu = ({ items = [], isOpen: controlledIsOpen, onOpenChange }) => {
   const isControlled = controlledIsOpen !== undefined;
   const open = isControlled ? controlledIsOpen : internalOpen;
   const setOpen = isControlled ? onOpenChange : setInternalOpen;
+
+  useEffect(() => {
+    if (disabled) {
+      setOpen?.(false);
+    }
+  }, [disabled, setOpen]);
 
   // Close menu when clicked outside
   useEffect(() => {
@@ -27,6 +33,10 @@ const ActionMenu = ({ items = [], isOpen: controlledIsOpen, onOpenChange }) => {
   useEffect(() => {
     const card = menuRef.current?.closest(".booking-card");
     if (!card) return;
+    if (disabled) {
+      card.classList.remove("booking-card-menu-open");
+      return;
+    }
     if (open) {
       card.classList.add("booking-card-menu-open");
     } else {
@@ -35,14 +45,19 @@ const ActionMenu = ({ items = [], isOpen: controlledIsOpen, onOpenChange }) => {
     return () => {
       card.classList.remove("booking-card-menu-open");
     };
-  }, [open]);
+  }, [open, disabled]);
+
+  const handleTriggerClick = () => {
+    if (disabled) return;
+    setOpen(!open);
+  };
 
   return (
-    <div className={`action-menu ${open ? "is-open" : ""}`} ref={menuRef}>
-      <button className="action-trigger" onClick={() => setOpen(!open)}>
-        <BsThreeDotsVertical size={18} color="#64748B" />
+    <div className={`action-menu ${open ? "is-open" : ""} ${disabled ? "is-disabled" : ""}`} ref={menuRef}>
+      <button className="action-trigger" onClick={handleTriggerClick} disabled={disabled}>
+        <BsThreeDotsVertical size={18} color={disabled ? "#CBD5F5" : "#64748B"} />
       </button>
-      {open && (
+      {open && !disabled && (
         <div className="action-dropdown">
           {items.map((item, idx) => (
             <div 

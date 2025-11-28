@@ -27,6 +27,16 @@
   flex: 1;
 }
 
+.inactive-account-mobile-logout {
+  display: none;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 4px;
+  margin-left: 8px;
+}
+
 .inactive-account-warning-icon {
   width: 20px;
   height: 20px;
@@ -61,4 +71,15 @@
 
 .inactive-account-email-link:hover {
   color: #F0F0F0;
+}
+
+@media (max-width: 991px) {
+  .inactive-account-warning-content {
+    justify-content: space-between;
+  }
+
+  .inactive-account-mobile-logout {
+    display: flex;
+    align-items: center;
+  }
 }

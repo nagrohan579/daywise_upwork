@@ -1,7 +1,36 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import './InactiveAccountBanner.css';
+import { LogoutIcon } from './SVGICONS/Svg';
 
 const InactiveAccountBanner = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      const apiUrl =
+        import.meta.env.VITE_API_BASE_URL ||
+        import.meta.env.VITE_API_URL ||
+        'http://localhost:3000';
+
+      const response = await fetch(`${apiUrl}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        toast.success('Logged out successfully');
+        navigate('/login');
+      } else {
+        toast.error('Failed to logout');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('An error occurred during logout');
+    }
+  };
+
   return (
     <div className="inactive-account-banner">
       <div className="inactive-account-warning-content">
@@ -26,6 +55,13 @@ const InactiveAccountBanner = () => {
           </a>{' '}
           for more information.
         </p>
+        <button
+          className="inactive-account-mobile-logout"
+          onClick={handleLogout}
+          aria-label="Logout"
+        >
+          <LogoutIcon />
+        </button>
       </div>
     </div>
   );

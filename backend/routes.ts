@@ -8086,12 +8086,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Process all bookings in parallel using Promise.allSettled
       const results = await Promise.allSettled(
-        bookings.map(async (data) => {
+        bookings.map(async (data, index) => {
           const { booking, user, appointmentType, branding } = data;
 
+          console.log(`[Batch Cron] Processing booking ${index + 1}/${bookings.length}: ${booking?._id}`);
+
           if (!booking || !user) {
+            console.error(`[Batch Cron] Missing data - booking: ${!!booking}, user: ${!!user}`);
             throw new Error("Missing required booking or user data");
           }
+
+          console.log(`[Batch Cron] Booking ${booking._id} - customer: ${booking.customerEmail}, user: ${user.email}`);
 
           // Determine timezones for email formatting
           const customerTimezone = booking.customerTimezone || user.timezone || 'Etc/UTC';
@@ -8173,10 +8178,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       results.forEach((result, index) => {
         if (result.status === 'fulfilled') {
           successful.push(result.value);
+          console.log(`[Batch Cron] ✅ Booking ${bookings[index].booking._id} - emails sent successfully`);
         } else {
+          const bookingId = bookings[index].booking._id;
+          const errorMsg = result.reason?.message || 'Unknown error';
+          const errorStack = result.reason?.stack || '';
+
+          console.error(`[Batch Cron] ❌ Booking ${bookingId} - FAILED`);
+          console.error(`[Batch Cron]    Error: ${errorMsg}`);
+          if (errorStack) {
+            console.error(`[Batch Cron]    Stack: ${errorStack}`);
+          }
+
           failed.push({
-            bookingId: bookings[index].booking._id,
-            error: result.reason?.message || 'Unknown error',
+            bookingId,
+            error: errorMsg,
           });
         }
       });
@@ -8184,6 +8200,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const duration = Date.now() - startTime;
       console.log(`[Batch Cron] Batch completed in ${duration}ms`);
       console.log(`[Batch Cron] Results: ${successful.length} successful, ${failed.length} failed`);
+
+      // Log failed bookings details for debugging
+      if (failed.length > 0) {
+        console.error(`[Batch Cron] Failed bookings details:`, JSON.stringify(failed, null, 2));
+      }
 
       res.json({
         message: "Batch processing complete",

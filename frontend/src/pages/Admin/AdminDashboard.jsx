@@ -422,14 +422,24 @@ const AdminDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
-                  <tr key={user.id}>
-                    <td>
-                      <div className="user-cell">
-                        <div className="user-name">{user.name || 'No Name'}</div>
-                        <div className="user-email">{user.email}</div>
-                      </div>
-                    </td>
+                {users.map((user) => {
+                  const normalizedAccountStatus = (user.accountStatus || 'active').toLowerCase();
+                  const isAdminUser = user.status === 'Admin';
+                  const statusLabel = isAdminUser
+                    ? 'Admin'
+                    : normalizedAccountStatus === 'inactive'
+                      ? 'Inactive'
+                      : 'Active';
+                  const statusClass = isAdminUser ? 'admin' : normalizedAccountStatus;
+
+                  return (
+                    <tr key={user.id}>
+                      <td>
+                        <div className="user-cell">
+                          <div className="user-name">{user.name || 'No Name'}</div>
+                          <div className="user-email">{user.email}</div>
+                        </div>
+                      </td>
                     <td>
                       <span className={`plan-badge ${user.plan?.toLowerCase() || 'free'}`}>
                         {user.plan || 'Free'}
@@ -438,24 +448,24 @@ const AdminDashboard = () => {
                     <td>{user.bookingCount || 0}</td>
                     <td>{user.joinDate || 'N/A'}</td>
                     <td>
-                      <span className={`status-badge ${user.status?.toLowerCase() || 'active'}`}>
-                        {user.status || 'Active'}
+                      <span className={`status-badge ${statusClass}`}>
+                        {statusLabel}
                       </span>
                     </td>
                     <td>
                       <div className={`action-menu-wrapper ${showUserMenu === user.id ? 'menu-open' : ''}`}>
                         <button
-                          className={`action-menu-btn ${user.status === 'Admin' ? 'disabled' : ''}`}
+                          className={`action-menu-btn ${isAdminUser ? 'disabled' : ''}`}
                           onClick={() => {
-                            if (user.status !== 'Admin') {
+                            if (!isAdminUser) {
                               setShowUserMenu(showUserMenu === user.id ? null : user.id);
                             }
                           }}
-                          disabled={user.status === 'Admin'}
+                          disabled={isAdminUser}
                         >
                           <FaEllipsisV />
                         </button>
-                        {showUserMenu === user.id && user.status !== 'Admin' && (
+                        {showUserMenu === user.id && !isAdminUser && (
                           <div 
                             ref={dropdownRef}
                             className="action-menu-dropdown"
@@ -507,9 +517,10 @@ const AdminDashboard = () => {
                           </div>
                         )}
                       </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -1198,10 +1209,12 @@ const DeletePlanModal = ({ onClose, onConfirm, planName, isDeleting }) => {
 
 // Edit User Modal Component
 const EditUserModal = ({ user, onClose, onSuccess }) => {
+  const normalizedAccountStatus = (user.accountStatus || 'active').toLowerCase();
+  const statusLabel = normalizedAccountStatus === 'inactive' ? 'Inactive' : 'Active';
   const [formData, setFormData] = useState({
     name: user.name || '',
     email: user.email || '',
-    status: user.status || 'Active',
+    status: statusLabel,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 

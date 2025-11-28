@@ -14,7 +14,7 @@
   left: 0px;
   top: 0px;
   background: rgba(202, 65, 65, 1);
-  z-index: 1000;
+  z-index: 2000;
   box-sizing: border-box;
 }
 
@@ -40,16 +40,11 @@
 }
 
 .inactive-account-warning-text {
-  width: auto;
-  height: auto;
   font-family: 'Inter', sans-serif;
   font-style: normal;
   font-weight: 600;
   font-size: 11px;
   line-height: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   color: #FFFFFF;
   text-align: center;
   z-index: 1;
@@ -60,6 +55,8 @@
   color: #FFFFFF;
   text-decoration: underline;
   font-weight: 600;
+  display: inline-block;
+  margin: 0 4px;
 }
 
 .inactive-account-email-link:hover {

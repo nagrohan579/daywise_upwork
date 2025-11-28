@@ -19,6 +19,8 @@ import {
   LogoutIcon,
 } from "../SVGICONS/Svg";
 import NotificationsModal from "../ui/modals/NotificationsModal";
+import InactiveAccountBanner from "../InactiveAccountBanner";
+import useAccountStatus from "../../hooks/useAccountStatus";
 import { formatDateTime, formatTimestamp } from "../../utils/dateFormatting";
 import "./Sidebar.css";
 
@@ -387,7 +389,8 @@ const Sidebar = ({ isOpen, toggleSidebar, accountStatus }) => {
   );
 };
 
-const AppLayout = ({ children, accountStatus }) => {
+const AppLayout = ({ children }) => {
+  const { accountStatus, isInactive } = useAccountStatus();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const toggleSidebar = () => {
@@ -453,7 +456,10 @@ const AppLayout = ({ children, accountStatus }) => {
 
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} accountStatus={accountStatus} />
 
-      <main className="main-content-area">{children}</main>
+      <main className="main-content-area">
+        {isInactive && <InactiveAccountBanner />}
+        {children}
+      </main>
     </div>
   );
 };

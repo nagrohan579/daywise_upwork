@@ -5,13 +5,13 @@ import {
   Button,
   GoogleButton,
 } from "../../components";
-import InactiveAccountBanner from "../../components/InactiveAccountBanner";
 import { FaPlus } from "react-icons/fa6";
 import { FaTimes } from "react-icons/fa";
 import { MessageIcon, FormIcon, DownloadIcon, ViewIcon, EditIconAdmin, DeleteIcon, CancelIcon, CrossIcon } from "../../components/SVGICONS/Svg";
 import "./Booking.css";
 import React, { useState, useEffect } from "react";
 import { useMobile } from "../../hooks";
+import useAccountStatus from "../../hooks/useAccountStatus";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import CalendarApp from "../../components/Calendar/CalendarTest";
@@ -55,7 +55,7 @@ const BookingsPage = () => {
   const [bookingLimit, setBookingLimit] = useState(null); // null = unlimited
   const [userTimezone, setUserTimezone] = useState('Etc/UTC'); // Default to UTC
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' or 'past'
-  const [accountStatus, setAccountStatus] = useState('active'); // 'active' or 'inactive'
+  const { accountStatus } = useAccountStatus();
   const [showOnboardingVideo, setShowOnboardingVideo] = useState(false);
   const [hasCustomBranding, setHasCustomBranding] = useState(false); // Track if user is on paid plan
 
@@ -82,10 +82,6 @@ const BookingsPage = () => {
           // Set user timezone
           if (data.user && data.user.timezone) {
             setUserTimezone(data.user.timezone);
-          }
-          // Set account status
-          if (data.user && data.user.accountStatus) {
-            setAccountStatus(data.user.accountStatus);
           }
         } else {
           console.error('Booking - Failed to fetch user, status:', response.status);
@@ -195,10 +191,15 @@ const BookingsPage = () => {
 
   useEffect(() => {
     if (userId) {
-      fetchBookings();
       checkCalendarStatus(); // Check if calendar is already connected
     }
   }, [userId]);
+
+  useEffect(() => {
+    if (userId) {
+      fetchBookings();
+    }
+  }, [userId, accountStatus]);
 
   // Listen for timezone changes from Account page
   useEffect(() => {
@@ -627,8 +628,7 @@ const BookingsPage = () => {
   }, [bookings, userTimezone]);
 
   return (
-    <AppLayout accountStatus={accountStatus}>
-      {accountStatus === 'inactive' && <InactiveAccountBanner />}
+    <AppLayout>
       <div className="booking-page ">
         <div className="top-con">
           <div className="content-main-wrapper">

@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 
-const apiUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5005';
+const apiUrl =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_BACKEND_URL ||
+  'http://localhost:3000';
 
 /**
  * Custom hook to check if the user's account is active or inactive

@@ -7116,6 +7116,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log(`[Admin Users] User ${user.email}: subscription planId=${userSubscription?.planId}, display plan=${planDisplayName}`);
 
+        const normalizedAccountStatus = (user.accountStatus || "active").toLowerCase();
+        const statusLabel = user.isAdmin
+          ? "Admin"
+          : normalizedAccountStatus === "inactive"
+            ? "Inactive"
+            : "Active";
+
         return {
           id: user._id,
           name: user.name || 'No Name', // User's actual name
@@ -7125,7 +7132,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           plan: planDisplayName,
           bookingCount: userBookings.length,
           joinDate: user._creationTime ? new Date(user._creationTime).toLocaleDateString() : new Date().toLocaleDateString(),
-          status: user.isAdmin ? "Admin" : "Active"
+          status: statusLabel,
+          accountStatus: normalizedAccountStatus
         };
       });
 

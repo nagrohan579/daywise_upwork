@@ -174,6 +174,11 @@ export const getDueForReminders = query({
     const windowStart = twentyFourHoursFromNow - (windowMinutes * 60 * 1000);
     const windowEnd = twentyFourHoursFromNow + (windowMinutes * 60 * 1000);
 
+    // LOG 1: Time window being searched
+    console.log(`[Reminder Query] Searching for bookings between:`);
+    console.log(`[Reminder Query]   windowStart: ${new Date(windowStart).toISOString()}`);
+    console.log(`[Reminder Query]   windowEnd: ${new Date(windowEnd).toISOString()}`);
+
     // Get all confirmed bookings within the 24-hour window
     const bookings = await ctx.db
       .query("bookings")
@@ -187,14 +192,28 @@ export const getDueForReminders = query({
       )
       .collect();
 
+    // LOG 2: How many bookings matched initial query
+    console.log(`[Reminder Query] Found ${bookings.length} confirmed bookings in time window`);
+
     // Filter bookings based on:
     // 1. User has Pro subscription
     // 2. Reminders haven't been sent yet
     const eligibleBookings = [];
+    let skippedAlreadySent = 0;
+    let skippedNoProSubscription = 0;
 
     for (const booking of bookings) {
+      // LOG 3: Each booking being checked
+      console.log(`[Reminder Query] Checking booking ${booking._id}:`);
+      console.log(`[Reminder Query]   appointmentDate: ${new Date(booking.appointmentDate).toISOString()}`);
+      console.log(`[Reminder Query]   userId: ${booking.userId}`);
+      console.log(`[Reminder Query]   customerReminderSentAt: ${booking.customerReminderSentAt ? new Date(booking.customerReminderSentAt).toISOString() : 'NOT SENT'}`);
+      console.log(`[Reminder Query]   businessReminderSentAt: ${booking.businessReminderSentAt ? new Date(booking.businessReminderSentAt).toISOString() : 'NOT SENT'}`);
+
       // Check if reminders already sent
       if (booking.customerReminderSentAt && booking.businessReminderSentAt) {
+        console.log(`[Reminder Query]   ❌ SKIPPED - Both reminders already sent`);
+        skippedAlreadySent++;
         continue; // Skip if both reminders already sent
       }
 
@@ -204,10 +223,32 @@ export const getDueForReminders = query({
         .withIndex("by_userId", (q) => q.eq("userId", booking.userId))
         .first();
 
+      // LOG 4: Subscription details
+      if (!subscription) {
+        console.log(`[Reminder Query]   ❌ SKIPPED - No subscription found for user`);
+        skippedNoProSubscription++;
+        continue;
+      }
+
+      console.log(`[Reminder Query]   Subscription: planId=${subscription.planId}, status=${subscription.status}, isTrial=${subscription.isTrial}`);
+
       if (subscription && subscription.status === "active" && subscription.planId === "pro") {
+        console.log(`[Reminder Query]   ✅ ELIGIBLE - Adding to reminder list`);
         eligibleBookings.push(booking);
+      } else {
+        console.log(`[Reminder Query]   ❌ SKIPPED - Not active Pro subscription`);
+        skippedNoProSubscription++;
       }
     }
+
+    // LOG 5: Final summary
+    console.log(`[Reminder Query] ========================================`);
+    console.log(`[Reminder Query] SUMMARY:`);
+    console.log(`[Reminder Query]   Total bookings in window: ${bookings.length}`);
+    console.log(`[Reminder Query]   Skipped (reminders sent): ${skippedAlreadySent}`);
+    console.log(`[Reminder Query]   Skipped (no Pro): ${skippedNoProSubscription}`);
+    console.log(`[Reminder Query]   ELIGIBLE: ${eligibleBookings.length}`);
+    console.log(`[Reminder Query] ========================================`);
 
     return eligibleBookings;
   },

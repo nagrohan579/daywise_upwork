@@ -7974,7 +7974,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get booking details
-      const booking = await storage.getBookingById(bookingId);
+      const booking = await storage.getBooking(bookingId);
       if (!booking) {
         return res.status(404).json({ message: "Booking not found" });
       }
@@ -7989,7 +7989,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let appointmentTypeName = "Appointment";
       let appointmentDuration = booking.duration || 30;
       if (booking.appointmentTypeId) {
-        const appointmentType = await storage.getAppointmentTypeById(booking.appointmentTypeId);
+        const appointmentType = await storage.getAppointmentType(booking.appointmentTypeId);
         if (appointmentType) {
           appointmentTypeName = appointmentType.name;
           appointmentDuration = appointmentType.duration;
@@ -7997,7 +7997,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get branding info
-      const branding = await storage.getBrandingByUserId(booking.userId);
+      const branding = await storage.getBranding(booking.userId);
 
       // Determine timezones for email formatting
       const customerTimezone = booking.customerTimezone || user.timezone || 'Etc/UTC';
@@ -8037,11 +8037,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Mark reminders as sent
       if (customerEmailSent && businessEmailSent) {
-        await storage.markRemindersSent(bookingId, "both");
+        await storage.markBookingRemindersSent(bookingId, "both");
       } else if (customerEmailSent) {
-        await storage.markRemindersSent(bookingId, "customer");
+        await storage.markBookingRemindersSent(bookingId, "customer");
       } else if (businessEmailSent) {
-        await storage.markRemindersSent(bookingId, "business");
+        await storage.markBookingRemindersSent(bookingId, "business");
       }
 
       res.json({

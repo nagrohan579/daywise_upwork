@@ -25,7 +25,7 @@ import { toSlug, ensureUniqueSlug, generateBusinessIdentifiers } from "./lib/slu
 import { googleCalendarService } from "./lib/google-calendar";
 import { z } from "zod";
 import sharp from 'sharp';
-import { sendCustomerConfirmation, sendBusinessNotification, sendRescheduleConfirmation, sendRescheduleBusinessNotification, sendCancellationConfirmation, sendCancellationBusinessNotification, sendBusinessCancellationConfirmation, sendFeedbackEmail, sendEmailChangeOtp, sendPasswordChangeOtp } from "./email";
+import { sendCustomerConfirmation, sendBusinessNotification, sendRescheduleConfirmation, sendRescheduleBusinessNotification, sendCancellationConfirmation, sendCancellationBusinessNotification, sendBusinessCancellationConfirmation, sendFeedbackEmail, sendEmailChangeOtp, sendPasswordChangeOtp, sendAppointmentReminder } from "./email";
 import { FeatureGate } from "./featureGating";
 import { uploadFile, deleteFile, isSpacesUrl, moveIntakeFormFiles } from "./services/spaces";
 import PDFDocument from "pdfkit";

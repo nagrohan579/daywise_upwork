@@ -5,6 +5,13 @@ import "./SingleCalendar.css";
 import Select from "../ui/Input/Select";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 import { useMobile } from "../../hooks";
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+// Initialize dayjs plugins
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const SingleCalendar = ({
   onSelectTime,
@@ -16,6 +23,7 @@ const SingleCalendar = ({
   selectedAppointmentType = null,
   timezoneOptions = [],
   currentTimezone = null,
+  timezoneValue = null, // IANA timezone string (e.g., "America/Los_Angeles")
   onTimezoneChange = null,
   value = null,
   selectedTime: selectedTimeProp = null,
@@ -72,12 +80,30 @@ const SingleCalendar = ({
     }
 
     // PRIORITY 3: Check for blocked dates (booking window)
+    // Use selected timezone for comparison (same as backend logic)
     const isBlocked = blockedDates.some(blocked => {
-      const blockStart = new Date(blocked.startDate);
-      const blockEnd = new Date(blocked.endDate);
-      blockStart.setHours(0, 0, 0, 0);
-      blockEnd.setHours(23, 59, 59, 999);
-      return dateTimestamp >= blockStart.getTime() && dateTimestamp <= blockEnd.getTime();
+      // If timezoneValue is provided, convert dates to that timezone for comparison
+      // Otherwise, fall back to browser local timezone (for backward compatibility)
+      const tz = timezoneValue || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      
+      // Extract year, month, day from the calendar date (which is in browser local timezone)
+      // Then create a date in the selected timezone with those same calendar values
+      const year = date.getFullYear();
+      const month = date.getMonth(); // 0-11
+      const day = date.getDate();
+      
+      // Create the date in the selected timezone (interpret the calendar date in that timezone)
+      const dateInTz = dayjs.tz(`${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`, 'YYYY-MM-DD', tz);
+      const dateStart = dateInTz.startOf('day');
+      const dateEnd = dateInTz.endOf('day');
+      
+      // Convert blocked dates to the selected timezone
+      const blockStart = dayjs(blocked.startDate).tz(tz).startOf('day');
+      const blockEnd = dayjs(blocked.endDate).tz(tz).endOf('day');
+      
+      // Check if the requested date overlaps with the blocked date range
+      // Same logic as backend: dateStart.isBefore(blockEnd) && dateEnd.isAfter(blockStart)
+      return dateStart.isBefore(blockEnd) && dateEnd.isAfter(blockStart);
     });
     if (isBlocked) {
       return false; // Date is in blocked range

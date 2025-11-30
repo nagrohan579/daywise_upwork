@@ -1199,6 +1199,7 @@ const PublicBooking = () => {
                 selectedTime={selectedTime}
                 timezoneOptions={timezoneOptions}
                 currentTimezone={getTimezoneLabel(customerTimezone || mapToSupportedTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone))}
+                timezoneValue={customerTimezone || mapToSupportedTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone)}
                 onTimezoneChange={(value) => {
                   console.log('SingleCalendar - Timezone changed:', value);
                   handleTimezoneChange(value);

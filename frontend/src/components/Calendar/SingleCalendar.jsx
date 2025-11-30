@@ -223,7 +223,25 @@ const SingleCalendar = ({
         }
       }
     }
-  }, [weeklyAvailability, availabilityExceptions, blockedDates, value]);
+  }, [weeklyAvailability, availabilityExceptions, blockedDates, value, timezoneValue]);
+
+  // Re-evaluate selected date when timezone changes
+  useEffect(() => {
+    if (timezoneValue && selectedDate) {
+      // When timezone changes, check if current selected date is still available
+      // If not, find the next available date
+      if (!isDateAvailable(selectedDate)) {
+        const nextAvailable = getNextAvailableDate();
+        if (nextAvailable) {
+          setSelectedDate(nextAvailable);
+          // Notify parent if we have onDateSelect
+          if (typeof onDateSelect === "function") {
+            onDateSelect(nextAvailable);
+          }
+        }
+      }
+    }
+  }, [timezoneValue]);
 
   const handleDateChange = async (date) => {
     setSelectedDate(date);
@@ -282,11 +300,16 @@ const SingleCalendar = ({
     }
   };
 
+  // Force calendar to re-render when timezone changes by using key
+  // This ensures tileDisabled is re-evaluated with the new timezone
+  const calendarKey = `calendar-${timezoneValue || 'default'}`;
+
   return (
     <div className="single-calendar-container">
       <div className="calendar-date-wrapper">
         <h2>Select a Date & Time</h2>
         <Calendar
+          key={calendarKey}
           onChange={handleDateChange}
           value={selectedDate}
           minDate={new Date()}

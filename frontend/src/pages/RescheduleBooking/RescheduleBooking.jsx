@@ -211,6 +211,12 @@ const RescheduleBooking = () => {
       setLoading(false);
     } catch (error) {
       console.error("Error fetching booking data:", error);
+      toast.error("Failed to load booking page");
+      setLoading(false);
+    }
+  };
+    } catch (error) {
+      console.error("Error fetching booking data:", error);
       toast.error("Failed to load booking");
       setLoading(false);
     }
@@ -578,7 +584,7 @@ const RescheduleBooking = () => {
         console.log('RescheduleBooking - Current date unavailable, updating to first available:', nextAvailable);
       }
     }
-  }, [loading, weeklyAvailability, availabilityExceptions, blockedDates, initialBookingDate, selectedDate]);
+  }, [loading, weeklyAvailability, availabilityExceptions, blockedDates, initialBookingDate, selectedDate, customerTimezone]);
 
   // Fetch time slots when initial date is set and appointment type is selected (only once after loading)
   useEffect(() => {

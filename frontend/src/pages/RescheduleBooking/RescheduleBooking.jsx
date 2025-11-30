@@ -215,12 +215,6 @@ const RescheduleBooking = () => {
       setLoading(false);
     }
   };
-    } catch (error) {
-      console.error("Error fetching booking data:", error);
-      toast.error("Failed to load booking");
-      setLoading(false);
-    }
-  };
 
   const fetchAvailableTimeSlots = async (userId, appointmentTypeId, selectedDate) => {
     if (!userId || !appointmentTypeId || !selectedDate) {

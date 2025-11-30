@@ -113,11 +113,17 @@ const RescheduleBooking = () => {
       console.log('RescheduleBooking - Loaded booking:', booking);
       console.log('RescheduleBooking - User:', user);
       console.log('RescheduleBooking - Appointment Type:', appointmentType);
+      console.log('RescheduleBooking - Branding data:', brandingData);
 
       // Store original booking
       setOriginalBooking(booking);
-      setUserData(user);
-      setBranding(brandingData);
+      // Normalize user data structure to match PublicBooking (ensure id field exists)
+      const normalizedUser = {
+        ...user,
+        id: user._id || user.id, // Ensure id field exists for consistency
+      };
+      setUserData(normalizedUser);
+      setBranding(brandingData || null);
       
       // Set CSS variables for colors
       const root = document.documentElement;

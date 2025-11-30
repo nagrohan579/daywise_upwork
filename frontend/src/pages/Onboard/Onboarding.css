@@ -589,6 +589,7 @@
 
 .onboarding-step1-other-input-section .onboarding-step1-other-input::placeholder {
   color: #64748B;
+  font-size: 14px;
 }
 
 .onboarding-step1-actions {

@@ -2660,9 +2660,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         booking,
         user: {
           _id: user._id,
+          id: user._id, // Add id field for consistency
           name: user.name,
           businessName: user.businessName,
           timezone: user.timezone,
+          picture: user.picture, // Include picture for profile display
         },
         appointmentType,
         branding

@@ -238,6 +238,26 @@
   position: relative;
 }
 
+/* Appointment Type dropdown in step 1 - border color secondary when not hovered/clicked */
+.steps-one .left .select-con .select-group .select-box {
+  border-color: color-mix(in srgb, var(--secondary-color) 20%, transparent) !important;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.steps-one .left .select-con .select-group .select-box:hover {
+  border-color: color-mix(in srgb, var(--main-color) 40%, transparent) !important;
+}
+
+.steps-one .left .select-con .select-group .select-box:focus,
+.steps-one .left .select-con .select-group .select-box:focus-visible,
+.steps-one .left .select-con .select-group .select-box:active {
+  border-color: var(--main-color) !important;
+}
+
+.steps-one .left .select-con .select-group:has(.select-dropdown) .select-box {
+  border-color: var(--main-color) !important;
+}
+
 /* Make dropdown use absolute positioning relative to select-group in step 1 */
 .steps-one .left .select-con .select-group .select-dropdown {
   position: absolute !important;
@@ -409,6 +429,11 @@
   min-height: 100vh;
   padding-top: 80px;
   padding-bottom: 40px;
+}
+
+/* Hide main-wrapper border when step-three (success) is shown */
+.booking-steps-container .main-wrapper:has(.step-three) {
+  border-color: #FFFFFF !important;
 }
 
 .booking-steps-container .step-three .containerr {
@@ -690,6 +715,22 @@
 
 .step-two-mobile .containerr .heading-con .select-group .select-box {
   background-color: color-mix(in srgb, var(--main-color) 2%, transparent) !important;
+  border-color: color-mix(in srgb, var(--secondary-color) 20%, transparent) !important;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.step-two-mobile .containerr .heading-con .select-group .select-box:hover {
+  border-color: color-mix(in srgb, var(--main-color) 40%, transparent) !important;
+}
+
+.step-two-mobile .containerr .heading-con .select-group .select-box:focus,
+.step-two-mobile .containerr .heading-con .select-group .select-box:focus-visible,
+.step-two-mobile .containerr .heading-con .select-group .select-box:active {
+  border-color: var(--main-color) !important;
+}
+
+.step-two-mobile .containerr .heading-con .select-group:has(.select-dropdown) .select-box {
+  border-color: var(--main-color) !important;
 }
 
 /* Make timezone dropdown scrollable in step-two-mobile */
@@ -1689,6 +1730,22 @@ body:has(.step-two-mobile) .select-dropdown {
 /* Timezone dropdown in SingleCalendar component - specifically for public bookings page */
 .booking-steps-container .single-calendar-container .select-con .select-group .select-box {
   background-color: color-mix(in srgb, var(--main-color) 2%, transparent) !important;
+  border-color: color-mix(in srgb, var(--secondary-color) 20%, transparent) !important;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.booking-steps-container .single-calendar-container .select-con .select-group .select-box:hover {
+  border-color: color-mix(in srgb, var(--main-color) 40%, transparent) !important;
+}
+
+.booking-steps-container .single-calendar-container .select-con .select-group .select-box:focus,
+.booking-steps-container .single-calendar-container .select-con .select-group .select-box:focus-visible,
+.booking-steps-container .single-calendar-container .select-con .select-group .select-box:active {
+  border-color: var(--main-color) !important;
+}
+
+.booking-steps-container .single-calendar-container .select-con .select-group:has(.select-dropdown) .select-box {
+  border-color: var(--main-color) !important;
 }
 
 .booking-steps-container .select-group .select-box:focus,
@@ -1825,10 +1882,16 @@ body:has(.step-two-mobile) .select-dropdown {
 .intake-form-field .input-group-comp .input-field {
   background-color: color-mix(in srgb, var(--main-color) 2%, transparent) !important;
   color: var(--text-color) !important;
+  border-color: color-mix(in srgb, var(--secondary-color) 20%, transparent) !important;
+  transition: border-color 0.2s ease-in-out;
 }
 
 .intake-form-field .input-group-comp .input-field::placeholder {
   color: var(--secondary-color) !important;
+}
+
+.intake-form-field .input-group-comp .input-field:hover {
+  border-color: color-mix(in srgb, var(--main-color) 40%, transparent) !important;
 }
 
 .intake-form-field .input-group-comp .input-field:focus,
@@ -1844,10 +1907,16 @@ body:has(.step-two-mobile) .select-dropdown {
 .intake-form-field .textarea-group .textarea-field {
   background-color: color-mix(in srgb, var(--main-color) 2%, transparent) !important;
   color: var(--text-color) !important;
+  border-color: color-mix(in srgb, var(--secondary-color) 20%, transparent) !important;
+  transition: border-color 0.2s ease-in-out;
 }
 
 .intake-form-field .textarea-group .textarea-field::placeholder {
   color: var(--secondary-color) !important;
+}
+
+.intake-form-field .textarea-group .textarea-field:hover {
+  border-color: color-mix(in srgb, var(--main-color) 40%, transparent) !important;
 }
 
 .intake-form-field .textarea-group .textarea-field:focus,
@@ -1864,6 +1933,12 @@ body:has(.step-two-mobile) .select-dropdown {
 
 .intake-form-field .select-group .select-box {
   background-color: color-mix(in srgb, var(--main-color) 2%, transparent) !important;
+  border-color: color-mix(in srgb, var(--secondary-color) 20%, transparent) !important;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.intake-form-field .select-group .select-box:hover {
+  border-color: color-mix(in srgb, var(--main-color) 40%, transparent) !important;
 }
 
 .intake-form-field .select-group .select-dropdown {
@@ -1875,7 +1950,8 @@ body:has(.step-two-mobile) .select-dropdown {
 }
 
 .intake-form-field .select-group .select-box:focus,
-.intake-form-field .select-group .select-box:focus-visible {
+.intake-form-field .select-group .select-box:focus-visible,
+.intake-form-field .select-group .select-box:active {
   border-color: var(--main-color) !important;
   outline: none;
 }

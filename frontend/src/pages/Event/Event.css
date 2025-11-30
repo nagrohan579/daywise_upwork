@@ -166,7 +166,7 @@
   flex: 1;
   padding: 12px;
   background: color-mix(in srgb, var(--main-color) 2%, transparent);
-  border: 1px solid rgba(100, 116, 139, 0.2);
+  border: 1px solid color-mix(in srgb, var(--secondary-color) 20%, transparent);
   border-radius: 12px;
   font-family: 'Inter', sans-serif;
   font-weight: 400;
@@ -174,6 +174,17 @@
   line-height: 20px;
   color: var(--secondary-color);
   box-sizing: border-box;
+  transition: border-color 0.2s ease-in-out;
+  outline: none;
+}
+
+.event-link-input:hover {
+  border-color: color-mix(in srgb, var(--main-color) 40%, transparent);
+}
+
+.event-link-input:focus,
+.event-link-input:active {
+  border-color: var(--main-color);
 }
 
 .event-link-copy-btn {
@@ -181,20 +192,27 @@
   height: 44px;
   padding: 11px;
   background: color-mix(in srgb, var(--main-color) 2%, transparent);
-  border: 0.916667px solid rgba(100, 116, 139, 0.2);
+  border: 1px solid color-mix(in srgb, var(--secondary-color) 20%, transparent);
   border-radius: 11px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--secondary-color);
-  transition: all 0.2s;
+  transition: border-color 0.2s ease-in-out, background 0.2s ease-in-out;
   box-sizing: border-box;
   flex-shrink: 0;
+  outline: none;
 }
 
 .event-link-copy-btn:hover {
   background: color-mix(in srgb, var(--main-color) 5%, transparent);
+  border-color: color-mix(in srgb, var(--main-color) 40%, transparent);
+}
+
+.event-link-copy-btn:focus,
+.event-link-copy-btn:active {
+  border-color: var(--main-color);
 }
 
 /* Copy icon and tick icon styling */

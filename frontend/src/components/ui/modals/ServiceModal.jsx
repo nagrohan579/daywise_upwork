@@ -75,7 +75,9 @@ const ServicesModal = ({
         
         if (intakeFormsResponse.ok) {
           const data = await intakeFormsResponse.json();
-          setIntakeForms(data || []);
+          // Filter out inactive forms - only show active forms in the dropdown
+          const activeForms = (data || []).filter(form => form.isActive !== false);
+          setIntakeForms(activeForms);
         }
         
         if (subscriptionResponse.ok) {
@@ -103,6 +105,21 @@ const ServicesModal = ({
   // Load selected service data when editing
   useEffect(() => {
     if (isEdit && selectedService) {
+      const selectedFormId = selectedService.intakeFormId;
+      
+      // Only check if form is active after intakeForms have been loaded
+      // If intakeForms is still empty, assume the form is valid (will be checked later)
+      let isFormActive = true;
+      if (selectedFormId && intakeForms.length > 0) {
+        // Check if the selected intake form is in the active forms list
+        isFormActive = intakeForms.some(form => form._id === selectedFormId);
+        
+        // Show warning if form was cleared due to being inactive
+        if (!isFormActive) {
+          toast.warning("The previously selected intake form is inactive and has been cleared. Please select an active form.");
+        }
+      }
+      
       setFormData({
         name: selectedService.name || "",
         description: selectedService.description || "",
@@ -111,7 +128,8 @@ const ServicesModal = ({
         price: selectedService.price || 0,
         color: selectedService.color || "#F19B11",
         isActive: selectedService.isActive ?? true,
-        intakeFormId: selectedService.intakeFormId || null,
+        // Clear intakeFormId if the form is inactive (only after forms are loaded)
+        intakeFormId: (selectedFormId && isFormActive) ? selectedFormId : null,
         requirePayment: selectedService.requirePayment || false,
       });
     } else if (!isEdit) {
@@ -128,7 +146,7 @@ const ServicesModal = ({
         requirePayment: false,
       });
     }
-  }, [isEdit, selectedService, showServiceModal]);
+  }, [isEdit, selectedService, showServiceModal, intakeForms]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({

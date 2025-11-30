@@ -1762,22 +1762,34 @@ body:has(.step-two-mobile) .select-dropdown {
 /* Input fields styling specific to public bookings page step 2 */
 .booking-steps-container .step-two .right .input-group-comp .input-field {
   background-color: color-mix(in srgb, var(--main-color) 2%, transparent);
+  border-color: color-mix(in srgb, var(--secondary-color) 20%, transparent) !important;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.booking-steps-container .step-two .right .input-group-comp .input-field:hover {
+  border-color: color-mix(in srgb, var(--main-color) 40%, transparent) !important;
 }
 
 .booking-steps-container .step-two .right .input-group-comp .input-field:focus,
 .booking-steps-container .step-two .right .input-group-comp .input-field:focus-visible {
-  border-color: var(--main-color);
+  border-color: var(--main-color) !important;
   outline: none;
 }
 
 /* Textarea styling specific to public bookings page step 2 */
 .booking-steps-container .step-two .right .textarea-group .textarea-field {
   background-color: color-mix(in srgb, var(--main-color) 2%, transparent);
+  border-color: color-mix(in srgb, var(--secondary-color) 20%, transparent) !important;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.booking-steps-container .step-two .right .textarea-group .textarea-field:hover {
+  border-color: color-mix(in srgb, var(--main-color) 40%, transparent) !important;
 }
 
 .booking-steps-container .step-two .right .textarea-group .textarea-field:focus,
 .booking-steps-container .step-two .right .textarea-group .textarea-field:focus-visible {
-  border-color: var(--main-color);
+  border-color: var(--main-color) !important;
   outline: none;
 }
 

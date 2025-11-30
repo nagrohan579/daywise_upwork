@@ -55,6 +55,7 @@ function AppContent() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/verify" element={<VerifyPage />} />
         <Route path="/verify/:token" element={<VerifyPage />} />
         <Route path="/verify-error" element={<VerifyPage />} />
         <Route path="/booking" element={<BookingsPage />} />

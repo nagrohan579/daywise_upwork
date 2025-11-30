@@ -16,13 +16,47 @@ const VerifyPage = () => {
       // Check if redirected from backend with verified=true (GET /verify/:token redirect)
       const verified = searchParams.get("verified");
       if (verified === "true") {
-        setStatus("success");
-        setMessage("Your email has been verified successfully! You're now logged in.");
-        
-        // Redirect to onboarding page after 2 seconds
-        setTimeout(() => {
-          navigate("/onboarding");
-        }, 2000);
+        // Verify session is actually established before redirecting
+        try {
+          const sessionCheck = await fetch(`${API_URL}/api/auth/me`, {
+            credentials: "include",
+          });
+          
+          if (sessionCheck.ok) {
+            setStatus("success");
+            setMessage("Your email has been verified successfully! You're now logged in.");
+            
+            // Set flag to indicate we're coming from verification
+            sessionStorage.setItem('justVerified', 'true');
+            
+            // Redirect to onboarding page after 2 seconds
+            setTimeout(() => {
+              navigate("/onboarding");
+            }, 2000);
+          } else {
+            // Session not established yet, wait a bit and retry
+            setTimeout(async () => {
+              const retryCheck = await fetch(`${API_URL}/api/auth/me`, {
+                credentials: "include",
+              });
+              if (retryCheck.ok) {
+                setStatus("success");
+                setMessage("Your email has been verified successfully! You're now logged in.");
+                sessionStorage.setItem('justVerified', 'true');
+                setTimeout(() => {
+                  navigate("/onboarding");
+                }, 2000);
+              } else {
+                setStatus("error");
+                setMessage("Verification succeeded but session could not be established. Please try logging in.");
+              }
+            }, 1000);
+          }
+        } catch (error) {
+          console.error("Session check error:", error);
+          setStatus("error");
+          setMessage("Verification succeeded but session could not be verified. Please try logging in.");
+        }
         return;
       }
 
@@ -62,6 +96,9 @@ const VerifyPage = () => {
 
         setStatus("success");
         setMessage("Your email has been verified successfully! You're now logged in.");
+        
+        // Set flag to indicate we're coming from verification
+        sessionStorage.setItem('justVerified', 'true');
         
         // Redirect to onboarding page after 2 seconds
         setTimeout(() => {

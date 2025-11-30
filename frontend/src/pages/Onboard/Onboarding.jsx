@@ -111,7 +111,7 @@ const Onboarding = () => {
 
   // Check if user is authenticated and if they've completed onboarding
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuth = async (retryCount = 0) => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
         const response = await fetch(`${apiUrl}/api/auth/me`, {
@@ -129,13 +129,43 @@ const Onboarding = () => {
 
           setIsAuthenticated(true);
         } else {
+          // If coming from verification, retry once after a short delay
+          // This handles timing issues where session cookie might not be immediately available
+          const isFromVerification = document.referrer.includes('/verify') || 
+                                     sessionStorage.getItem('justVerified') === 'true';
+          
+          if (isFromVerification && retryCount === 0) {
+            // Clear the flag
+            sessionStorage.removeItem('justVerified');
+            // Retry after a short delay to allow session cookie to propagate
+            setTimeout(() => {
+              checkAuth(1);
+            }, 500);
+            return;
+          }
+          
           window.location.href = '/login';
         }
       } catch (error) {
         console.error('Error checking authentication:', error);
+        
+        // If coming from verification, retry once after a short delay
+        const isFromVerification = document.referrer.includes('/verify') || 
+                                   sessionStorage.getItem('justVerified') === 'true';
+        
+        if (isFromVerification && retryCount === 0) {
+          sessionStorage.removeItem('justVerified');
+          setTimeout(() => {
+            checkAuth(1);
+          }, 500);
+          return;
+        }
+        
         window.location.href = '/login';
       } finally {
-        setIsChecking(false);
+        if (retryCount === 0) {
+          setIsChecking(false);
+        }
       }
     };
 

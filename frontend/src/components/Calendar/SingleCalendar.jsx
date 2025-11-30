@@ -167,22 +167,37 @@ const SingleCalendar = ({
 
   // Update selectedDate when availability data loads (weekly, exceptions, blocked dates)
   useEffect(() => {
-    // Only run this if we don't have an explicit value prop
-    if (!value && (weeklyAvailability.length > 0 || availabilityExceptions.length > 0 || blockedDates.length > 0)) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      // If current selectedDate is unavailable, find next available
-      if (selectedDate && !isDateAvailable(selectedDate)) {
-        const nextAvailable = getNextAvailableDate();
-        setSelectedDate(nextAvailable);
-      } else if (!selectedDate) {
-        // If no date selected, set to next available
-        const nextAvailable = getNextAvailableDate();
-        setSelectedDate(nextAvailable);
+    if (weeklyAvailability.length > 0 || availabilityExceptions.length > 0 || blockedDates.length > 0) {
+      // If we have a value prop, check if it's available and update internal state
+      if (value) {
+        if (!isDateAvailable(value)) {
+          // Value prop date is unavailable, find next available
+          const nextAvailable = getNextAvailableDate();
+          if (nextAvailable) {
+            setSelectedDate(nextAvailable);
+            // Notify parent to update the value prop
+            if (typeof onDateSelect === "function") {
+              onDateSelect(nextAvailable);
+            }
+          }
+        } else {
+          // Value prop date is available, sync internal state
+          setSelectedDate(value);
+        }
+      } else {
+        // No value prop, use internal logic
+        // If current selectedDate is unavailable, find next available
+        if (selectedDate && !isDateAvailable(selectedDate)) {
+          const nextAvailable = getNextAvailableDate();
+          setSelectedDate(nextAvailable);
+        } else if (!selectedDate) {
+          // If no date selected, set to next available
+          const nextAvailable = getNextAvailableDate();
+          setSelectedDate(nextAvailable);
+        }
       }
     }
-  }, [weeklyAvailability, availabilityExceptions, blockedDates]);
+  }, [weeklyAvailability, availabilityExceptions, blockedDates, value]);
 
   const handleDateChange = async (date) => {
     setSelectedDate(date);

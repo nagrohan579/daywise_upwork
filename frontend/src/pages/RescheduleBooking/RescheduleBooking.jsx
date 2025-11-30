@@ -46,6 +46,10 @@ const RescheduleBooking = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [customerTimezone, setCustomerTimezone] = useState(null);
   const [originalBooking, setOriginalBooking] = useState(null);
+  const [weeklyAvailability, setWeeklyAvailability] = useState([]);
+  const [availabilityExceptions, setAvailabilityExceptions] = useState([]);
+  const [blockedDates, setBlockedDates] = useState([]);
+  const [initialBookingDate, setInitialBookingDate] = useState(null);
 
   // Get timezone options from utility (limited to 20 supported timezones)
   const timezoneOptions = useMemo(() => {
@@ -142,13 +146,47 @@ const RescheduleBooking = () => {
       setCustomerTimezone(normalizedTz);
       console.log('RescheduleBooking - Pre-filled timezone:', bookingTz, '-> normalized:', normalizedTz);
 
-      // Pre-fill date from booking
+      // Store booking date for later use (will check availability and set as initial date)
       const bookingDate = new Date(booking.appointmentDate);
-      setSelectedDate(bookingDate);
-      console.log('RescheduleBooking - Pre-filled date:', bookingDate);
+      setInitialBookingDate(bookingDate);
+      console.log('RescheduleBooking - Original booking date:', bookingDate);
 
-      // Fetch appointment types (include all, not just active)
-      const typesResponse = await fetch(`${apiUrl}/api/appointment-types?userId=${user._id}`);
+      // Fetch all availability data in parallel
+      const [availabilityResponse, exceptionsResponse, blockedResponse, typesResponse] = await Promise.all([
+        fetch(`${apiUrl}/api/public/availability/${user._id}`).catch(() => ({ ok: false })),
+        fetch(`${apiUrl}/api/public/availability-exceptions/${user._id}`).catch(() => ({ ok: false })),
+        fetch(`${apiUrl}/api/public/blocked-dates/${user._id}`).catch(() => ({ ok: false })),
+        fetch(`${apiUrl}/api/appointment-types?userId=${user._id}`).catch(() => ({ ok: false }))
+      ]);
+
+      // Process weekly availability
+      if (availabilityResponse.ok) {
+        const availabilityData = await availabilityResponse.json();
+        console.log('RescheduleBooking - Weekly availability loaded:', availabilityData);
+        setWeeklyAvailability(availabilityData);
+      } else {
+        console.warn('RescheduleBooking - Failed to fetch availability:', availabilityResponse.status);
+      }
+
+      // Process availability exceptions
+      if (exceptionsResponse.ok) {
+        const exceptionsData = await exceptionsResponse.json();
+        console.log('RescheduleBooking - Availability exceptions loaded:', exceptionsData);
+        setAvailabilityExceptions(exceptionsData);
+      } else {
+        console.warn('RescheduleBooking - Failed to fetch exceptions:', exceptionsResponse.status);
+      }
+
+      // Process blocked dates
+      if (blockedResponse.ok) {
+        const blockedData = await blockedResponse.json();
+        console.log('RescheduleBooking - Blocked dates loaded:', blockedData);
+        setBlockedDates(blockedData);
+      } else {
+        console.warn('RescheduleBooking - Failed to fetch blocked dates:', blockedResponse.status);
+      }
+
+      // Process appointment types
       if (typesResponse.ok) {
         const types = await typesResponse.json();
         setAppointmentTypes(types);
@@ -162,12 +200,13 @@ const RescheduleBooking = () => {
           if (matchingType) {
             setSelectedAppointmentType(matchingType);
             console.log('RescheduleBooking - Pre-selected appointment type:', matchingType);
-
-            // Fetch available slots for the pre-selected date and type
-            await fetchAvailableTimeSlots(user._id, matchingType._id, bookingDate);
           }
         }
       }
+
+      // Don't set selectedDate here - let SingleCalendar handle it based on availability
+      // SingleCalendar will use the booking date if available, otherwise first available date
+      setSelectedDate(null);
 
       setLoading(false);
     } catch (error) {
@@ -247,8 +286,10 @@ const RescheduleBooking = () => {
     setSelectedTime(null);
 
     // Use the currently selected date or today's date
-    const dateToUse = selectedDate || new Date();
-    if (!selectedDate) {
+    const dateToUse = date || selectedDate || new Date();
+    if (date) {
+      setSelectedDate(date);
+    } else if (!selectedDate) {
       setSelectedDate(dateToUse);
     }
 
@@ -387,6 +428,148 @@ const RescheduleBooking = () => {
     setCustomerTimezone(timezoneValue);
     console.log('RescheduleBooking - Customer timezone changed to:', timezoneValue);
   };
+
+  // Set initial date after availability data loads
+  useEffect(() => {
+    if (loading) return; // Don't run while still loading
+
+    // Helper function to check if a date is available (same logic as SingleCalendar)
+    const isDateAvailable = (date) => {
+      const dayOfWeek = date.getDay();
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const dayName = dayNames[dayOfWeek];
+
+      // Format date as YYYY-MM-DD for exception matching
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+
+      // Get date timestamp for comparison
+      const dateTimestamp = new Date(dateStr).getTime();
+
+      // Find exceptions for this specific date
+      const dateExceptions = availabilityExceptions.filter(exception => {
+        const exceptionDate = new Date(exception.date);
+        const excYear = exceptionDate.getFullYear();
+        const excMonth = String(exceptionDate.getMonth() + 1).padStart(2, '0');
+        const excDay = String(exceptionDate.getDate()).padStart(2, '0');
+        const excDateStr = `${excYear}-${excMonth}-${excDay}`;
+        return excDateStr === dateStr;
+      });
+
+      // PRIORITY 1: Check for custom_hours or special_availability (these OVERRIDE unavailability)
+      const hasOverride = dateExceptions.some(ex =>
+        ex.type === 'custom_hours' || ex.type === 'special_availability'
+      );
+      if (hasOverride) {
+        return true; // Date is available because it has override hours
+      }
+
+      // PRIORITY 2: Check for closed_months
+      const closedMonthException = availabilityExceptions.find(ex => {
+        if (ex.type !== 'closed_months' || !ex.customSchedule) return false;
+        try {
+          const schedule = JSON.parse(ex.customSchedule);
+          return schedule.month === date.getMonth() && schedule.year === date.getFullYear();
+        } catch {
+          return false;
+        }
+      });
+      if (closedMonthException) {
+        return false; // Entire month is closed
+      }
+
+      // PRIORITY 3: Check for blocked dates (booking window)
+      const isBlocked = blockedDates.some(blocked => {
+        const blockStart = new Date(blocked.startDate);
+        const blockEnd = new Date(blocked.endDate);
+        blockStart.setHours(0, 0, 0, 0);
+        blockEnd.setHours(23, 59, 59, 999);
+        return dateTimestamp >= blockStart.getTime() && dateTimestamp <= blockEnd.getTime();
+      });
+      if (isBlocked) {
+        return false; // Date is in blocked range
+      }
+
+      // PRIORITY 4: Check for unavailable exception
+      const unavailableException = dateExceptions.find(ex => ex.type === 'unavailable');
+      if (unavailableException) {
+        return false; // Date is specifically marked unavailable
+      }
+
+      // PRIORITY 5: Check weekly availability (only if no exceptions apply)
+      const allDayRecords = weeklyAvailability.filter(slot => {
+        const rawWeekday = slot.weekday || '';
+        const wk = String(rawWeekday).toLowerCase().trim();
+        const matches = wk === dayName || wk === dayName.slice(0, 3) || wk === String(dayOfWeek);
+        return matches;
+      });
+
+      if (allDayRecords.length === 0) {
+        return true; // Available by default if no records
+      }
+
+      const hasAvailableSlots = allDayRecords.some(slot => slot.isAvailable !== false);
+      return hasAvailableSlots;
+    };
+
+    // Find the next available date starting from today
+    const getNextAvailableDate = () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Check up to 60 days in the future
+      for (let i = 0; i < 60; i++) {
+        const checkDate = new Date(today);
+        checkDate.setDate(today.getDate() + i);
+
+        if (isDateAvailable(checkDate)) {
+          return checkDate;
+        }
+      }
+
+      return null; // No available date found in the next 60 days
+    };
+
+    // Only set initial date if we haven't set it yet or if booking date was set but might be unavailable
+    if (initialBookingDate && !selectedDate) {
+      // Check if booking date is available
+      if (isDateAvailable(initialBookingDate)) {
+        setSelectedDate(initialBookingDate);
+        console.log('RescheduleBooking - Using booking date as initial date (available):', initialBookingDate);
+      } else {
+        // Booking date is unavailable, find first available
+        const nextAvailable = getNextAvailableDate();
+        if (nextAvailable) {
+          setSelectedDate(nextAvailable);
+          console.log('RescheduleBooking - Booking date unavailable, using first available:', nextAvailable);
+        }
+      }
+    } else if (!selectedDate && (weeklyAvailability.length > 0 || availabilityExceptions.length > 0 || blockedDates.length > 0)) {
+      // No booking date, find first available
+      const nextAvailable = getNextAvailableDate();
+      if (nextAvailable) {
+        setSelectedDate(nextAvailable);
+        console.log('RescheduleBooking - No booking date, using first available:', nextAvailable);
+      }
+    } else if (selectedDate && initialBookingDate && !isDateAvailable(selectedDate)) {
+      // If current selected date is unavailable, find next available
+      const nextAvailable = getNextAvailableDate();
+      if (nextAvailable) {
+        setSelectedDate(nextAvailable);
+        console.log('RescheduleBooking - Current date unavailable, updating to first available:', nextAvailable);
+      }
+    }
+  }, [loading, weeklyAvailability, availabilityExceptions, blockedDates, initialBookingDate, selectedDate]);
+
+  // Fetch time slots when initial date is set and appointment type is selected (only once after loading)
+  useEffect(() => {
+    if (!loading && selectedDate && selectedAppointmentType?._id && userData?._id && availableTimeSlots.length === 0) {
+      console.log('RescheduleBooking - Fetching time slots for initial date:', selectedDate);
+      fetchAvailableTimeSlots(userData._id, selectedAppointmentType._id, selectedDate);
+    }
+  }, [loading, selectedDate, selectedAppointmentType, userData]);
 
   // Convert and sort available time slots for display
   const displayTimeSlots = useMemo(() => {
@@ -541,6 +724,10 @@ const RescheduleBooking = () => {
                   console.log('SingleCalendar - Timezone changed:', value);
                   handleTimezoneChange(value);
                 }}
+                weeklyAvailability={weeklyAvailability}
+                availabilityExceptions={availabilityExceptions}
+                blockedDates={blockedDates}
+                value={selectedDate}
               />
             </div>
           </div>

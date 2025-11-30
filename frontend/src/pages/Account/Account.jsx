@@ -546,6 +546,7 @@ const Account = () => {
                   style={{
                     flex: 1,
                     backgroundColor: '#DC2626',
+                    color: '#FFFFFF',
                     opacity: deleteConfirmText !== "DELETE" ? 0.5 : 1,
                     cursor: deleteConfirmText !== "DELETE" ? 'not-allowed' : 'pointer',
                   }}

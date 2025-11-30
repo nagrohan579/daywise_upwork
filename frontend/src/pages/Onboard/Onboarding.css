@@ -2621,18 +2621,21 @@
 }
 
 
-.onboarding-step6-share-icon,
-.onboarding-step6-add-icon {
+.onboarding-step6-share-icon {
   width: 11px;
   height: 12px;
   display: inline-block;
   vertical-align: middle;
   margin-left: 4px;
+  margin-right: 4px;
 }
 
 .onboarding-step6-add-icon {
   width: 14px;
   height: 14px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 4px;
 }
 
 .onboarding-step6-share-icon svg,

@@ -249,7 +249,7 @@ export async function sendAppointmentReminder(data: BookingEmailData): Promise<b
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: ${primaryColor}; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
           ${logoSection}
-          <h1 style="color: #FFF; margin: 0; font-size: 28px;">📅 Appointment Reminder</h1>
+          <h1 style="color: #FFF; margin: 0; font-size: 28px;">Appointment Reminder</h1>
         </div>
         
         <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
@@ -266,13 +266,6 @@ export async function sendAppointmentReminder(data: BookingEmailData): Promise<b
             <p style="margin: 5px 0; color: ${secondaryColor};"><strong>Service:</strong> ${data.appointmentType} (${data.appointmentDuration} minutes)</p>
             <p style="margin: 5px 0; color: ${secondaryColor};"><strong>Date & Time:</strong> ${data.appointmentDate} at ${data.appointmentTime}</p>
             <p style="margin: 5px 0; color: ${secondaryColor};"><strong>Business:</strong> ${data.businessName}</p>
-          </div>
-          
-          <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
-            <h3 style="margin: 0 0 15px 0; color: ${textColor};">Preparation Tips</h3>
-            <p style="margin: 5px 0; color: ${secondaryColor};">• Please arrive 5 minutes before your scheduled time</p>
-            <p style="margin: 5px 0; color: ${secondaryColor};">• Bring any relevant documents or materials</p>
-            <p style="margin: 5px 0; color: ${secondaryColor};">• If you need to reschedule, contact us as soon as possible</p>
           </div>
           
           <p style="font-size: 14px; color: ${secondaryColor}; margin-bottom: 20px;">

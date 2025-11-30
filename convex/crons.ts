@@ -17,10 +17,10 @@ crons.interval(
   internal.bookings.sendDueReminders
 );
 
-// Run every minute to check for expired trial subscriptions
+// Run daily to check for expired trial subscriptions
 crons.interval(
   "expire-trial-subscriptions",
-  { minutes: 1 }, // Run every minute
+  { hours: 24 }, // Run once per day
   internal.subscriptions.processExpiredTrials
 );
 

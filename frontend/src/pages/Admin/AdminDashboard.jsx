@@ -1532,7 +1532,7 @@ const ManageSubscriptionModal = ({ user, onClose, onSuccess }) => {
           },
           credentials: 'include',
           body: JSON.stringify({
-            trialDuration: 30, // 30 seconds
+            trialDuration: 5184000, // 2 months (60 days)
           }),
         });
 
@@ -1540,7 +1540,7 @@ const ManageSubscriptionModal = ({ user, onClose, onSuccess }) => {
           throw new Error('Failed to create trial subscription');
         }
 
-        toast.success('Trial subscription activated (expires in 30 seconds)');
+        toast.success('Trial subscription activated (expires in 2 months)');
       } else {
         // Regular subscription update
         const response = await fetch(`${apiUrl}/api/admin/users/${user.id}/subscription`, {
@@ -1640,7 +1640,7 @@ const ManageSubscriptionModal = ({ user, onClose, onSuccess }) => {
                     onChange={(e) => setBillingCycle(e.target.value)}
                   />
                   <span className="manage-subscription-radio-custom"></span>
-                  <span className="manage-subscription-radio-label">Pro (30 sec)</span>
+                  <span className="manage-subscription-radio-label">Pro (2 months)</span>
                 </label>
               </div>
             </div>

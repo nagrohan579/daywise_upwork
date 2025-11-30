@@ -59,26 +59,64 @@ const RescheduleBooking = () => {
   }, []);
 
   const goToNext = (data) => {
-    // Validate appointment type is selected before proceeding to step 2
+    // If data is passed from SingleCalendar, extract date and time
+    let timeFromData = null;
+    let dateFromData = null;
+    if (data && typeof data === 'object') {
+      if (data.date) {
+        setSelectedDate(data.date);
+        dateFromData = data.date;
+      }
+      if (data.time) {
+        setSelectedTime(data.time);
+        timeFromData = data.time;
+      }
+    }
+
+    // Check if we have date and time (from data param or state)
+    const hasDate = dateFromData || selectedDate;
+    const hasTime = timeFromData || selectedTime;
+
+    // Step 1: Validate appointment type is selected
     if (step === 1 && !selectedAppointmentType) {
       toast.error("Please select an appointment type to continue");
       return;
     }
 
-    // Validate date and time are selected before proceeding to step 3 (on desktop)
-    if (step === 2 && !isMobile && (!selectedDate || !selectedTime)) {
+    // Desktop flow: Step 1 (service + calendar) -> Step 2 (confirm details) -> Step 3 (success)
+    // On desktop, if we're on step 1 and have date and time, go directly to step 2 (confirm details)
+    if (step === 1 && !isMobile && hasDate && hasTime) {
+      setStep(2);
+      return;
+    }
+
+    // Desktop: Validate date and time are selected before proceeding from step 1
+    if (step === 1 && !isMobile && (!hasDate || !hasTime)) {
       toast.error("Please select a date and time");
       return;
     }
 
-    // If data is passed from SingleCalendar, extract date and time
-    if (data && typeof data === 'object') {
-      if (data.date) setSelectedDate(data.date);
-      if (data.time) setSelectedTime(data.time);
+    // Mobile flow: Step 1 (service) -> Step 2 (time slots) -> Step 3 (confirm details) -> Step 4 (success)
+    // Mobile step 2: Validate date and time are selected before proceeding to step 3
+    if (step === 2 && isMobile && (!hasDate || !hasTime)) {
+      toast.error("Please select a date and time");
+      return;
     }
+
+    // Normal increment for all other cases
     setStep((prev) => prev + 1);
   };
-  const goToPrev = () => setStep((prev) => prev - 1);
+  const goToPrev = () => {
+    // Desktop: Step 2 goes back to step 1 (skip any intermediate steps)
+    // Mobile: Normal decrement
+    if (step === 2 && !isMobile) {
+      setStep(1);
+    } else if (step === 3 && isMobile) {
+      setStep(2);
+    } else {
+      setStep((prev) => prev - 1);
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -321,6 +359,7 @@ const RescheduleBooking = () => {
     const utcTime = typeof timeSlot === 'string' ? timeSlot : timeSlot.original;
     setSelectedTime(utcTime);
     console.log('handleTimeSelect - Selected UTC time:', utcTime);
+    // Don't auto-navigate on mobile - let user click "Next" button explicitly
   };
 
   const handleCompleteReschedule = async (e) => {
@@ -380,7 +419,13 @@ const RescheduleBooking = () => {
       console.log("RescheduleBooking - Rescheduled successfully:", result);
 
       toast.success("Booking rescheduled! Check your email for updated details.");
-      goToNext();
+      
+      // Navigate to success step: Step 3 for desktop, Step 4 for mobile
+      if (isMobile) {
+        setStep(4);
+      } else {
+        setStep(3);
+      }
     } catch (error) {
       console.error("RescheduleBooking - Error rescheduling booking:", error);
       toast.error(error.message || "Failed to reschedule booking");
@@ -642,7 +687,7 @@ const RescheduleBooking = () => {
 
   return (
     <div className="booking-steps-container">
-      <div className={`main-wrapper ${(isMobile && step === 2) || step === 4 ? "border-hide" : ""}`}>
+      <div className={`main-wrapper ${(isMobile && step === 2) || (isMobile && step === 4) || (!isMobile && step === 3) ? "border-hide" : ""}`}>
         {step === 1 && (
           <div className="steps-one">
             <div className="left">
@@ -802,14 +847,31 @@ const RescheduleBooking = () => {
                             {selectedTime === originalTime ? (
                               <div className="time-slot-selected">
                                 <div className="selected-time-text">{displayTime}</div>
-                                <button className="next-btn" onClick={goToNext}>
+                                <button 
+                                  className="next-btn" 
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    // Ensure we have both date and time before proceeding
+                                    if (selectedDate && selectedTime) {
+                                      goToNext();
+                                    } else {
+                                      toast.error("Please select a date and time");
+                                    }
+                                  }}
+                                  disabled={!selectedDate || !selectedTime}
+                                >
                                   Next
                                 </button>
                               </div>
                             ) : (
                               <button
                                 className="time-slot-btn"
-                                onClick={() => handleTimeSelect(originalTime)}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleTimeSelect(originalTime);
+                                }}
                               >
                                 {displayTime}
                               </button>
@@ -917,10 +979,10 @@ const RescheduleBooking = () => {
           <div className="step-three">
             <div className="containerr">
               <div className="heading-container">
-                <div className="wrap">
+                <h3 className="success-heading">
                   <TickIcon />
-                  <h3>Success! Your booking has been rescheduled</h3>
-                </div>
+                  <span>Success! Your booking has been rescheduled</span>
+                </h3>
                 <p>A confirmation with updated details has been sent to your email.</p>
               </div>
               <div className="appointment-container">

@@ -442,37 +442,42 @@
 
 .booking-steps-container .step-three .containerr .heading-container {
   margin-bottom: 25px;
-}
-
-.booking-steps-container .step-three .containerr .heading-container .wrap {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 7px;
-  margin-bottom: 8px;
+  text-align: center;
 }
 
-/* Ensure TickIcon uses main color */
-.booking-steps-container .step-three .containerr .heading-container .wrap svg path {
-  fill: var(--main-color) !important;
-}
-
-.booking-steps-container .step-three .containerr .heading-container .wrap img {
-  width: 19px;
-  height: 19px;
-  object-fit: contain;
-}
-
-.booking-steps-container .step-three .containerr .heading-container .wrap h3 {
+/* Success heading with inline icon */
+.booking-steps-container .step-three .containerr .heading-container .success-heading {
   font-family: Inter, sans-serif;
   font-weight: 600;
   font-style: Semi Bold;
   font-size: 22px;
   line-height: 36px;
   letter-spacing: 0%;
-  vertical-align: middle;
   color: var(--text-color);
-  margin: 0;
+  margin: 0 0 8px 0;
+  display: inline;
+  text-align: center;
+}
+
+/* Ensure TickIcon uses main color and has consistent size (19px x 19px) */
+.booking-steps-container .step-three .containerr .heading-container .success-heading svg {
+  width: 19px;
+  height: 19px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 7px;
+}
+
+.booking-steps-container .step-three .containerr .heading-container .success-heading svg path {
+  fill: var(--main-color) !important;
+}
+
+.booking-steps-container .step-three .containerr .heading-container .success-heading span {
+  display: inline;
+  vertical-align: middle;
 }
 
 .booking-steps-container .step-three .containerr .heading-container p {

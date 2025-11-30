@@ -1773,10 +1773,10 @@ const PublicBooking = () => {
           <div className="step-three">
             <div className="containerr">
               <div className="heading-container">
-                <div className="wrap">
+                <h3 className="success-heading">
                   <TickIcon />
-                  <h3>Success! You are booked in</h3>
-                </div>
+                  <span>Success! You are booked in</span>
+                </h3>
                 <p>A confirmation has been sent to your email.</p>
               </div>
               <div className="appointment-container">

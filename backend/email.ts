@@ -73,17 +73,25 @@ function renderLogoSection(logoUrl?: string, businessName?: string) {
 
   const safeBusinessName = businessName || 'Business';
 
+  // Use table-based layout for better email client compatibility (Gmail, Outlook, Apple Mail)
+  // This ensures consistent centering and sizing across all email clients
+  // Fixed width and height to prevent email clients from resizing
   return `
-    <div style="width: 100%; min-height: 80px; max-height: 120px; margin-bottom: 21px; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; overflow: hidden;">
-      <img src="${logoUrl}" alt="${safeBusinessName} Logo" style="max-width: calc(100% - 40px); max-height: calc(100% - 40px); width: auto; height: auto; object-fit: contain; display: block;" />
-    </div>`;
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 21px;">
+      <tr>
+        <td align="center" style="padding: 20px 20px 0 20px;">
+          <img src="${logoUrl}" alt="${safeBusinessName} Logo" width="150" style="max-width: 150px; width: 150px; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;" />
+        </td>
+      </tr>
+    </table>`;
 }
 
 export async function sendCustomerConfirmation(data: BookingEmailData): Promise<boolean> {
   console.log('sendCustomerConfirmation called with bookingUrl:', data.bookingUrl);
 
-  const primaryColor = '#0053F1';
-  const secondaryColor = '#64748B';
+  // Use business primary color if available, otherwise fallback to default
+  const primaryColor = data.businessColors?.primary || '#0053F1';
+  const secondaryColor = data.businessColors?.secondary || '#64748B';
   const textColor = '#121212';
   const logoSection = renderLogoSection(data.businessLogo, data.businessName);
   const platformBadge = data.usePlatformBranding ? `
@@ -122,10 +130,6 @@ export async function sendCustomerConfirmation(data: BookingEmailData): Promise<
             <p style="margin: 5px 0; color: ${secondaryColor}"><strong>Service:</strong> ${data.appointmentType} (${data.appointmentDuration} minutes)</p>
             <p style="margin: 5px 0; color: ${secondaryColor}"><strong>Date & Time:</strong> ${data.appointmentDate} at ${data.appointmentTime}</p>
             <p style="margin: 5px 0; color: ${secondaryColor}"><strong>Business:</strong> ${data.businessName}</p>
-            ${data.bookingUrl ? `
-            <p style="margin: 10px 0 5px 0; color: ${secondaryColor}"><strong>Booking Link:</strong></p>
-            <p style="margin: 5px 0; color: ${primaryColor}; word-break: break-all;"><a href="${data.bookingUrl}" style="color: ${primaryColor}; text-decoration: underline;">${data.bookingUrl}</a></p>
-            ` : ''}
           </div>
           
           ${bookingButton}
@@ -134,22 +138,17 @@ export async function sendCustomerConfirmation(data: BookingEmailData): Promise<
             <h3 style="margin: 0 0 15px 0; color: ${textColor};">What's Next?</h3>
             <p style="margin: 5px 0; color: ${secondaryColor};">• You'll receive a reminder email 24 hours before your appointment</p>
             <p style="margin: 5px 0; color: ${secondaryColor};">• Please arrive on time for your scheduled appointment</p>
-            <p style="margin: 5px 0; color: ${secondaryColor};">• Contact us directly if you need to reschedule or cancel</p>
           </div>
           
           ${data.bookingUrl ? `
-          <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 20px 0;">
-            <p style="margin: 0 0 10px 0; color: #92400e; font-weight: 600;">📅 View Your Booking Details</p>
-            <p style="margin: 5px 0; color: #92400e;">Click the link below to view or manage your appointment:</p>
-            <p style="margin: 10px 0 0 0; color: #065f46; word-break: break-all; font-size: 14px;">
-              <a href="${data.bookingUrl}" style="color: #065f46; text-decoration: underline;">${data.bookingUrl}</a>
-            </p>
-          </div>
-          ` : ''}
-          
+          <p style="font-size: 14px; color: ${secondaryColor}; margin-bottom: 20px;">
+            If you need to reschedule or cancel, you can do so by clicking the "View Booking Details" button above.
+          </p>
+          ` : `
           <p style="font-size: 14px; color: ${secondaryColor}; margin-bottom: 20px;">
             If you need to reschedule or cancel, please contact ${data.businessName} directly.
           </p>
+          `}
           
           <p style="font-size: 14px; color: ${secondaryColor};">
             Thank you for choosing ${data.businessName}! We look forward to seeing you.
@@ -405,7 +404,9 @@ export async function sendRescheduleBusinessNotification(data: BookingEmailData 
 }
 
 export async function sendCancellationConfirmation(data: BookingEmailData): Promise<boolean> {
-  const secondaryColor = '#64748B';
+  // Use business colors if available, otherwise fallback to defaults
+  const primaryColor = data.businessColors?.primary || '#0053F1';
+  const secondaryColor = data.businessColors?.secondary || '#64748B';
   const textColor = '#121212';
   const logoSection = renderLogoSection(data.businessLogo, data.businessName);
   const platformBadge = data.usePlatformBranding ? `
@@ -419,7 +420,7 @@ export async function sendCancellationConfirmation(data: BookingEmailData): Prom
     subject: `Appointment Cancelled - ${data.businessName}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: ${secondaryColor}; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <div style="background: ${primaryColor}; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
           ${logoSection}
           <h1 style="color: #FFF; margin: 0; font-size: 28px;">Appointment Cancelled</h1>
         </div>
@@ -433,7 +434,7 @@ export async function sendCancellationConfirmation(data: BookingEmailData): Prom
             Your <strong>${data.appointmentType}</strong> appointment with <strong>${data.businessName}</strong> has been cancelled as requested.
           </p>
           
-          <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid ${secondaryColor}; margin-bottom: 25px;">
+          <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid ${primaryColor}; margin-bottom: 25px;">
             <h3 style="margin: 0 0 15px 0; color: ${textColor};">Cancelled Appointment</h3>
             <p style="margin: 5px 0; color: ${secondaryColor};"><strong>Service:</strong> ${data.appointmentType} (${data.appointmentDuration} minutes)</p>
             <p style="margin: 5px 0; color: ${secondaryColor};"><strong>Date & Time:</strong> ${data.appointmentDate} at ${data.appointmentTime}</p>

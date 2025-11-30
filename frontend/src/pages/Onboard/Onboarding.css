@@ -1,9 +1,10 @@
 .onboarding-page {
   width: 100vw;
-  height: 100vh;
+  height: 100dvh; /* Use dvh for better mobile support */
+  min-height: 100vh; /* Fallback for browsers that don't support dvh */
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: center; /* Center content vertically when it fits */
   background-color: #FFFFFF;
   overflow-y: auto;
   overflow-x: hidden;
@@ -17,6 +18,9 @@
   scrollbar-width: none;  /* Firefox */
   padding: 20px;
   box-sizing: border-box;
+  /* Use CSS custom property for dynamic viewport height */
+  height: var(--onboarding-vh, 100dvh);
+  min-height: var(--onboarding-vh, 100vh);
 }
 
 .onboarding-page::-webkit-scrollbar {
@@ -28,6 +32,20 @@
   position: relative;
   margin: auto;
   max-width: 100%;
+  width: 100%;
+  /* Center content vertically when it fits, allow scrolling when it doesn't */
+  min-height: min-content;
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Center when content fits */
+  align-items: center;
+  padding: 20px 0; /* Add vertical padding for better spacing */
+  /* Ensure content can grow beyond viewport */
+  flex-shrink: 0;
+  /* When content is smaller than viewport, center it; when larger, allow scrolling */
+  min-height: calc(var(--onboarding-vh, 100dvh) - 40px);
+  /* Ensure content doesn't get cut off */
+  box-sizing: border-box;
 }
 
 /* Saving loader - matches Booking/Service loader pattern */

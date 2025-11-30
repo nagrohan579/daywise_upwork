@@ -1652,7 +1652,7 @@ const BookingsPage = () => {
       <VideoModal
         show={showOnboardingVideo}
         onClose={() => setShowOnboardingVideo(false)}
-        title="Welcome to DayWise!"
+        title="Welcome to Daywise!"
         embedUrl={onboardingVideoUrl}
       />
 

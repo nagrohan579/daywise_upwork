@@ -19,6 +19,36 @@ const Onboarding = () => {
   const [isSavingOnboarding, setIsSavingOnboarding] = useState(false);
   const [currentStep, setCurrentStep] = useState("start"); // "start", "step1", "step2", "step3", "step4", "step5", or "step6"
   
+  // Handle dynamic viewport height for mobile browsers with URL bar
+  useEffect(() => {
+    const setViewportHeight = () => {
+      // Get the actual viewport height
+      const vh = window.innerHeight * 0.01;
+      // Set CSS custom property
+      document.documentElement.style.setProperty('--onboarding-vh', `${vh * 100}px`);
+    };
+
+    // Set initial height
+    setViewportHeight();
+
+    // Update on resize and orientation change
+    window.addEventListener('resize', setViewportHeight);
+    window.addEventListener('orientationchange', setViewportHeight);
+    // Also listen for visual viewport changes (for mobile browsers)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', setViewportHeight);
+    }
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', setViewportHeight);
+      window.removeEventListener('orientationchange', setViewportHeight);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', setViewportHeight);
+      }
+    };
+  }, []);
+  
   // Track completion status
   const [step1Completed, setStep1Completed] = useState(false);
   const [step1Skipped, setStep1Skipped] = useState(false);

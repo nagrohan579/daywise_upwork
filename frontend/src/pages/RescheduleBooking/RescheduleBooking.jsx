@@ -83,6 +83,14 @@ const RescheduleBooking = () => {
       return;
     }
 
+    // Mobile flow: Step 1 (service) -> Step 2 (time slots) -> Step 3 (confirm details) -> Step 4 (success)
+    // On mobile step 1, if date is selected, move to step 2 (time slot selection)
+    // Time will be selected in step 2, so we don't require it here
+    if (step === 1 && isMobile && hasDate) {
+      setStep(2);
+      return;
+    }
+
     // Desktop flow: Step 1 (service + calendar) -> Step 2 (confirm details) -> Step 3 (success)
     // On desktop, if we're on step 1 and have date and time, go directly to step 2 (confirm details)
     if (step === 1 && !isMobile && hasDate && hasTime) {
@@ -96,7 +104,6 @@ const RescheduleBooking = () => {
       return;
     }
 
-    // Mobile flow: Step 1 (service) -> Step 2 (time slots) -> Step 3 (confirm details) -> Step 4 (success)
     // Mobile step 2: Validate date and time are selected before proceeding to step 3
     if (step === 2 && isMobile && (!hasDate || !hasTime)) {
       toast.error("Please select a date and time");
@@ -346,12 +353,24 @@ const RescheduleBooking = () => {
     setSelectedDate(date);
     setSelectedTime(null);
 
-    if (selectedAppointmentType?._id && userData) {
-      console.log('Calling fetchAvailableTimeSlots for date change with:', { userId: userData._id, appointmentTypeId: selectedAppointmentType._id, date });
-      await fetchAvailableTimeSlots(userData._id, selectedAppointmentType._id, date);
-    } else {
-      console.warn('Cannot fetch time slots for date change - missing appointment type or user data');
+    // On mobile step 1, set loading state immediately to show loading animation when we move to step 2
+    if (isMobile && step === 1) {
+      setLoadingTimeSlots(true);
+      setAvailableTimeSlots([]);
     }
+
+    // Don't fetch slots here on mobile step 1 - let useEffect handle it when we reach step 2
+    // On desktop or other steps, fetch immediately
+    if (!isMobile || step !== 1) {
+      if (selectedAppointmentType?._id && userData) {
+        console.log('Calling fetchAvailableTimeSlots for date change with:', { userId: userData._id, appointmentTypeId: selectedAppointmentType._id, date });
+        await fetchAvailableTimeSlots(userData._id, selectedAppointmentType._id, date);
+      } else {
+        console.warn('Cannot fetch time slots for date change - missing appointment type or user data');
+      }
+    }
+
+    return true;
   };
 
   const handleTimeSelect = (timeSlot) => {
@@ -633,6 +652,14 @@ const RescheduleBooking = () => {
     }
   }, [loading, selectedDate, selectedAppointmentType, userData]);
 
+  // Fetch time slots when reaching step 2 on mobile (after date selection in step 1)
+  useEffect(() => {
+    if (isMobile && step === 2 && selectedDate && selectedAppointmentType?._id && userData?._id) {
+      console.log('RescheduleBooking - Mobile step 2: Fetching time slots for selected date:', selectedDate);
+      fetchAvailableTimeSlots(userData._id, selectedAppointmentType._id, selectedDate);
+    }
+  }, [isMobile, step, selectedDate, selectedAppointmentType, userData]);
+
   // Convert and sort available time slots for display
   const displayTimeSlots = useMemo(() => {
     if (!customerTimezone || availableTimeSlots.length === 0) {
@@ -662,6 +689,192 @@ const RescheduleBooking = () => {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [step]);
+
+  // Lock body and html scroll on mobile step 2 to ensure fixed top section
+  useEffect(() => {
+    let scrollHandler, touchHandler, wheelHandler;
+
+    if (isMobile && step === 2) {
+      // Store current scroll position
+      const scrollY = window.scrollY;
+
+      // Calculate top section height for bottom padding
+      setTimeout(() => {
+        const topSection = document.querySelector('.step-two-mobile .top');
+        const topHeight = topSection ? topSection.offsetHeight : 220;
+        const bottomSection = document.querySelector('.step-two-mobile .bottom');
+        if (bottomSection) {
+          bottomSection.style.setProperty('padding-top', `${topHeight}px`, 'important');
+        }
+      }, 0);
+
+      // Lock body
+      document.body.style.setProperty('top', `-${scrollY}px`, 'important');
+      document.body.style.setProperty('left', '0', 'important');
+      document.body.style.setProperty('width', '100%', 'important');
+      document.body.style.setProperty('height', '100%', 'important');
+
+      // Lock html
+      document.documentElement.style.setProperty('top', `-${scrollY}px`, 'important');
+      document.documentElement.style.setProperty('left', '0', 'important');
+      document.documentElement.style.setProperty('width', '100%', 'important');
+      document.documentElement.style.setProperty('height', '100%', 'important');
+
+      // Lock window scroll
+      window.scrollTo(0, 0);
+
+      // Also lock the booking container and main-wrapper
+      const container = document.querySelector('.booking-steps-container');
+      if (container) {
+        container.style.setProperty('overflow', 'hidden', 'important');
+        container.style.setProperty('position', 'fixed', 'important');
+        container.style.setProperty('top', '0', 'important');
+        container.style.setProperty('left', '0', 'important');
+        container.style.setProperty('width', '100vw', 'important');
+        container.style.setProperty('height', '100vh', 'important');
+        container.style.setProperty('max-height', '100vh', 'important');
+        container.style.setProperty('overscroll-behavior', 'none', 'important');
+        container.style.setProperty('padding', '0', 'important');
+        container.style.setProperty('margin', '0', 'important');
+      }
+
+      const mainWrapper = document.querySelector('.main-wrapper');
+      if (mainWrapper) {
+        mainWrapper.style.setProperty('overflow', 'hidden', 'important');
+        mainWrapper.style.setProperty('margin', '0', 'important');
+        mainWrapper.style.setProperty('padding', '0', 'important');
+        mainWrapper.style.setProperty('width', '100%', 'important');
+        mainWrapper.style.setProperty('height', '100%', 'important');
+        mainWrapper.style.setProperty('max-width', '100%', 'important');
+        mainWrapper.style.setProperty('max-height', '100%', 'important');
+      }
+    } else {
+      // Unlock everything when not on step 2
+      const scrollY = document.body.style.top;
+
+      // Remove event listeners
+      if (scrollHandler) window.removeEventListener('scroll', scrollHandler, { capture: true });
+      if (touchHandler) document.removeEventListener('touchmove', touchHandler, { capture: true });
+      if (wheelHandler) document.removeEventListener('wheel', wheelHandler, { capture: true });
+
+      document.body.style.removeProperty('overflow');
+      document.body.style.removeProperty('position');
+      document.body.style.removeProperty('top');
+      document.body.style.removeProperty('left');
+      document.body.style.removeProperty('width');
+      document.body.style.removeProperty('height');
+      document.body.style.removeProperty('overscroll-behavior');
+      document.body.style.removeProperty('touch-action');
+      document.body.style.removeProperty('overscroll-behavior-y');
+
+      document.documentElement.style.removeProperty('overflow');
+      document.documentElement.style.removeProperty('position');
+      document.documentElement.style.removeProperty('top');
+      document.documentElement.style.removeProperty('left');
+      document.documentElement.style.removeProperty('width');
+      document.documentElement.style.removeProperty('height');
+      document.documentElement.style.removeProperty('overscroll-behavior');
+      document.documentElement.style.removeProperty('touch-action');
+      document.documentElement.style.removeProperty('overscroll-behavior-y');
+
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
+
+      const container = document.querySelector('.booking-steps-container');
+      if (container) {
+        container.style.removeProperty('overflow');
+        container.style.removeProperty('position');
+        container.style.removeProperty('top');
+        container.style.removeProperty('left');
+        container.style.removeProperty('width');
+        container.style.removeProperty('height');
+        container.style.removeProperty('max-height');
+        container.style.removeProperty('overscroll-behavior');
+        container.style.removeProperty('padding');
+        container.style.removeProperty('margin');
+      }
+
+      const mainWrapper = document.querySelector('.main-wrapper');
+      if (mainWrapper) {
+        mainWrapper.style.removeProperty('overflow');
+        mainWrapper.style.removeProperty('margin');
+        mainWrapper.style.removeProperty('padding');
+        mainWrapper.style.removeProperty('width');
+        mainWrapper.style.removeProperty('height');
+        mainWrapper.style.removeProperty('max-width');
+        mainWrapper.style.removeProperty('max-height');
+      }
+
+      const bottomSection = document.querySelector('.step-two-mobile .bottom');
+      if (bottomSection) {
+        bottomSection.style.removeProperty('padding-top');
+      }
+    }
+
+    return () => {
+      // Cleanup on unmount
+      const scrollY = document.body.style.top;
+
+      if (scrollHandler) window.removeEventListener('scroll', scrollHandler, { capture: true });
+      if (touchHandler) document.removeEventListener('touchmove', touchHandler, { capture: true });
+      if (wheelHandler) document.removeEventListener('wheel', wheelHandler, { capture: true });
+
+      document.body.style.removeProperty('overflow');
+      document.body.style.removeProperty('position');
+      document.body.style.removeProperty('top');
+      document.body.style.removeProperty('left');
+      document.body.style.removeProperty('width');
+      document.body.style.removeProperty('height');
+      document.body.style.removeProperty('overscroll-behavior');
+      document.body.style.removeProperty('touch-action');
+      document.body.style.removeProperty('overscroll-behavior-y');
+
+      document.documentElement.style.removeProperty('overflow');
+      document.documentElement.style.removeProperty('position');
+      document.documentElement.style.removeProperty('top');
+      document.documentElement.style.removeProperty('left');
+      document.documentElement.style.removeProperty('width');
+      document.documentElement.style.removeProperty('height');
+      document.documentElement.style.removeProperty('overscroll-behavior');
+      document.documentElement.style.removeProperty('touch-action');
+      document.documentElement.style.removeProperty('overscroll-behavior-y');
+
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
+
+      const container = document.querySelector('.booking-steps-container');
+      if (container) {
+        container.style.removeProperty('overflow');
+        container.style.removeProperty('position');
+        container.style.removeProperty('top');
+        container.style.removeProperty('left');
+        container.style.removeProperty('width');
+        container.style.removeProperty('height');
+        container.style.removeProperty('max-height');
+        container.style.removeProperty('overscroll-behavior');
+        container.style.removeProperty('padding');
+        container.style.removeProperty('margin');
+      }
+
+      const mainWrapper = document.querySelector('.main-wrapper');
+      if (mainWrapper) {
+        mainWrapper.style.removeProperty('overflow');
+        mainWrapper.style.removeProperty('margin');
+        mainWrapper.style.removeProperty('padding');
+        mainWrapper.style.removeProperty('width');
+        mainWrapper.style.removeProperty('height');
+        mainWrapper.style.removeProperty('max-width');
+        mainWrapper.style.removeProperty('max-height');
+      }
+
+      const bottomSection = document.querySelector('.step-two-mobile .bottom');
+      if (bottomSection) {
+        bottomSection.style.removeProperty('padding-top');
+      }
+    };
+  }, [isMobile, step]);
 
   if (loading) {
     return (
@@ -800,18 +1013,17 @@ const RescheduleBooking = () => {
           <div className="step-two-mobile">
             <div className="containerr">
               <div className="top">
-                <div className="back-arrow">
-                  <BackArrowIcon
-                    onClick={goToPrev}
-                    style={{ cursor: 'pointer' }}
-                  />
+                <div className="top-row">
+                  <button className="back-arrow-btn" onClick={goToPrev}>
+                    <BackArrowIcon />
+                  </button>
+                  <div className="daywise-branding">
+                    {branding?.usePlatformBranding !== false && (
+                      <button className="powered-by-button">Powered by Daywise</button>
+                    )}
+                  </div>
                 </div>
                 <div className="heading-con">
-                  {branding?.usePlatformBranding !== false && (
-                    <div className="daywise-branding">
-                      <button className="powered-by-button">Powered by Daywise</button>
-                    </div>
-                  )}
                   <h1 className="appoint-name">{selectedAppointmentType?.name || "30 Minute Appointment"}</h1>
                   <p>{formatDate(selectedDate)}</p>
                   <div style={{ marginTop: '10px' }}>
@@ -823,7 +1035,7 @@ const RescheduleBooking = () => {
                       }}
                       options={timezoneOptions}
                       placeholder="Select timezone"
-                      style={{ backgroundColor: '#F9FAFF', borderRadius: '50px' }}
+                      style={{ borderRadius: '50px' }}
                     />
                   </div>
                 </div>
@@ -847,31 +1059,14 @@ const RescheduleBooking = () => {
                             {selectedTime === originalTime ? (
                               <div className="time-slot-selected">
                                 <div className="selected-time-text">{displayTime}</div>
-                                <button 
-                                  className="next-btn" 
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    // Ensure we have both date and time before proceeding
-                                    if (selectedDate && selectedTime) {
-                                      goToNext();
-                                    } else {
-                                      toast.error("Please select a date and time");
-                                    }
-                                  }}
-                                  disabled={!selectedDate || !selectedTime}
-                                >
+                                <button className="next-btn" onClick={goToNext}>
                                   Next
                                 </button>
                               </div>
                             ) : (
                               <button
                                 className="time-slot-btn"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  handleTimeSelect(originalTime);
-                                }}
+                                onClick={() => handleTimeSelect(originalTime)}
                               >
                                 {displayTime}
                               </button>

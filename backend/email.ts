@@ -63,6 +63,7 @@ interface BookingEmailData {
   };
   businessLogo?: string;
   usePlatformBranding?: boolean;
+  hasCustomBranding?: boolean; // True if user has pro plan (customBranding feature)
   bookingUrl?: string; // Unique shareable booking confirmation link
 }
 
@@ -93,8 +94,15 @@ export async function sendCustomerConfirmation(data: BookingEmailData): Promise<
   const primaryColor = data.businessColors?.primary || '#0053F1';
   const secondaryColor = data.businessColors?.secondary || '#64748B';
   const textColor = '#121212';
-  const logoSection = renderLogoSection(data.businessLogo, data.businessName);
-  const platformBadge = data.usePlatformBranding ? `
+  
+  // Show logo only if user has pro plan (customBranding) AND has logo uploaded
+  // Show badge only if user is on free plan (no customBranding)
+  const hasProPlan = data.hasCustomBranding === true;
+  const shouldShowLogo = hasProPlan && !!data.businessLogo;
+  const shouldShowBadge = !hasProPlan;
+  
+  const logoSection = shouldShowLogo ? renderLogoSection(data.businessLogo, data.businessName) : '';
+  const platformBadge = shouldShowBadge ? `
     <div style="text-align: center; margin-top: 20px;">
       <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by Daywise</span>
     </div>` : '';
@@ -285,11 +293,19 @@ export async function sendRescheduleConfirmation(data: BookingEmailData & {
   oldAppointmentDate: string;
   oldAppointmentTime: string;
 }): Promise<boolean> {
-  const primaryColor = '#0053F1';
-  const secondaryColor = '#64748B';
-  const textColor = '#121212';
-  const logoSection = renderLogoSection(data.businessLogo, data.businessName);
-  const platformBadge = data.usePlatformBranding ? `
+  // Use business colors if available, otherwise fallback to defaults
+  const primaryColor = data.businessColors?.primary || '#0053F1';
+  const secondaryColor = data.businessColors?.secondary || '#64748B';
+  const textColor = data.businessColors?.accent || '#121212';
+  
+  // Show logo only if user has pro plan (customBranding) AND has logo uploaded
+  // Show badge only if user is on free plan (no customBranding)
+  const hasProPlan = data.hasCustomBranding === true;
+  const shouldShowLogo = hasProPlan && !!data.businessLogo;
+  const shouldShowBadge = !hasProPlan;
+  
+  const logoSection = shouldShowLogo ? renderLogoSection(data.businessLogo, data.businessName) : '';
+  const platformBadge = shouldShowBadge ? `
     <div style="text-align: center; margin-top: 20px;">
       <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by Daywise</span>
     </div>` : '';
@@ -314,9 +330,9 @@ export async function sendRescheduleConfirmation(data: BookingEmailData & {
             Your <strong>${data.appointmentType}</strong> appointment with <strong>${data.businessName}</strong> has been rescheduled.
           </p>
           
-          <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f59e0b;">
-            <h4 style="margin: 0 0 10px 0; color: #92400e;">Previous Appointment</h4>
-            <p style="margin: 0; color: #78350f; text-decoration: line-through;">${data.oldAppointmentDate} at ${data.oldAppointmentTime}</p>
+          <div style="background: #f5f7fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid ${primaryColor};">
+            <h4 style="margin: 0 0 10px 0; color: ${primaryColor};">Previous Appointment</h4>
+            <p style="margin: 0; color: ${secondaryColor}; text-decoration: line-through;">${data.oldAppointmentDate} at ${data.oldAppointmentTime}</p>
           </div>
           
           <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid ${primaryColor}; margin-bottom: 25px;">
@@ -351,9 +367,10 @@ export async function sendRescheduleBusinessNotification(data: BookingEmailData 
   oldAppointmentDate: string;
   oldAppointmentTime: string;
 }): Promise<boolean> {
-  const primaryColor = '#0053F1';
-  const secondaryColor = '#64748B';
-  const textColor = '#121212';
+  // Use business colors if available, otherwise fallback to defaults
+  const primaryColor = data.businessColors?.primary || '#0053F1';
+  const secondaryColor = data.businessColors?.secondary || '#64748B';
+  const textColor = data.businessColors?.accent || '#121212';
   const logoSection = renderLogoSection(data.businessLogo, data.businessName);
   const platformBadge = data.usePlatformBranding ? `
     <div style="text-align: center; margin-top: 20px;">
@@ -380,9 +397,9 @@ export async function sendRescheduleBusinessNotification(data: BookingEmailData 
             <strong>${data.customerName}</strong> has rescheduled their appointment.
           </p>
           
-          <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f59e0b;">
-            <h4 style="margin: 0 0 10px 0; color: #92400e;">Previous Time</h4>
-            <p style="margin: 0; color: #78350f; text-decoration: line-through;">${data.oldAppointmentDate} at ${data.oldAppointmentTime}</p>
+          <div style="background: #f5f7fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid ${primaryColor};">
+            <h4 style="margin: 0 0 10px 0; color: ${primaryColor};">Previous Time</h4>
+            <p style="margin: 0; color: ${secondaryColor}; text-decoration: line-through;">${data.oldAppointmentDate} at ${data.oldAppointmentTime}</p>
           </div>
           
           <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid ${primaryColor}; margin-bottom: 25px;">
@@ -408,8 +425,15 @@ export async function sendCancellationConfirmation(data: BookingEmailData): Prom
   const primaryColor = data.businessColors?.primary || '#0053F1';
   const secondaryColor = data.businessColors?.secondary || '#64748B';
   const textColor = '#121212';
-  const logoSection = renderLogoSection(data.businessLogo, data.businessName);
-  const platformBadge = data.usePlatformBranding ? `
+  
+  // Show logo only if user has pro plan (customBranding) AND has logo uploaded
+  // Show badge only if user is on free plan (no customBranding)
+  const hasProPlan = data.hasCustomBranding === true;
+  const shouldShowLogo = hasProPlan && !!data.businessLogo;
+  const shouldShowBadge = !hasProPlan;
+  
+  const logoSection = shouldShowLogo ? renderLogoSection(data.businessLogo, data.businessName) : '';
+  const platformBadge = shouldShowBadge ? `
     <div style="text-align: center; margin-top: 20px;">
       <span style="font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 4px 8px; border-radius: 12px;">Powered by Daywise</span>
     </div>` : '';

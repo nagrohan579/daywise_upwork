@@ -2154,6 +2154,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const customerTimezone = bookingData.customerTimezone || businessUser.timezone || 'Etc/UTC';
         const businessTimezone = businessUser.timezone || 'Etc/UTC';
 
+        // Get user features to determine if they have pro plan (customBranding)
+        const userFeatures = await getUserFeatures(businessUser._id);
+
         // Format dates for customer email (in customer's timezone)
         const customerEmailData = {
           customerName: bookingData.customerName,
@@ -2171,6 +2174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } : undefined,
           businessLogo: branding?.logoUrl,
           usePlatformBranding: branding?.usePlatformBranding || true,
+          hasCustomBranding: userFeatures.customBranding || false,
           bookingUrl: eventUrl
         };
 
@@ -2792,6 +2796,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           accent: branding.accent,
         } : undefined;
 
+        // Get user features to determine if they have pro plan (customBranding)
+        const userFeatures = await getUserFeatures(user._id);
+
         // Use customer's timezone for customer email, fallback to business timezone
         const customerTimezone = updatedBooking.customerTimezone || user.timezone || 'Etc/UTC';
 
@@ -2807,6 +2814,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           businessColors,
           businessLogo: branding?.logoUrl,
           usePlatformBranding: branding?.usePlatformBranding,
+          hasCustomBranding: userFeatures.customBranding || false,
           bookingUrl,
           oldAppointmentDate: formatDateForEmail(existingBooking.appointmentDate, customerTimezone),
           oldAppointmentTime: formatTimeForEmail(existingBooking.appointmentDate, customerTimezone),
@@ -2885,6 +2893,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         accent: branding.accent || '#121212',
       } : undefined;
 
+      // Get user features to determine if they have pro plan (customBranding)
+      const userFeatures = await getUserFeatures(existingBooking.userId);
+
       // Delete Google Calendar event if it exists
       if (existingBooking.googleCalendarEventId) {
         try {
@@ -2927,6 +2938,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           businessColors,
           businessLogo: branding?.logoUrl,
           usePlatformBranding: branding?.usePlatformBranding,
+          hasCustomBranding: userFeatures.customBranding || false,
           bookingUrl,
         });
         console.log(`✅ Cancellation confirmation email sent to ${existingBooking.customerEmail}`);
@@ -3164,6 +3176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               } : undefined,
               businessLogo: branding?.logoUrl,
               usePlatformBranding: userFeatures?.poweredBy || false,
+              hasCustomBranding: userFeatures.customBranding || false,
             };
 
             // Customer email data (formatted in customer's timezone)

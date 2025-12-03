@@ -278,6 +278,11 @@
 .branding-page .user-display-name-con {
   margin-bottom: 45px;
 }
+
+/* Fix placeholder color for input in branding page */
+.branding-page .user-display-name-con .input-group-comp .input-field::placeholder {
+  color: #64748B !important;
+}
 .branding-page .user-display-name-con .top {
   margin-bottom: 10px;
   display: flex;

@@ -669,7 +669,7 @@ const Onboarding = () => {
 
             <div className="onboarding-step2-text-section">
               <h2 className="onboarding-step2-heading">When are you usually available?</h2>
-              <p className="onboarding-step2-subheading">Set your working hours and timezone below</p>
+              <p className="onboarding-step2-subheading">Set your working hours</p>
             </div>
 
             <div className="onboarding-step2-progress">

@@ -139,7 +139,7 @@ const Account = () => {
         },
         credentials: 'include',
         body: JSON.stringify({
-          businessName: userData.name,
+          name: userData.name,
           country: userData.country,
           timezone: userData.timezone,
         }),

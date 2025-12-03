@@ -1013,7 +1013,7 @@
 .previewBookingModal .preview-left {
   flex: 0.5;
   padding: 30px;
-  border-right: 1px solid #E2E8F0;
+  border-right: 1px solid color-mix(in srgb, var(--secondary-color) 20%, transparent);
   overflow-y: auto;
   max-height: 80vh;
 }
@@ -1156,6 +1156,50 @@
   margin-bottom: 8px;
 }
 
+/* Ensure select-group in preview has relative positioning for dropdown */
+.previewBookingModal .preview-left .profile-con .select-con .select-group {
+  position: relative;
+}
+
+/* Appointment Type dropdown in preview - border color secondary when not hovered/clicked */
+.previewBookingModal .preview-left .profile-con .select-con .select-group .select-box {
+  background-color: color-mix(in srgb, var(--main-color) 2%, transparent) !important;
+  border-color: color-mix(in srgb, var(--secondary-color) 20%, transparent) !important;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.previewBookingModal .preview-left .profile-con .select-con .select-group .select-box:hover {
+  border-color: color-mix(in srgb, var(--main-color) 40%, transparent) !important;
+}
+
+.previewBookingModal .preview-left .profile-con .select-con .select-group .select-box:focus,
+.previewBookingModal .preview-left .profile-con .select-con .select-group .select-box:focus-visible,
+.previewBookingModal .preview-left .profile-con .select-con .select-group .select-box:active {
+  border-color: var(--main-color) !important;
+}
+
+.previewBookingModal .preview-left .profile-con .select-con .select-group:has(.select-dropdown) .select-box {
+  border-color: var(--main-color) !important;
+}
+
+/* Make dropdown use absolute positioning relative to select-group in preview */
+.previewBookingModal .preview-left .profile-con .select-con .select-group .select-dropdown {
+  position: absolute !important;
+  top: calc(100% + 4px) !important;
+  left: 0 !important;
+  width: 100% !important;
+  margin-top: 0 !important;
+}
+
+/* Fix placeholder text color in preview modal - ensure it uses secondary color */
+.previewBookingModal .input-group-comp .input-field::placeholder {
+  color: var(--secondary-color) !important;
+}
+
+.previewBookingModal .textarea-group .textarea-field::placeholder {
+  color: var(--secondary-color) !important;
+}
+
 /* Description styles */
 .previewBookingModal .preview-left .profile-con .description {
   color: var(--secondary-color);
@@ -1179,6 +1223,27 @@
 
 .previewBookingModal .preview-right .single-calendar-container .react-calendar {
   overflow: visible !important;
+}
+
+/* Timezone dropdown in SingleCalendar component - specifically for preview form */
+.previewBookingModal .single-calendar-container .select-con .select-group .select-box {
+  background-color: color-mix(in srgb, var(--main-color) 2%, transparent) !important;
+  border-color: color-mix(in srgb, var(--secondary-color) 20%, transparent) !important;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.previewBookingModal .single-calendar-container .select-con .select-group .select-box:hover {
+  border-color: color-mix(in srgb, var(--main-color) 40%, transparent) !important;
+}
+
+.previewBookingModal .single-calendar-container .select-con .select-group .select-box:focus,
+.previewBookingModal .single-calendar-container .select-con .select-group .select-box:focus-visible,
+.previewBookingModal .single-calendar-container .select-con .select-group .select-box:active {
+  border-color: var(--main-color) !important;
+}
+
+.previewBookingModal .single-calendar-container .select-con .select-group:has(.select-dropdown) .select-box {
+  border-color: var(--main-color) !important;
 }
 
 /* Make calendar slightly less wide in preview modal */

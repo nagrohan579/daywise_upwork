@@ -3954,6 +3954,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Validate request body with Zod
       const updateUserSchema = z.object({
+        name: z.string().min(1).max(100).optional(),
         businessName: z.string().min(1).max(100).optional(),
         email: z.string().email().optional(),
         logoUrl: z.union([
@@ -5768,13 +5769,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await deleteFile(existingBranding.logoUrl);
         }
 
-        // Upload original image to Digital Ocean Spaces
-        // Note: Preserving EXIF orientation data so browsers can display portrait images correctly
+        // Process image to handle EXIF orientation (auto-rotate based on EXIF data)
+        // This fixes orientation issues with mobile photos without manual rotation
         const ext = file.mimetype === "image/png" ? "png" : file.mimetype === "image/gif" ? "gif" : "jpg";
         const filename = `logo-${userId}-${Date.now()}.${ext}`;
 
+        let processedBuffer: Buffer;
+        try {
+          // Use autoOrient to automatically handle EXIF orientation
+          // This will rotate/flip the image based on EXIF data and remove the orientation tag
+          if (file.mimetype === "image/gif") {
+            // GIF files - preserve as-is (Sharp doesn't handle GIF orientation well)
+            processedBuffer = file.buffer;
+          } else if (file.mimetype === "image/png") {
+            // PNG files - process with Sharp to handle EXIF orientation, preserve PNG format
+            processedBuffer = await sharp(file.buffer)
+              .autoOrient() // Automatically rotate/flip based on EXIF orientation
+              .png()
+              .toBuffer();
+          } else {
+            // JPEG files - process with Sharp to handle EXIF orientation, preserve JPEG format
+            processedBuffer = await sharp(file.buffer)
+              .autoOrient() // Automatically rotate/flip based on EXIF orientation
+              .jpeg()
+              .toBuffer();
+          }
+        } catch (sharpError: any) {
+          console.error('Error processing logo image orientation:', sharpError);
+          // Fallback to original buffer if Sharp processing fails
+          processedBuffer = file.buffer;
+        }
+
         logoUrl = await uploadFile({
-          fileBuffer: file.buffer,
+          fileBuffer: processedBuffer,
           fileName: filename,
           folder: 'business_logos',
           contentType: file.mimetype,
@@ -5895,13 +5922,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await deleteFile(existingBranding.profilePictureUrl);
         }
 
-        // Upload original image to Digital Ocean Spaces
-        // Note: Preserving EXIF orientation data so browsers can display portrait images correctly
+        // Process image to handle EXIF orientation (auto-rotate based on EXIF data)
+        // This fixes orientation issues with mobile photos without manual rotation
         const ext = file.mimetype === "image/png" ? "png" : file.mimetype === "image/gif" ? "gif" : "jpg";
         const filename = `profile-${userId}-${Date.now()}.${ext}`;
 
+        let processedBuffer: Buffer;
+        try {
+          // Use autoOrient to automatically handle EXIF orientation
+          // This will rotate/flip the image based on EXIF data and remove the orientation tag
+          if (file.mimetype === "image/gif") {
+            // GIF files - preserve as-is (Sharp doesn't handle GIF orientation well)
+            processedBuffer = file.buffer;
+          } else if (file.mimetype === "image/png") {
+            // PNG files - process with Sharp to handle EXIF orientation, preserve PNG format
+            processedBuffer = await sharp(file.buffer)
+              .autoOrient() // Automatically rotate/flip based on EXIF orientation
+              .png()
+              .toBuffer();
+          } else {
+            // JPEG files - process with Sharp to handle EXIF orientation, preserve JPEG format
+            processedBuffer = await sharp(file.buffer)
+              .autoOrient() // Automatically rotate/flip based on EXIF orientation
+              .jpeg()
+              .toBuffer();
+          }
+        } catch (sharpError: any) {
+          console.error('Error processing profile image orientation:', sharpError);
+          // Fallback to original buffer if Sharp processing fails
+          processedBuffer = file.buffer;
+        }
+
         profilePictureUrl = await uploadFile({
-          fileBuffer: file.buffer,
+          fileBuffer: processedBuffer,
           fileName: filename,
           folder: 'profile_pictures',
           contentType: file.mimetype,
@@ -8018,6 +8071,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const customerTimezone = booking.customerTimezone || user.timezone || 'Etc/UTC';
       const businessTimezone = user.timezone || 'Etc/UTC';
 
+      // Get user features to determine if they have pro plan (customBranding)
+      const userFeatures = await getUserFeatures(booking.userId);
+
       // Format dates for customer email (in customer's timezone)
       const customerEmailData = {
         customerName: booking.customerName,
@@ -8030,9 +8086,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         appointmentDuration,
         bookingToken: booking.bookingToken,
         eventUrl: booking.eventUrl,
-        businessColors: branding ? { primary: branding.primary, secondary: branding.secondary } : undefined,
+        businessColors: branding ? { primary: branding.primary, secondary: branding.secondary, accent: branding.accent } : undefined,
         businessLogo: branding?.logoUrl,
         usePlatformBranding: branding?.usePlatformBranding ?? true,
+        hasCustomBranding: userFeatures.customBranding || false,
       };
 
       // Format dates for business email (in business user's timezone)
@@ -8117,6 +8174,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const customerTimezone = booking.customerTimezone || user.timezone || 'Etc/UTC';
           const businessTimezone = user.timezone || 'Etc/UTC';
 
+          // Get user features to determine if they have pro plan (customBranding)
+          const userFeatures = await getUserFeatures(user._id);
+
           // Prepare customer email data
           const customerEmailData = {
             customerName: booking.customerName,
@@ -8135,10 +8195,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             appointmentDuration: appointmentType?.duration || booking.duration || 30,
             businessColors: branding ? {
               primary: branding.primary,
-              secondary: branding.secondary
+              secondary: branding.secondary,
+              accent: branding.accent
             } : undefined,
             businessLogo: branding?.logoUrl,
             usePlatformBranding: branding?.usePlatformBranding ?? true,
+            hasCustomBranding: userFeatures.customBranding || false,
           };
 
           // Prepare business email data (different timezone)

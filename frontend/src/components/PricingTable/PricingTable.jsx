@@ -36,6 +36,13 @@ const pricingData = {
       type: "value",
     },
     {
+      name: "Intake Forms",
+      desc: "Create forms for your customers to fill out",
+      free: "1",
+      pro: "Unlimited",
+      type: "value",
+    },
+    {
       name: "Email Notifications",
       desc: "Bookings and cancellations",
       free: true,

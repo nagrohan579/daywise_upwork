@@ -51,13 +51,35 @@ const PreviewBookingModal = ({
   // Pre-select the third time slot (10:00 AM) to show the split view
   const [selectedTime] = useState("10:00");
 
-  // Set CSS variables when colors change
+  // Set CSS variables when modal is entered - only on modal element, not root
+  const handleModalEntered = () => {
+    const modalElement = document.querySelector('.previewBookingModal');
+    if (modalElement) {
+      modalElement.style.setProperty('--main-color', primaryColor);
+      modalElement.style.setProperty('--secondary-color', secondaryColor);
+      modalElement.style.setProperty('--text-color', accentColor);
+    }
+  };
+
+  // Remove CSS variables when modal is exited
+  const handleModalExited = () => {
+    const modalElement = document.querySelector('.previewBookingModal');
+    if (modalElement) {
+      modalElement.style.removeProperty('--main-color');
+      modalElement.style.removeProperty('--secondary-color');
+      modalElement.style.removeProperty('--text-color');
+    }
+  };
+
+  // Update CSS variables when colors change while modal is open
   useEffect(() => {
     if (showPreviewBooking) {
-      const root = document.documentElement;
-      root.style.setProperty('--main-color', primaryColor);
-      root.style.setProperty('--secondary-color', secondaryColor);
-      root.style.setProperty('--text-color', accentColor);
+      const modalElement = document.querySelector('.previewBookingModal');
+      if (modalElement) {
+        modalElement.style.setProperty('--main-color', primaryColor);
+        modalElement.style.setProperty('--secondary-color', secondaryColor);
+        modalElement.style.setProperty('--text-color', accentColor);
+      }
     }
   }, [showPreviewBooking, primaryColor, secondaryColor, accentColor]);
 
@@ -65,6 +87,8 @@ const PreviewBookingModal = ({
     <Modal
       show={showPreviewBooking}
       onHide={() => setShowPreviewBooking(false)}
+      onEntered={handleModalEntered}
+      onExited={handleModalExited}
       centered
       backdrop="static"
       className="previewBookingModal"
@@ -77,7 +101,7 @@ const PreviewBookingModal = ({
           className="close-btn"
           onClick={() => setShowPreviewBooking(false)}
         >
-          <IoClose size={20} color="var(--secondary-color)" />
+          <IoClose size={20} color="#64748B" />
         </button>
       </Modal.Header>
       <Modal.Body>

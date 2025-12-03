@@ -63,6 +63,19 @@
 }
 .week-time-range .time-range-wrap .time-edit-fields {
   color: #121212;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+}
+
+.week-time-range .time-range-wrap .time-edit-fields span {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  line-height: 1;
+  color: #121212;
+  font-size: 14px;
 }
 .week-time-range .time-range-wrap .time-edit-fields input {
   border: none;

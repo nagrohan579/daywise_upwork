@@ -913,6 +913,7 @@
   gap: 8px;
   color: #121212;
   flex: 1;
+  height: 100%;
 }
 
 .onboarding-step2-time-edit-fields span {
@@ -920,6 +921,10 @@
   font-size: 14px;
   margin: 0 4px;
   white-space: pre;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  line-height: 1;
 }
 
 .onboarding-step2-time-input {

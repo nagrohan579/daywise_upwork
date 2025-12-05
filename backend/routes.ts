@@ -6571,52 +6571,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Deauthorize the Stripe Connect account to revoke access
-      let deauthorizationError: string | null = null;
+      let deauthorizationSucceeded = false;
       try {
         const clientId = process.env.STRIPE_CONNECT_CLIENT_ID;
-        if (clientId) {
+        if (!clientId) {
+          console.warn('⚠️ STRIPE_CONNECT_CLIENT_ID not configured, skipping deauthorization');
+          // If client ID is not configured, we can't deauthorize, but we can still clear local credentials
+          deauthorizationSucceeded = true; // Treat as success to allow clearing local credentials
+        } else {
           await stripe.oauth.deauthorize({
             client_id: clientId,
             stripe_user_id: user.stripeAccountId,
           });
           console.log(`✅ Stripe account deauthorized: ${user.stripeAccountId}`);
-        } else {
-          console.warn('⚠️ STRIPE_CONNECT_CLIENT_ID not configured, skipping deauthorization');
-          deauthorizationError = 'Stripe Connect client ID not configured';
+          deauthorizationSucceeded = true;
         }
       } catch (deauthError: any) {
         console.error(`❌ Failed to deauthorize Stripe account: ${deauthError.message}`);
-        deauthorizationError = deauthError.message || 'Failed to deauthorize Stripe account';
+        const errorMessage = deauthError.message || 'Failed to deauthorize Stripe account';
         
-        // Check if the error indicates the account is already disconnected or doesn't exist
-        const errorMessage = deauthError.message?.toLowerCase() || '';
-        const isAlreadyDisconnected = errorMessage.includes('not connected') || 
-                                      errorMessage.includes('does not exist') ||
-                                      errorMessage.includes('invalid');
-        
-        if (isAlreadyDisconnected) {
-          // Account is already disconnected on Stripe's side, safe to clear local credentials
-          console.log('⚠️ Stripe account already disconnected on Stripe side, clearing local credentials');
-        } else {
-          // Real error - return it to the user
-          return res.status(400).json({ 
-            success: false, 
-            message: `Failed to disconnect Stripe account: ${deauthorizationError}`,
-            error: deauthorizationError
-          });
-        }
+        // Always return the actual error to the user - don't silently clear credentials
+        return res.status(400).json({ 
+          success: false, 
+          message: `Failed to disconnect Stripe account: ${errorMessage}`,
+          error: errorMessage
+        });
       }
 
-      // Clear Stripe credentials from user only if deauthorization succeeded or account was already disconnected
-      await storage.updateUser(user._id, {
-        stripeAccountId: undefined,
-        stripeAccessToken: undefined,
-        stripeRefreshToken: undefined,
-        stripeScope: undefined,
-      });
+      // Only clear credentials if deauthorization succeeded
+      if (deauthorizationSucceeded) {
+        await storage.updateUser(user._id, {
+          stripeAccountId: undefined,
+          stripeAccessToken: undefined,
+          stripeRefreshToken: undefined,
+          stripeScope: undefined,
+        });
 
-      console.log(`✅ Stripe credentials cleared for user: ${userId}`);
-      res.json({ success: true, message: "Stripe account disconnected successfully" });
+        console.log(`✅ Stripe credentials cleared for user: ${userId}`);
+        res.json({ success: true, message: "Stripe account disconnected successfully" });
+      }
     } catch (error: any) {
       console.error('Error disconnecting Stripe:', error);
       res.status(500).json({ message: "Failed to disconnect Stripe account", error: error.message });

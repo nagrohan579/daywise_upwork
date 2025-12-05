@@ -110,7 +110,7 @@ const MyLink = () => {
           </div>
         </div>
       </div>
-      <HowThisWorksButton title="How My Link Works" />
+      <HowThisWorksButton title="How it Works: My Link" videoUrl="https://jumpshare.com/embed/FGGO3uou6jxgikk2pW3W" />
     </AppLayout>
   );
 };

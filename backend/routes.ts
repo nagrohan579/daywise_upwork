@@ -6571,6 +6571,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Deauthorize the Stripe Connect account to revoke access
+      let deauthorizationError: string | null = null;
       try {
         const clientId = process.env.STRIPE_CONNECT_CLIENT_ID;
         if (clientId) {
@@ -6581,13 +6582,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`✅ Stripe account deauthorized: ${user.stripeAccountId}`);
         } else {
           console.warn('⚠️ STRIPE_CONNECT_CLIENT_ID not configured, skipping deauthorization');
+          deauthorizationError = 'Stripe Connect client ID not configured';
         }
       } catch (deauthError: any) {
-        console.warn(`⚠️ Failed to deauthorize Stripe account (${deauthError.message}), continuing with disconnect`);
-        // Continue with disconnect even if deauthorize fails
+        console.error(`❌ Failed to deauthorize Stripe account: ${deauthError.message}`);
+        deauthorizationError = deauthError.message || 'Failed to deauthorize Stripe account';
+        
+        // Check if the error indicates the account is already disconnected or doesn't exist
+        const errorMessage = deauthError.message?.toLowerCase() || '';
+        const isAlreadyDisconnected = errorMessage.includes('not connected') || 
+                                      errorMessage.includes('does not exist') ||
+                                      errorMessage.includes('invalid');
+        
+        if (isAlreadyDisconnected) {
+          // Account is already disconnected on Stripe's side, safe to clear local credentials
+          console.log('⚠️ Stripe account already disconnected on Stripe side, clearing local credentials');
+        } else {
+          // Real error - return it to the user
+          return res.status(400).json({ 
+            success: false, 
+            message: `Failed to disconnect Stripe account: ${deauthorizationError}`,
+            error: deauthorizationError
+          });
+        }
       }
 
-      // Clear Stripe credentials from user
+      // Clear Stripe credentials from user only if deauthorization succeeded or account was already disconnected
       await storage.updateUser(user._id, {
         stripeAccountId: undefined,
         stripeAccessToken: undefined,

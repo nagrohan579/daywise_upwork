@@ -628,7 +628,7 @@ const Availability = () => {
               : "Date-specific hour"
         }
       />
-      <HowThisWorksButton title="How Availability Works" />
+      <HowThisWorksButton title="How it Works: Availability" videoUrl="https://jumpshare.com/embed/qT49GRv0xgxaVGeFOHrh" />
     </AppLayout>
   );
 };

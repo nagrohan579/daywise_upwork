@@ -111,17 +111,20 @@ const Payments = () => {
         credentials: 'include',
       });
 
-      if (response.ok) {
+      const data = await response.json();
+
+      if (response.ok && data.success) {
         setIsConnected(false);
         setStripeAccountId(null);
-        toast.success('Stripe account disconnected successfully');
+        toast.success(data.message || 'Stripe account disconnected successfully');
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to disconnect Stripe account');
+        // Show the actual error message from the backend
+        const errorMessage = data.message || data.error || 'Failed to disconnect Stripe account';
+        throw new Error(errorMessage);
       }
-      } catch (error) {
-        console.error('Error disconnecting Stripe:', error);
-        toast.error(error?.message || 'Failed to disconnect Stripe account');
+    } catch (error) {
+      console.error('Error disconnecting Stripe:', error);
+      toast.error(error?.message || 'Failed to disconnect Stripe account');
     } finally {
       setIsDisconnecting(false);
       setShowDisconnectModal(false);
@@ -232,7 +235,7 @@ const Payments = () => {
         </div>
         )}
       </div>
-      <HowThisWorksButton title="How Payments Works" />
+      <HowThisWorksButton title="How it Works: Payments" videoUrl="https://jumpshare.com/embed/TpJw5zm3z32PQpMcwUOk" />
       <StripeDisconnectModal
         show={showDisconnectModal}
         onClose={() => {

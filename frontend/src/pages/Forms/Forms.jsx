@@ -1940,7 +1940,7 @@ const Forms = () => {
           </div>
         </Modal.Body>
       </Modal>
-      {!showFormBuilder && <HowThisWorksButton title="How Forms Works" />}
+      {!showFormBuilder && <HowThisWorksButton title="How it Works: Intake Forms" videoUrl="https://jumpshare.com/embed/5XUfx3V98vcFUXFaxmwC" />}
 
       {isMobile && showFormBuilder && (
         <div className={`form-builder-mobile-toolbar ${showMobileActionBar ? 'visible' : ''}`}>

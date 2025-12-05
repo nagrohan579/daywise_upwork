@@ -1422,7 +1422,7 @@ const Branding = () => {
         }}
         onSave={cropEditorType === 'logo' ? handleLogoCropSave : handleProfileCropSave}
       />
-      <HowThisWorksButton title="How Branding Works" />
+      <HowThisWorksButton title="How it Works: Branding" videoUrl="https://jumpshare.com/embed/Vfd7vVN2bc0Sft8gljCp" />
     </AppLayout>
   );
 };

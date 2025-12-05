@@ -634,7 +634,7 @@ const Service = () => {
           </div>
         </div>
       )}
-      <HowThisWorksButton title="How Services Works" />
+      <HowThisWorksButton title="How it Works: Services" videoUrl="https://jumpshare.com/embed/W5uJfd4GidUapx9xoxga" />
     </AppLayout>
   );
 };

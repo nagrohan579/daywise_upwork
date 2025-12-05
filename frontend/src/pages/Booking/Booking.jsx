@@ -62,8 +62,8 @@ const BookingsPage = () => {
 
   const isMobile = useMobile(991);
   
-  // Video URL for onboarding (same as HowThisWorks for now)
-  const onboardingVideoUrl = "https://jumpshare.com/embed/iWcB5XN8SpKmvEKiGWFR";
+  // Video URL for onboarding
+  const onboardingVideoUrl = "https://jumpshare.com/embed/frFIIrxdkLcqTD3VmcSP";
 
   // Fetch current user and timezone
   const [userId, setUserId] = useState(null);
@@ -1646,7 +1646,7 @@ const BookingsPage = () => {
         </Modal.Body>
       </Modal>
 
-      <HowThisWorksButton title="How Bookings Works" />
+      <HowThisWorksButton title="How it Works: Bookings" videoUrl="https://jumpshare.com/embed/QPJYwCKeSKewPWlKqoGy" />
       
       {/* Onboarding Video Modal - Shows once after onboarding completion */}
       <VideoModal

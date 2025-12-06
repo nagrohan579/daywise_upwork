@@ -92,6 +92,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy_key_for_dev");
 
+  // Helper function to ensure valid Stripe customer
+  async function ensureValidStripeCustomer(userId: string, existingCustomerId?: string): Promise<string> {
+    // If we have an existing customer ID, verify it still exists in Stripe
+    if (existingCustomerId) {
+      try {
+        const customer = await stripe.customers.retrieve(existingCustomerId);
+
+        // Check if customer was deleted
+        if ('deleted' in customer && customer.deleted) {
+          console.warn(`⚠️ Stripe customer ${existingCustomerId} was deleted. Creating new customer for user ${userId}`);
+          // Customer was deleted, fall through to create new one
+        } else {
+          // Customer exists and is valid
+          console.log(`✅ Verified existing Stripe customer ${existingCustomerId} for user ${userId}`);
+          return existingCustomerId;
+        }
+      } catch (error: any) {
+        // Handle specific Stripe errors
+        if (error.type === 'StripeInvalidRequestError' && error.code === 'resource_missing') {
+          console.warn(`⚠️ Stripe customer ${existingCustomerId} not found. Creating new customer for user ${userId}`);
+          // Customer doesn't exist, fall through to create new one
+        } else {
+          // Unexpected error - log and rethrow
+          console.error(`❌ Error retrieving Stripe customer ${existingCustomerId}:`, error);
+          throw error;
+        }
+      }
+    }
+
+    // Create new customer (either no existing ID or existing customer was deleted/not found)
+    try {
+      const newCustomer = await stripe.customers.create({
+        metadata: { userId },
+        description: `User ${userId}`
+      });
+      console.log(`✅ Created new Stripe customer ${newCustomer.id} for user ${userId}`);
+      return newCustomer.id;
+    } catch (error: any) {
+      console.error(`❌ Failed to create Stripe customer for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
   // Initialize multer for file uploads
   const upload = multer({
     storage: multer.memoryStorage(),
@@ -6228,26 +6271,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // ensure stripe customer
+      // ensure stripe customer - with validation
       let sub = await storage.getUserSubscription(userId);
-      let customerId = sub?.stripeCustomerId;
+      let validCustomerId: string;
 
-      if (!customerId) {
-        const customer = await stripe.customers.create({ metadata: { userId } });
-        customerId = customer.id;
+      try {
+        validCustomerId = await ensureValidStripeCustomer(userId, sub?.stripeCustomerId);
 
-        if (sub) {
-          sub = await storage.updateUserSubscription(userId, { stripeCustomerId: customerId });
-        } else {
-          const payload: any = {
-            userId,
-            planId,
-            stripeCustomerId: customerId,
-            isAnnual: interval === "year",
-            status: "inactive",
-          };
-          await storage.createUserSubscription(payload);
+        // Update database if customer ID changed
+        if (validCustomerId !== sub?.stripeCustomerId) {
+          console.log(`🔄 Updating customer ID for user ${userId}: ${sub?.stripeCustomerId || 'none'} -> ${validCustomerId}`);
+
+          if (sub) {
+            sub = await storage.updateUserSubscription(userId, { stripeCustomerId: validCustomerId });
+          } else {
+            const payload: any = {
+              userId,
+              planId,
+              stripeCustomerId: validCustomerId,
+              isAnnual: interval === "year",
+              status: "inactive",
+            };
+            await storage.createUserSubscription(payload);
+          }
         }
+      } catch (error: any) {
+        console.error(`❌ Failed to ensure valid Stripe customer for user ${userId}:`, error);
+        return res.status(500).json({
+          message: "Failed to initialize payment. Please try again.",
+          error: error?.message
+        });
       }
 
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -6256,7 +6309,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const checkoutOptions: any = {
         mode: "subscription",
-        customer: customerId,
+        customer: validCustomerId,
         line_items: [{ price: priceId, quantity: 1 }],
         success_url: success,
         cancel_url: cancel,
@@ -6271,14 +6324,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         checkoutOptions.discounts = [{ promotion_code: promotionCode }];
       }
 
-      const checkout = await stripe.checkout.sessions.create(checkoutOptions);
+      let checkout;
+      try {
+        checkout = await stripe.checkout.sessions.create(checkoutOptions);
+      } catch (stripeError: any) {
+        // Handle specific Stripe errors related to invalid customer
+        if (stripeError.type === 'StripeInvalidRequestError' &&
+            (stripeError.code === 'resource_missing' || stripeError.param === 'customer')) {
+          console.error(`❌ Checkout failed with invalid customer ${validCustomerId}, attempting recovery`);
+
+          // Last-resort fallback: Create completely new customer
+          try {
+            const newCustomer = await stripe.customers.create({
+              metadata: { userId },
+              description: `User ${userId} (recovery)`
+            });
+
+            await storage.updateUserSubscription(userId, { stripeCustomerId: newCustomer.id });
+
+            // Retry checkout with new customer
+            checkoutOptions.customer = newCustomer.id;
+            checkout = await stripe.checkout.sessions.create(checkoutOptions);
+            console.log(`✅ Recovered checkout with new customer ${newCustomer.id}`);
+          } catch (recoveryError: any) {
+            console.error(`❌ Failed to recover:`, recoveryError);
+            return res.status(500).json({
+              message: "Payment setup failed. Please contact support.",
+              error: recoveryError?.message
+            });
+          }
+        } else {
+          throw stripeError;
+        }
+      }
 
       // DO NOT update subscription here - wait for webhook confirmation
       // The subscription will only be activated after successful payment via webhook
 
       return res.json({ url: checkout.url });
     } catch (e: any) {
-      return res.status(500).json({ message: e?.message ?? "Checkout error" });
+      console.error(`❌ Checkout error for user ${userId}:`, e);
+      return res.status(500).json({
+        message: e?.message ?? "Checkout error. Please try again."
+      });
     }
   });
 
@@ -6941,6 +7029,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         case "customer.subscription.created": {
           const subscription = event.data.object as any;
           await upsertSubscriptionFromStripe(subscription.customer as string, subscription);
+          break;
+        }
+
+        case "customer.deleted": {
+          const customer = event.data.object as any;
+          const customerId = customer.id;
+
+          console.log(`⚠️ Stripe customer deleted: ${customerId}`);
+
+          // Find user by Stripe customer ID and clear the deleted customer ID
+          const allSubscriptions = await storage.getAllUserSubscriptions();
+          const userSub = allSubscriptions.find((sub: any) => sub.stripeCustomerId === customerId);
+
+          if (userSub) {
+            await storage.updateUserSubscription(userSub.userId, {
+              stripeCustomerId: undefined, // Clear deleted customer ID
+            });
+            console.log(`🗑️ Cleared deleted Stripe customer ID ${customerId} for user ${userSub.userId}`);
+          } else {
+            console.log(`ℹ️ No user found for deleted Stripe customer ${customerId}`);
+          }
           break;
         }
 

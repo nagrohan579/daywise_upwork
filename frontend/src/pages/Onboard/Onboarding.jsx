@@ -997,7 +997,7 @@ const Onboarding = () => {
 
           <div className="onboarding-step5-link-section">
             <div className="onboarding-step5-link-wrapper">
-              <span className="onboarding-step5-link-prefix">daywisebooking.com/</span>
+              <span className="onboarding-step5-link-prefix">app.daywisebooking.com/</span>
               <div className="onboarding-step5-link-input-wrapper">
                 <Input
                   placeholder="yourbusinessname"

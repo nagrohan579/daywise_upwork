@@ -88,7 +88,7 @@ const MyLink = () => {
           <div className="business-input-wrap">
             <h3>Your Booking Link</h3>
             <div className="wrap">
-              <span>daywisebooking.com/</span>
+              <span>app.daywisebooking.com/</span>
               <Input
                 placeholder={"your-business-name"}
                 type="text"

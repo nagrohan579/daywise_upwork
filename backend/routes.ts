@@ -30,8 +30,14 @@ import { FeatureGate } from "./featureGating";
 import { uploadFile, deleteFile, isSpacesUrl, moveIntakeFormFiles } from "./services/spaces";
 import PDFDocument from "pdfkit";
 import archiver from "archiver";
+import { createJwtMiddleware } from "./lib/canva-jwt";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+
+  // ============================================
+  // CANVA JWT MIDDLEWARE
+  // ============================================
+  const canvaJwtMiddleware = createJwtMiddleware(process.env.CANVA_APP_ID || '');
 
   // Initialize dayjs plugins
   dayjs.extend(utc);
@@ -45,7 +51,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Format: Map<userId, { otp: string, expiresAt: number }>
   const passwordChangeOtps = new Map<string, { otp: string; expiresAt: number }>();
 
-  // Cleanup expired OTPs every 5 minutes
+  // Canva OAuth state storage (JWT-based, no sessions)
+  // Format: Map<state, { canvaUserId, canvaBrandId, timezone, country, expiresAt }>
+  const canvaOAuthStates = new Map<string, { 
+    canvaUserId: string; 
+    canvaBrandId: string; 
+    timezone: string; 
+    country: string; 
+    expiresAt: number;
+  }>();
+
+  // Cleanup expired OTPs and OAuth states every 5 minutes
   setInterval(() => {
     const now = Date.now();
     for (const [userId, data] of emailChangeOtps.entries()) {
@@ -56,6 +72,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     for (const [userId, data] of passwordChangeOtps.entries()) {
       if (data.expiresAt < now) {
         passwordChangeOtps.delete(userId);
+      }
+    }
+    for (const [state, data] of canvaOAuthStates.entries()) {
+      if (data.expiresAt < now) {
+        canvaOAuthStates.delete(state);
       }
     }
   }, 5 * 60 * 1000);
@@ -140,6 +161,376 @@ export async function registerRoutes(app: Express): Promise<Server> {
     storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
   });
+
+  // ============================================
+  // CANVA APP ROUTES (JWT-based authentication)
+  // Unified account system - same accounts work across Canva + web app
+  // ============================================
+
+  // Check authentication status for Canva user
+  app.get("/api/canva/auth/status", canvaJwtMiddleware, async (req, res) => {
+    try {
+      const { userId: canvaUserId } = req.canva!;
+
+      // Check if this Canva user is already linked
+      const user = await storage.getUserByCanvaId(canvaUserId);
+
+      if (user) {
+        // Update last Canva access
+        await storage.updateCanvaAccess(user._id);
+
+        return res.json({
+          authenticated: true,
+          user: {
+            id: user._id,
+            email: user.email,
+            name: user.name,
+            signupSource: user.signupSource || 'web',
+            _id: user._id // Include for compatibility with frontend code
+          }
+        });
+      }
+
+      res.json({ authenticated: false });
+    } catch (error: any) {
+      console.error('Auth status check error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Google OAuth Login (auto-links to Canva if not already linked)
+  app.post("/api/canva/auth/google", canvaJwtMiddleware, async (req, res) => {
+    try {
+      const { userId: canvaUserId, brandId } = req.canva!;
+      const { googleToken } = req.body;
+
+      if (!googleToken) {
+        return res.status(400).json({ message: "Google token required" });
+      }
+
+      // Verify Google token and get user info
+      const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+      const ticket = await client.verifyIdToken({
+        idToken: googleToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+
+      const payload = ticket.getPayload();
+      if (!payload) {
+        return res.status(401).json({ message: "Invalid Google token" });
+      }
+
+      const googleId = payload.sub;
+      const email = payload.email!;
+      const name = payload.name!;
+      const picture = payload.picture;
+
+      // Check if user exists by Google ID
+      let user = await storage.getUserByGoogleId(googleId);
+
+      if (!user) {
+        // Check if email exists (user might have signed up with email/password first)
+        user = await storage.getUserByEmail(email);
+
+        if (user) {
+          // Link Google account to existing email/password account
+          await storage.updateUser(user._id, { googleId, picture });
+          console.log(`🔗 Linked Google account to existing DayWise user ${user._id}`);
+        }
+      }
+
+      if (user) {
+        // Existing user - auto-link to Canva if not already linked
+        if (!user.canvaUserId) {
+          await storage.linkCanvaToUser(user._id, canvaUserId, brandId);
+          console.log(`🔗 Auto-linked existing DayWise user ${user._id} to Canva user ${canvaUserId}`);
+        } else if (user.canvaUserId !== canvaUserId) {
+          return res.status(409).json({
+            message: "This Google account is already linked to a different Canva user"
+          });
+        } else {
+          await storage.updateCanvaAccess(user._id);
+        }
+
+        return res.json({
+          success: true,
+          user: {
+            id: user._id,
+            email: user.email,
+            name: user.name,
+            signupSource: user.signupSource || 'web'
+          }
+        });
+      }
+
+      // New user - create account with both Google and Canva data
+      const timezone = req.body.timezone || 'UTC';
+      const country = req.body.country || 'US';
+
+      const newUser = await storage.createUserFromCanvaGoogle({
+        email,
+        name,
+        googleId,
+        picture,
+        canvaUserId,
+        canvaBrandId: brandId,
+        timezone,
+        country
+      });
+
+      console.log(`✅ Created new DayWise user ${newUser._id} from Canva Google OAuth (Canva user ${canvaUserId})`);
+
+      res.json({
+        success: true,
+        user: {
+          id: newUser._id,
+          email: newUser.email,
+          name: newUser.name,
+          signupSource: 'canva'
+        }
+      });
+    } catch (error: any) {
+      console.error('Canva Google OAuth error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Google OAuth Start for Canva (JWT-based, no sessions)
+  app.get("/api/canva/auth/google/start", async (req, res) => {
+    try {
+      const { canvaToken, timezone, country } = req.query;
+
+      if (!canvaToken) {
+        return res.status(400).json({ message: "Canva token required" });
+      }
+
+      // Verify Canva token to get user info
+      try {
+        const jwt = require('jsonwebtoken');
+        const jwksClient = require('jwks-rsa');
+        const client = jwksClient({
+          jwksUri: `https://api.canva.com/rest/v1/apps/${process.env.CANVA_APP_ID}/jwks`
+        });
+
+        function getKey(header: any, callback: any) {
+          client.getSigningKey(header.kid, (err: any, key: any) => {
+            const signingKey = key?.getPublicKey();
+            callback(err, signingKey);
+          });
+        }
+
+        const decoded = await new Promise<any>((resolve, reject) => {
+          jwt.verify(canvaToken as string, getKey, { algorithms: ['RS256'] }, (err: any, decoded: any) => {
+            if (err) reject(err);
+            else resolve(decoded);
+          });
+        });
+
+        console.log(`Canva OAuth start - User ID: ${decoded.userId}, Brand ID: ${decoded.brandId}`);
+
+        // Generate state token and store Canva info in memory (not session)
+        const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        canvaOAuthStates.set(state, {
+          canvaUserId: decoded.userId,
+          canvaBrandId: decoded.brandId,
+          timezone: (timezone as string) || 'UTC',
+          country: (country as string) || 'US',
+          expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutes expiry
+        });
+
+        // Redirect to Google OAuth
+        const googleClientId = process.env.GOOGLE_CLIENT_ID;
+        if (!googleClientId) {
+          return res.status(500).json({ message: "Google Client ID not configured" });
+        }
+
+        let redirectUri: string;
+        if (process.env.BASE_URL) {
+          redirectUri = `${process.env.BASE_URL}/api/canva/auth/google/callback`;
+        } else if (process.env.REPLIT_DEV_DOMAIN) {
+          redirectUri = `https://${process.env.REPLIT_DEV_DOMAIN}/api/canva/auth/google/callback`;
+        } else {
+          redirectUri = `http://localhost:3000/api/canva/auth/google/callback`;
+        }
+
+        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20email%20profile&state=${state}&access_type=offline&prompt=consent`;
+
+        res.redirect(authUrl);
+      } catch (error) {
+        console.error('Canva token verification failed:', error);
+        return res.status(401).json({ message: 'Invalid Canva token' });
+      }
+    } catch (error: any) {
+      console.error('Canva Google OAuth start error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Google OAuth Callback for Canva (JWT-based, no sessions)
+  app.get("/api/canva/auth/google/callback", async (req, res) => {
+    try {
+      const { code, state } = req.query;
+
+      if (!code) {
+        return res.status(400).send('Authorization code not provided');
+      }
+
+      if (!state || typeof state !== 'string') {
+        return res.status(400).send('Invalid state parameter');
+      }
+
+      // Get Canva info from in-memory storage (not session)
+      const canvaState = canvaOAuthStates.get(state);
+      if (!canvaState) {
+        return res.status(400).send('Invalid or expired OAuth state. Please try again.');
+      }
+
+      // Check if state expired
+      if (canvaState.expiresAt < Date.now()) {
+        canvaOAuthStates.delete(state);
+        return res.status(400).send('OAuth state expired. Please try again.');
+      }
+
+      const { canvaUserId, canvaBrandId, timezone, country } = canvaState;
+      
+      // Clean up the state (one-time use)
+      canvaOAuthStates.delete(state);
+
+      // Exchange code for tokens
+      const host = req.get('host') || '';
+      let redirectUri: string;
+      
+      if (process.env.BASE_URL) {
+        redirectUri = `${process.env.BASE_URL}/api/canva/auth/google/callback`;
+      } else if (process.env.REPLIT_DEV_DOMAIN) {
+        redirectUri = `https://${process.env.REPLIT_DEV_DOMAIN}/api/canva/auth/google/callback`;
+      } else {
+        redirectUri = `http://localhost:3000/api/canva/auth/google/callback`;
+      }
+
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          code: code as string,
+          client_id: process.env.GOOGLE_CLIENT_ID!,
+          client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+          redirect_uri: redirectUri,
+          grant_type: 'authorization_code',
+        }),
+      });
+
+      const tokens = await tokenResponse.json();
+
+      if (!tokens.id_token) {
+        return res.status(400).send('Failed to get ID token from Google');
+      }
+
+      // Verify Google ID token
+      const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+      const ticket = await client.verifyIdToken({
+        idToken: tokens.id_token,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+
+      const payload = ticket.getPayload();
+      if (!payload) {
+        return res.status(401).send('Invalid Google token');
+      }
+
+      const googleId = payload.sub;
+      const email = payload.email!;
+      const name = payload.name!;
+      const picture = payload.picture;
+
+      // Check if user exists by Google ID
+      let user = await storage.getUserByGoogleId(googleId);
+
+      if (!user) {
+        // Check if email exists
+        user = await storage.getUserByEmail(email);
+        if (user) {
+          await storage.updateUser(user._id, { googleId, picture });
+        }
+      }
+
+      if (user) {
+        // Existing user - auto-link to Canva
+        if (!user.canvaUserId) {
+          await storage.linkCanvaToUser(user._id, canvaUserId, canvaBrandId);
+          console.log(`🔗 Auto-linked existing DayWise user ${user._id} to Canva user ${canvaUserId}`);
+        } else if (user.canvaUserId !== canvaUserId) {
+          return res.status(409).send('This Google account is already linked to a different Canva user');
+        } else {
+          await storage.updateCanvaAccess(user._id);
+        }
+      } else {
+        // New user - create account
+        user = await storage.createUserFromCanvaGoogle({
+          email,
+          name,
+          googleId,
+          picture,
+          canvaUserId,
+          canvaBrandId: canvaBrandId,
+          timezone,
+          country
+        });
+        console.log(`✅ Created new DayWise user ${user._id} from Canva Google OAuth`);
+      }
+
+      // Account is now linked to Canva - no JWT needed, Canva JWT token is used for auth
+      // The Canva app will poll /api/canva/auth/status to detect authentication
+      res.send(`
+        <html>
+          <head><title>Authentication Successful</title></head>
+          <body>
+            <h1>Authentication Successful!</h1>
+            <p>You can close this window and return to the Canva app.</p>
+            <p>The app will automatically detect your authentication.</p>
+            <script>
+              // Try to close the window after 2 seconds
+              setTimeout(() => {
+                window.close();
+              }, 2000);
+            </script>
+          </body>
+        </html>
+      `);
+    } catch (error: any) {
+      console.error('Canva Google OAuth callback error:', error);
+      res.status(500).send(`Error: ${error.message}`);
+    }
+  });
+
+  // Get appointment types (protected - requires authenticated Canva user)
+  app.get("/api/canva/appointment-types", canvaJwtMiddleware, async (req, res) => {
+    try {
+      const { userId: canvaUserId } = req.canva!;
+
+      // Get linked DayWise user
+      const user = await storage.getUserByCanvaId(canvaUserId);
+
+      if (!user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      // Get user's appointment types
+      const appointmentTypes = await storage.getAppointmentTypesByUserId(user._id);
+
+      res.json({ appointmentTypes });
+    } catch (error: any) {
+      console.error('Get appointment types error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ============================================
+  // END CANVA APP ROUTES
+  // ============================================
 
   // Google OAuth start endpoint (redirect-based flow) - COMMENTED OUT
   app.get("/api/auth/google", (req, res) => {

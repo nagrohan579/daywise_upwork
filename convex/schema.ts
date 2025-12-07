@@ -38,12 +38,19 @@ export default defineSchema({
     stripeAccessToken: v.optional(v.string()),
     stripeRefreshToken: v.optional(v.string()),
     stripeScope: v.optional(v.string()),
+    // Canva integration fields - Cross-platform access tracking
+    canvaUserId: v.optional(v.string()), // Canva user ID (if user accessed via Canva)
+    canvaLinkedAt: v.optional(v.number()), // First Canva access timestamp
+    canvaBrandId: v.optional(v.string()), // Canva team/org ID
+    signupSource: v.optional(v.string()), // "web" | "canva" (tracking where user first signed up)
+    lastCanvaAccess: v.optional(v.number()), // Last Canva app usage (for analytics)
   })
     .index("by_email", ["email"])
     .index("by_googleId", ["googleId"])
     .index("by_slug", ["slug"])
     .index("by_emailVerificationToken", ["emailVerificationToken"])
-    .index("by_passwordResetToken", ["passwordResetToken"]),
+    .index("by_passwordResetToken", ["passwordResetToken"])
+    .index("by_canvaUserId", ["canvaUserId"]),
 
   // Bookings table - Appointment bookings
   bookings: defineTable({

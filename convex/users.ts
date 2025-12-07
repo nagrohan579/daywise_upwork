@@ -311,3 +311,18 @@ export const updateAccountStatus = mutation({
     return await ctx.db.get(id);
   },
 });
+
+// ============================================
+// CANVA INTEGRATION - Cross-platform account management
+// ============================================
+
+// Get user by Canva user ID
+export const getByCanvaUserId = query({
+  args: { canvaUserId: v.string() },
+  handler: async (ctx, { canvaUserId }) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_canvaUserId", (q) => q.eq("canvaUserId", canvaUserId))
+      .first();
+  },
+});

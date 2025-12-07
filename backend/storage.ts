@@ -722,4 +722,116 @@ export const storage = {
     // TODO: Implement if needed
     return false;
   },
+
+  // ============================================
+  // CANVA INTEGRATION - Cross-platform account management
+  // ============================================
+
+  // Get user by Canva user ID (for already-linked users)
+  async getUserByCanvaId(canvaUserId: string) {
+    return await convex.query(api.users.getByCanvaUserId, { canvaUserId });
+  },
+
+  // Link Canva to existing DayWise user (auto-link by email/googleId)
+  async linkCanvaToUser(userId: string, canvaUserId: string, brandId: string) {
+    return await convex.mutation(api.users.update, {
+      id: userId as Id<"users">,
+      updates: {
+        canvaUserId,
+        canvaBrandId: brandId,
+        canvaLinkedAt: Date.now(),
+        lastCanvaAccess: Date.now()
+      }
+    });
+  },
+
+  // Update last Canva access time (for analytics)
+  async updateCanvaAccess(userId: string) {
+    return await convex.mutation(api.users.update, {
+      id: userId as Id<"users">,
+      updates: {
+        lastCanvaAccess: Date.now()
+      }
+    });
+  },
+
+  // Create new DayWise user from Canva signup (email/password)
+  async createUserFromCanva(data: {
+    email: string;
+    name: string;
+    password: string;
+    canvaUserId: string;
+    canvaBrandId: string;
+    timezone: string;
+    country: string;
+  }) {
+    const id = await convex.mutation(api.users.create, {
+      email: data.email,
+      name: data.name,
+      password: data.password,
+      timezone: data.timezone,
+      country: data.country,
+      primaryColor: "#4F46E5",
+      secondaryColor: "#10B981",
+      accentColor: "#F59E0B",
+      bookingWindow: 30,
+      isAdmin: false,
+      emailVerified: false,
+    });
+
+    // Update with Canva-specific fields
+    await convex.mutation(api.users.update, {
+      id,
+      updates: {
+        canvaUserId: data.canvaUserId,
+        canvaBrandId: data.canvaBrandId,
+        signupSource: "canva",
+        canvaLinkedAt: Date.now(),
+        lastCanvaAccess: Date.now(),
+      }
+    });
+
+    return await convex.query(api.users.getById, { id });
+  },
+
+  // Create new DayWise user from Canva Google OAuth signup
+  async createUserFromCanvaGoogle(data: {
+    email: string;
+    name: string;
+    googleId: string;
+    picture?: string;
+    canvaUserId: string;
+    canvaBrandId: string;
+    timezone: string;
+    country: string;
+  }) {
+    const id = await convex.mutation(api.users.create, {
+      email: data.email,
+      name: data.name,
+      googleId: data.googleId,
+      picture: data.picture,
+      timezone: data.timezone,
+      country: data.country,
+      primaryColor: "#4F46E5",
+      secondaryColor: "#10B981",
+      accentColor: "#F59E0B",
+      bookingWindow: 30,
+      isAdmin: false,
+      emailVerified: true, // Google accounts pre-verified
+    });
+
+    // Update with Canva-specific fields
+    await convex.mutation(api.users.update, {
+      id,
+      updates: {
+        canvaUserId: data.canvaUserId,
+        canvaBrandId: data.canvaBrandId,
+        signupSource: "canva",
+        canvaLinkedAt: Date.now(),
+        lastCanvaAccess: Date.now(),
+      }
+    });
+
+    return await convex.query(api.users.getById, { id });
+  },
 };

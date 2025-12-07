@@ -22,11 +22,53 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
-// CORS configuration - allow frontend to access backend API
+// CORS configuration - allow frontend and Canva app to access backend API
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? (process.env.FRONTEND_URL || '').split(',').filter(Boolean) // Support multiple origins, comma-separated
-    : ['http://localhost:5173', 'http://localhost:5174'], // Allow local dev
+  origin: (origin, callback) => {
+    // Base allowed origins for both development and production
+    const baseOrigins = process.env.NODE_ENV === 'production'
+      ? [
+          ...(process.env.FRONTEND_URL || '').split(',').filter(Boolean), // Regular frontend
+        ]
+      : [
+          'http://localhost:5173', // DayWise frontend (local)
+          'http://localhost:5174', // DayWise frontend (local alt)
+          'http://localhost:8080', // Canva app (local)
+        ];
+
+    // Always allow Canva app origins (both production and development)
+    // Canva apps use the pattern: https://app-*.canva-apps.com
+    // App IDs can contain lowercase letters and numbers
+    const canvaAppPattern = /^https:\/\/app-[a-z0-9]+\.canva-apps\.com$/i;
+
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // Check if it's a Canva app origin
+    if (canvaAppPattern.test(origin)) {
+      console.log(`CORS: Allowing Canva app origin: ${origin}`);
+      return callback(null, true);
+    }
+
+    // Check for exact match in base origins
+    const isAllowed = baseOrigins.some(allowed => {
+      if (allowed.includes('*')) {
+        // Convert wildcard to regex pattern
+        const pattern = allowed.replace(/\*/g, '.*');
+        return new RegExp(`^${pattern}$`).test(origin);
+      }
+      return allowed === origin;
+    });
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true, // Allow cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],

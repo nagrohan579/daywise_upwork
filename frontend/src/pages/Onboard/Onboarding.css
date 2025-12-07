@@ -2219,7 +2219,7 @@
 }
 
 .onboarding-step5-link-prefix {
-  width: 145px;
+  min-width: 145px;
   height: 20px;
   font-family: 'Inter';
   font-style: normal;
@@ -2230,13 +2230,13 @@
   align-items: center;
   color: #121212;
   flex: none;
+  flex-shrink: 0;
   order: 0;
   flex-grow: 0;
 }
 
 .onboarding-step5-link-input-wrapper {
   flex: 1;
-  max-width: 286px;
   min-width: 0;
 }
 

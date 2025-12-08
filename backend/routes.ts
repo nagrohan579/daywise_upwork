@@ -7224,10 +7224,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
         ],
         mode: 'payment',
-        // Only use 'card' for connected accounts - it's universally supported
-        // Apple Pay is automatically available when 'card' is enabled
-        // Other payment methods (affirm, klarna, etc.) must be enabled per connected account
-        // and may not be available, so we only specify 'card' to avoid errors
+        // Explicitly specify 'card' for connected accounts - it's always available
+        // and ensures the checkout session has at least one valid payment method.
+        // Apple Pay is automatically available when 'card' is enabled.
         payment_method_types: ['card'],
         success_url: successUrl,
         cancel_url: cancelUrl,
@@ -7247,7 +7246,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json({ url: checkoutSession.url, sessionId: checkoutSession.id });
     } catch (error: any) {
       console.error('Error creating booking checkout session:', error);
-      return res.status(500).json({ message: error.message || "Failed to create checkout session" });
+      
+      // Provide helpful error message for payment method issues
+      let errorMessage = error.message || "Failed to create checkout session";
+      if (error.type === 'StripeInvalidRequestError' && error.param === 'payment_method_types') {
+        errorMessage = "Card payments are not enabled for your Stripe account. Please enable card payments in your Stripe Dashboard at Settings > Payment methods, then try again.";
+      }
+      
+      return res.status(500).json({ message: errorMessage });
     }
   });
 

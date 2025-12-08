@@ -1,7 +1,6 @@
-import { Button, Rows, Text, Title, Box, FormField, Dropdown, Columns, Link } from "@canva/app-ui-kit";
-import { auth } from "@canva/user";
-import { requestOpenExternalUrl } from "@canva/platform";
-import { useState, useEffect } from "react";
+import { Button, Rows, Text, Title, Box, FormField, Select, Columns, Link } from "@canva/app-ui-kit";
+import { auth, type AccessTokenResponse } from "@canva/user";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import * as styles from "styles/components.css";
 
 // Import logo and preview - using assets alias
@@ -31,6 +30,9 @@ type TimeSlot = {
 };
 
 export const App = () => {
+  // Initialize Canva OAuth client for Google authentication
+  const oauth = useMemo(() => auth.initOauth(), []);
+  
   const [authState, setAuthState] = useState<AuthState>('preview');
   const [user, setUser] = useState<any>(null);
   const [error, setError] = useState('');
@@ -96,53 +98,59 @@ export const App = () => {
     }
   };
 
-  const handleConnect = async () => {
+  const handleConnect = useCallback(async () => {
     setAuthState('authenticating');
     setError('');
 
     try {
-      // Get Canva token to include in the OAuth URL
-      const canvaToken = await auth.getCanvaUserToken();
+      // Request authorization from Canva's OAuth provider (Google)
+      // This will open Canva's authorization UI if not already authorized
+      const scope = new Set(["openid", "email", "profile"]);
+      await oauth.requestAuthorization({ scope });
       
-      // Build the Google OAuth URL with Canva token as a parameter
-      // The backend will handle the OAuth flow and link the account
-      const backendHost = BACKEND_HOST || 'http://localhost:3000';
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const oauthUrl = `${backendHost}/api/canva/auth/google/start?canvaToken=${encodeURIComponent(canvaToken)}&timezone=${encodeURIComponent(timezone)}&country=US`;
+      // Get the access token from Canva (Google access token)
+      const tokenResponse: AccessTokenResponse = await oauth.getAccessToken({ scope });
       
-      // Open Google OAuth in external browser
-      const response = await requestOpenExternalUrl({ url: oauthUrl });
-      
-      if (response.status === 'aborted') {
-        setAuthState('connect');
-        setError('Authentication cancelled');
-        return;
+      if (!tokenResponse || !tokenResponse.token) {
+        throw new Error('Failed to get access token');
       }
 
-      // Poll for auth status after OAuth completes
-      // The user will complete OAuth in the external browser, then we check if they're authenticated
-      let pollCount = 0;
-      const maxPolls = 30; // Poll for up to 30 seconds
+      // Get Canva user token for backend authentication
+      const canvaToken = await auth.getCanvaUserToken();
       
-      const pollInterval = setInterval(async () => {
-        pollCount++;
-        const isAuthenticated = await checkAuthStatus();
-        
-        if (isAuthenticated || pollCount >= maxPolls) {
-          clearInterval(pollInterval);
-          if (!isAuthenticated && pollCount >= maxPolls) {
-            setError('Authentication timeout. Please try again.');
-            setAuthState('connect');
-          }
-        }
-      }, 1000); // Poll every second
+      // Send Google access token to backend to link account
+      const backendHost = BACKEND_HOST || 'http://localhost:3000';
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      
+      const res = await fetch(`${backendHost}/api/canva/auth/google`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${canvaToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          googleToken: tokenResponse.token, // Google access token from Canva OAuth
+          timezone: timezone,
+          country: 'US'
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Authentication failed');
+      }
+
+      // Successfully authenticated
+      setUser(data.user);
+      setAuthState('authenticated');
       
     } catch (err: any) {
       console.error('Google auth error:', err);
       setError(err.message || 'Authentication failed');
       setAuthState('connect');
     }
-  };
+  }, [oauth]);
 
   const fetchAppointmentTypes = async () => {
     setLoadingAppointmentTypes(true);
@@ -484,7 +492,7 @@ export const App = () => {
               label="Select Appointment Type"
               value={selectedAppointmentType?.name || ''}
               control={(props) => (
-                <Dropdown
+                <Select
                   {...props}
                   options={appointmentTypes.map(type => ({
                     value: type._id,

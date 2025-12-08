@@ -199,6 +199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Google OAuth Login (auto-links to Canva if not already linked)
+  // Accepts either Google ID token or access token from Canva OAuth
   app.post("/api/canva/auth/google", canvaJwtMiddleware, async (req, res) => {
     try {
       const { userId: canvaUserId, brandId } = req.canva!;
@@ -208,23 +209,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Google token required" });
       }
 
-      // Verify Google token and get user info
-      const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+      let googleId: string;
+      let email: string;
+      let name: string;
+      let picture: string | undefined;
 
-      const ticket = await client.verifyIdToken({
-        idToken: googleToken,
-        audience: process.env.GOOGLE_CLIENT_ID,
-      });
+      // Try to verify as ID token first
+      try {
+        const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+        const ticket = await client.verifyIdToken({
+          idToken: googleToken,
+          audience: process.env.GOOGLE_CLIENT_ID,
+        });
 
-      const payload = ticket.getPayload();
-      if (!payload) {
-        return res.status(401).json({ message: "Invalid Google token" });
+        const payload = ticket.getPayload();
+        if (!payload) {
+          throw new Error("Invalid ID token payload");
+        }
+
+        googleId = payload.sub;
+        email = payload.email!;
+        name = payload.name!;
+        picture = payload.picture;
+      } catch (idTokenError) {
+        // If ID token verification fails, try using it as an access token
+        // to get user info from Google's userinfo endpoint
+        try {
+          const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: {
+              'Authorization': `Bearer ${googleToken}`
+            }
+          });
+
+          if (!userInfoResponse.ok) {
+            throw new Error('Failed to get user info from Google');
+          }
+
+          const userInfo = await userInfoResponse.json();
+          googleId = userInfo.id;
+          email = userInfo.email;
+          name = userInfo.name;
+          picture = userInfo.picture;
+        } catch (accessTokenError) {
+          console.error('Token verification error:', { idTokenError, accessTokenError });
+          return res.status(401).json({ message: "Invalid Google token" });
+        }
       }
-
-      const googleId = payload.sub;
-      const email = payload.email!;
-      const name = payload.name!;
-      const picture = payload.picture;
 
       // Check if user exists by Google ID
       let user = await storage.getUserByGoogleId(googleId);
@@ -7194,6 +7224,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
         ],
         mode: 'payment',
+        payment_method_types: [
+          'card',        // Cards (Enabled)
+          'apple_pay',   // Apple Pay (Enabled)
+          'link',        // Link (Enabled)
+          'bancontact', // Bancontact (Enabled - Belgium)
+          'eps',         // EPS (Enabled - Austria)
+          'affirm',      // Affirm (Enabled - US)
+          'klarna',      // Klarna (Enabled)
+        ],
         success_url: successUrl,
         cancel_url: cancelUrl,
         payment_intent_data: {

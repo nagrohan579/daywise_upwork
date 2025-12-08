@@ -7225,8 +7225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ],
         mode: 'payment',
         payment_method_types: [
-          'card',        // Cards (Enabled)
-          'apple_pay',   // Apple Pay (Enabled)
+          'card',        // Cards (Enabled) - Apple Pay is automatically available with cards
           'link',        // Link (Enabled)
           'bancontact', // Bancontact (Enabled - Belgium)
           'eps',         // EPS (Enabled - Austria)

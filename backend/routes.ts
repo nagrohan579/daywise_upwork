@@ -7224,14 +7224,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
         ],
         mode: 'payment',
-        // Payment methods compatible with USD currency for connected accounts
-        // Note: Stripe will automatically filter out incompatible methods
+        // Only use 'card' for connected accounts - it's universally supported
         // Apple Pay is automatically available when 'card' is enabled
-        payment_method_types: [
-          'card',   // Cards - works with USD, includes Apple Pay automatically
-          'affirm', // Affirm - Buy Now Pay Later, works with USD (US/Canada)
-          'klarna', // Klarna - Buy Now Pay Later, works with USD
-        ],
+        // Other payment methods (affirm, klarna, etc.) must be enabled per connected account
+        // and may not be available, so we only specify 'card' to avoid errors
+        payment_method_types: ['card'],
         success_url: successUrl,
         cancel_url: cancelUrl,
         payment_intent_data: {

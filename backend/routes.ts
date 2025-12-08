@@ -7109,11 +7109,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Only clear credentials if deauthorization succeeded
       if (deauthorizationSucceeded) {
+        // Clear Stripe fields by setting to null - the update mutation will properly remove them
         await storage.updateUser(user._id, {
-          stripeAccountId: undefined,
-          stripeAccessToken: undefined,
-          stripeRefreshToken: undefined,
-          stripeScope: undefined,
+          stripeAccountId: null as any,
+          stripeAccessToken: null as any,
+          stripeRefreshToken: null as any,
+          stripeScope: null as any,
         });
 
         console.log(`✅ Stripe credentials cleared for user: ${userId}`);

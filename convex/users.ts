@@ -122,7 +122,28 @@ export const update = mutation({
     updates: v.any(), // Partial updates
   },
   handler: async (ctx, { id, updates }) => {
-    await ctx.db.patch(id, updates);
+    // If updates contain null values for optional fields, use replace to properly clear them
+    const hasNullFields = Object.values(updates).some(v => v === null);
+    if (hasNullFields) {
+      const existing = await ctx.db.get(id);
+      if (!existing) {
+        throw new Error("User not found");
+      }
+      // Build replacement: start with existing, apply updates, but omit null fields
+      const replacement: any = { ...existing };
+      for (const [key, value] of Object.entries(updates)) {
+        if (value === null) {
+          // Remove the field by setting to undefined (Convex will omit it)
+          delete replacement[key];
+        } else {
+          replacement[key] = value;
+        }
+      }
+      await ctx.db.replace(id, replacement);
+    } else {
+      // Normal patch for non-null updates
+      await ctx.db.patch(id, updates);
+    }
     return await ctx.db.get(id);
   },
 });

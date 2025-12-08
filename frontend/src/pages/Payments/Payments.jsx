@@ -114,9 +114,12 @@ const Payments = () => {
       const data = await response.json();
 
       if (response.ok && data.success) {
+        // Reset state immediately
         setIsConnected(false);
         setStripeAccountId(null);
         toast.success(data.message || 'Stripe account disconnected successfully');
+        // Refetch status to ensure UI is in sync with backend
+        await fetchStripeStatus();
       } else {
         // Show the actual error message from the backend
         const errorMessage = data.message || data.error || 'Failed to disconnect Stripe account';

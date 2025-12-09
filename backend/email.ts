@@ -3,6 +3,7 @@ import sgMail from '@sendgrid/mail';
 // Email configuration - NO DEFAULTS, MUST BE CONFIGURED
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL;
+const DAYWISE_LOGO_URL = process.env.DAYWISE_LOGO_URL;
 
 // Validate email configuration on startup
 if (!SENDGRID_API_KEY) {
@@ -82,6 +83,24 @@ function renderLogoSection(logoUrl?: string, businessName?: string) {
       <tr>
         <td align="center" style="padding: 20px 20px 0 20px;">
           <img src="${logoUrl}" alt="${safeBusinessName} Logo" width="150" style="max-width: 150px; width: 150px; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;" />
+        </td>
+      </tr>
+    </table>`;
+}
+
+function renderPlatformLogoSection() {
+  if (!DAYWISE_LOGO_URL) {
+    return '';
+  }
+
+  // Use table-based layout for better email client compatibility (Gmail, Outlook, Apple Mail)
+  // This ensures consistent centering and sizing across all email clients
+  // Fixed width and height to prevent email clients from resizing
+  return `
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 40px;">
+      <tr>
+        <td align="center" style="padding: 0;">
+          <img src="${DAYWISE_LOGO_URL}" alt="Daywise Logo" width="150" style="max-width: 150px; width: 150px; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;" />
         </td>
       </tr>
     </table>`;
@@ -602,11 +621,7 @@ export async function sendVerificationEmail(email: string, name: string, verific
       </head>
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         
-        <div style="text-align: center; margin-bottom: 40px;">
-          <div style="display: inline-block; width: 60px; height: 60px; background: #0053F1; border-radius: 12px; color: white; font-weight: bold; font-size: 24px; line-height: 60px;">
-            LOGO
-          </div>
-        </div>
+        ${renderPlatformLogoSection()}
 
         <div style="background: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
           
@@ -668,11 +683,7 @@ export async function sendPasswordResetEmail(email: string, name: string, resetU
       </head>
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         
-        <div style="text-align: center; margin-bottom: 40px;">
-          <div style="display: inline-block; width: 60px; height: 60px; background: #0053F1; border-radius: 12px; color: white; font-weight: bold; font-size: 24px; line-height: 60px;">
-            DW
-          </div>
-        </div>
+        ${renderPlatformLogoSection()}
 
         <div style="background: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
           
@@ -813,11 +824,7 @@ export async function sendEmailChangeOtp(email: string, otp: string): Promise<bo
       </head>
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         
-        <div style="text-align: center; margin-bottom: 40px;">
-          <div style="display: inline-block; width: 60px; height: 60px; background: #0053F1; border-radius: 12px; color: white; font-weight: bold; font-size: 24px; line-height: 60px;">
-            ✉️
-          </div>
-        </div>
+        ${renderPlatformLogoSection()}
 
         <div style="background: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
           
@@ -870,11 +877,7 @@ export async function sendPasswordChangeOtp(email: string, otp: string): Promise
       </head>
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         
-        <div style="text-align: center; margin-bottom: 40px;">
-          <div style="display: inline-block; width: 60px; height: 60px; background: #0053F1; border-radius: 12px; color: white; font-weight: bold; font-size: 24px; line-height: 60px;">
-            🔒
-          </div>
-        </div>
+        ${renderPlatformLogoSection()}
 
         <div style="background: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
           

@@ -906,8 +906,10 @@ const BookingsPage = () => {
                       <div className={`booking-card ${booking.status === 'cancelled' ? 'booking-cancelled' : ''}`} key={`upcoming-${booking._id || index}`}>
                     <div className="left">
                       <div className="top">
-                        <span style={{ backgroundColor: booking.color }} />
-                        <h3>{booking.title}</h3>
+                        <div className="wrap">
+                          <span style={{ backgroundColor: booking.color }} />
+                          <h3>{booking.title}</h3>
+                        </div>
                       </div>
 
                       <div className="bottom">
@@ -1052,8 +1054,10 @@ const BookingsPage = () => {
                       <div className={`booking-card ${booking.status === 'cancelled' ? 'booking-cancelled' : ''}`} key={`past-${booking._id || index}`}>
                     <div className="left">
                       <div className="top">
-                        <span style={{ backgroundColor: booking.color }} />
-                        <h3>{booking.title}</h3>
+                        <div className="wrap">
+                          <span style={{ backgroundColor: booking.color }} />
+                          <h3>{booking.title}</h3>
+                        </div>
                       </div>
 
                       <div className="bottom">

@@ -109,18 +109,77 @@
 /* Remove default look in Firefox */
 .week-time-range .time-range-wrap .time-edit-fields input[type="time"] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
-/* ✅ Style cleanup */
+/* ✅ Style cleanup - Override global Input.css styles */
 .week-time-range .time-range-wrap .time-edit-fields input[type="time"] {
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: 14px;
-  color: #0f172a;
-  width: 90px;
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  font-size: 14px !important;
+  color: #0f172a !important;
+  width: 90px !important;
   position: relative;
   z-index: 1;
   cursor: pointer;
+  /* Override global Input.css mobile styles */
+  padding: 0 !important;
+  height: auto !important;
+  min-height: auto !important;
+  line-height: 20px !important;
+  border-radius: 0 !important;
+  appearance: textfield !important;
+  -webkit-appearance: textfield !important;
+  -moz-appearance: textfield !important;
+}
+
+/* Mobile: Keep desktop styles exactly, only make responsive (no horizontal scroll) */
+@media (max-width: 991px) {
+  .week-time-range {
+    width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+  
+  .week-time-range .wrapper {
+    width: 100%;
+    min-width: 0;
+    gap: 18px; /* Same as desktop */
+    flex-wrap: nowrap;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+  
+  .week-time-range .wrapper span.days {
+    flex-shrink: 0;
+  }
+  
+  .week-time-range .wrapper .time-range-wrap {
+    flex: none;
+    min-width: 185px;
+    width: auto;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+  
+  .week-time-range .time-range-wrap .time-edit-fields {
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+  
+  /* Prevent auto-zoom on mobile while keeping desktop appearance */
+  .week-time-range .time-range-wrap .time-edit-fields input[type="time"] {
+    font-size: 16px !important; /* Minimum to prevent auto-zoom */
+    -webkit-text-size-adjust: 100% !important;
+  }
+  
+  .week-time-range .wrapper .time-range-wrap > span {
+    flex-shrink: 0;
+  }
+  
+  .week-time-range .wrapper > span:last-child {
+    flex-shrink: 0;
+  }
 }
 

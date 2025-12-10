@@ -828,8 +828,9 @@
   flex-direction: row;
   align-items: center;
   padding: 0px;
-  gap: 18px;
-  width: 269px;
+  gap: 8px;
+  width: 100%;
+  min-width: 269px;
   height: 36px;
   flex: none;
   order: 0;
@@ -895,10 +896,12 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 8px;
+  padding: 0;
   gap: 12px;
-  width: 183px;
-  height: 36px;
+  width: fit-content;
+  min-width: 183px;
+  min-height: 36px;
+  height: auto;
   background: #F9FAFF;
   border-radius: 12px;
   flex: none;
@@ -912,8 +915,10 @@
   align-items: center;
   gap: 8px;
   color: #121212;
-  flex: 1;
+  flex: none;
+  width: fit-content;
   height: 100%;
+  min-height: 20px;
 }
 
 .onboarding-step2-time-edit-fields span {
@@ -925,6 +930,7 @@
   align-items: center;
   height: 100%;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .onboarding-step2-time-input {
@@ -938,6 +944,14 @@
   color: #121212;
   width: 67px;
   cursor: pointer;
+  padding: 0;
+  margin: 0;
+  height: auto;
+  min-height: auto;
+  /* Override global Input.css styles */
+  appearance: textfield !important;
+  -webkit-appearance: textfield !important;
+  -moz-appearance: textfield !important;
 }
 
 .onboarding-step2-time-input::-webkit-calendar-picker-indicator {
@@ -948,21 +962,17 @@
   cursor: pointer;
 }
 
-.onboarding-step2-time-input {
-  -moz-appearance: textfield;
-  appearance: none;
-}
-
 .onboarding-step2-remove-icon {
   width: 12px;
   height: 12px;
   flex: none;
-  order: 1;
+  order: 2;
   flex-grow: 0;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-left: 8px;
 }
 
 .onboarding-step2-add-icon {
@@ -1042,6 +1052,50 @@
 .onboarding-step2-continue-button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* Mobile: Fix AM/PM visibility and height alignment */
+@media (max-width: 991px) {
+  .onboarding-step2-time-input {
+    width: auto !important;
+    min-width: 110px !important;
+    max-width: none;
+    font-size: 16px !important;
+    -webkit-text-size-adjust: 100% !important;
+    /* Override global Input.css mobile styles */
+    padding: 0 !important;
+    margin: 0 !important;
+    height: auto !important;
+    min-height: auto !important;
+    line-height: 20px !important;
+    background-color: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    appearance: textfield !important;
+    -webkit-appearance: textfield !important;
+    -moz-appearance: textfield !important;
+  }
+
+  .onboarding-step2-time-range {
+    height: auto !important;
+    min-height: 36px;
+    width: fit-content !important;
+    min-width: 183px;
+    flex: none !important;
+    flex-grow: 0 !important;
+  }
+
+  .onboarding-step2-time-edit-fields {
+    height: 100%;
+    align-items: center;
+  }
+
+  .onboarding-step2-time-edit-fields span {
+    height: auto !important;
+    line-height: 20px !important;
+    display: flex !important;
+    align-items: center !important;
+  }
 }
 
 .onboarding-step2-continue-button:not(:disabled) {

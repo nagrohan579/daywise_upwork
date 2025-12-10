@@ -697,29 +697,31 @@ const Onboarding = () => {
                   {hasAvailability ? (
                     <>
                       {timeRanges.map((range, rangeIndex) => (
-                        <div key={rangeIndex} className="onboarding-step2-time-range">
-                          <div className="onboarding-step2-time-edit-fields">
-                            <input
-                              type="time"
-                              value={range.start}
-                              onChange={(e) => {
-                                const updated = [...timeRanges];
-                                updated[rangeIndex].start = e.target.value;
-                                handleDayChange(dayName, updated);
-                              }}
-                              className="onboarding-step2-time-input"
-                            />
-                            <span> - </span>
-                            <input
-                              type="time"
-                              value={range.end}
-                              onChange={(e) => {
-                                const updated = [...timeRanges];
-                                updated[rangeIndex].end = e.target.value;
-                                handleDayChange(dayName, updated);
-                              }}
-                              className="onboarding-step2-time-input"
-                            />
+                        <>
+                          <div key={rangeIndex} className="onboarding-step2-time-range">
+                            <div className="onboarding-step2-time-edit-fields">
+                              <input
+                                type="time"
+                                value={range.start}
+                                onChange={(e) => {
+                                  const updated = [...timeRanges];
+                                  updated[rangeIndex].start = e.target.value;
+                                  handleDayChange(dayName, updated);
+                                }}
+                                className="onboarding-step2-time-input"
+                              />
+                              <span> - </span>
+                              <input
+                                type="time"
+                                value={range.end}
+                                onChange={(e) => {
+                                  const updated = [...timeRanges];
+                                  updated[rangeIndex].end = e.target.value;
+                                  handleDayChange(dayName, updated);
+                                }}
+                                className="onboarding-step2-time-input"
+                              />
+                            </div>
                           </div>
                           <span
                             className="onboarding-step2-remove-icon"
@@ -730,7 +732,7 @@ const Onboarding = () => {
                           >
                             <RxCross2 color="#64748B" size={12} />
                           </span>
-                        </div>
+                        </>
                       ))}
                     </>
                   ) : (

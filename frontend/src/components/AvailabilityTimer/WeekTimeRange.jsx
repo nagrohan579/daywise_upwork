@@ -91,10 +91,6 @@ const WeekTimeRange = ({ day, dayName, timeRanges: propTimeRanges, onChange }) =
                 <RxCross2 color="#64748B" />
               </span>
             </div>
-
-            <span onClick={handleAdd} style={{ cursor: "pointer" }}>
-              <PlusIcon />
-            </span>
           </div>
         ))
       ) : (

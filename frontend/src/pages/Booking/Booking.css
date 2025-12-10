@@ -302,16 +302,30 @@
 }
 .booking-page .booking-detail-con .booking-card .top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   margin-bottom: 8px;
 }
+.booking-page .booking-detail-con .booking-card .top .wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
 .booking-page .booking-detail-con .booking-card .top span {
-  background-color: #f19b11;
+  display: inline-block;
   width: 11px;
   height: 11px;
+  min-width: 11px;
+  min-height: 11px;
+  max-width: 11px;
+  max-height: 11px;
+  background-color: #f19b11;
   border-radius: 50%;
-  display: flex;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
+  margin-top: 8px;
 }
 .booking-page .booking-detail-con .booking-card .top h3 {
   font-family: Inter;
@@ -323,6 +337,11 @@
   vertical-align: middle;
   color: #121212;
   margin: 0;
+  text-align: left;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  flex: 1;
+  min-width: 0;
 }
 .booking-page .booking-detail-con .booking-card .bottom {
   display: flex;

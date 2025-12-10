@@ -199,9 +199,50 @@
 @media screen and (max-width: 991px) {
   .availability-page {
     margin-top: 42px;
+    width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
   }
+  
   .availability-page .top-con {
-    margin-bottom: 20px;
+    margin-bottom: 60px; /* Same as desktop */
+    flex-wrap: wrap;
+    gap: 0; /* Same as desktop (no gap) */
+    width: 100%;
+    box-sizing: border-box;
+    padding-bottom: 24px; /* Same as desktop */
+  }
+  
+  .availability-page .top-con .wrap {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .availability-page .top-con .wrap h1 {
+    font-size: 22px; /* Same as desktop */
+    line-height: 36px; /* Same as desktop */
+  }
+  
+  .availability-page .top-con .wrap p {
+    font-size: 14px; /* Same as desktop */
+    line-height: 20px; /* Same as desktop */
+  }
+  
+  /* Ensure Save Changes button fits on mobile */
+  .availability-page .top-con .btn-comp {
+    flex-shrink: 0;
+  }
+  
+  .availability-con {
+    width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+  
+  .availability-con .time-range-con {
+    width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
   }
 }
 @media screen and (max-width: 1001px) {
@@ -209,24 +250,28 @@
 @media screen and (max-width: 768px) {
   .availability-con .top-wrapper {
     flex-direction: column;
+    width: 100%;
+    overflow-x: hidden;
   }
   .availability-con .top-wrapper .weekHour-con {
     width: 100%;
     margin-bottom: 40px;
+    overflow-x: hidden;
   }
   .availability-con .top-wrapper .datespecific-con{
     align-items: start;
-  }
-  .availability-con .top-wrapper .datespecific-con{
     width: 100%;
+    overflow-x: hidden;
   }
   .availability-con .datespecific-con .top-content{
     width: 100%;
+    overflow-x: hidden;
   }
   .availability-con .datespecific-con .top-content .parent-wrap{
     justify-content: space-between;
     width: 100%;
     gap: 12px;
+    overflow-x: hidden;
   }
   .availability-page .top-con .wrap h1{
     font-size: 18px;

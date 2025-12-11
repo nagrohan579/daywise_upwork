@@ -108,9 +108,37 @@ export const App = () => {
       const scope = new Set(["openid", "email", "profile"]);
       await oauth.requestAuthorization({ scope });
       
-      // After authorization, Canva will have the tokens
-      // Now check if user is authenticated by checking auth status
-      // This will also link the Canva user to the Google account if needed
+      // Get Google access token from Canva and send to backend to link Canva user
+      const tokenResponse: AccessTokenResponse = await oauth.getAccessToken({ scope });
+      if (!tokenResponse || !tokenResponse.token) {
+        throw new Error('Failed to get access token');
+      }
+
+      // Get Canva user token for backend authentication
+      const canvaToken = await auth.getCanvaUserToken();
+
+      const backendHost = BACKEND_HOST || 'http://localhost:3000';
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+      const res = await fetch(`${backendHost}/api/canva/auth/google`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${canvaToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          googleToken: tokenResponse.token, // Google access token from Canva OAuth
+          timezone: timezone,
+          country: 'US'
+        })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || 'Authentication failed');
+      }
+
+      // After linking, check auth status
       await checkAuthStatus();
       
     } catch (err: any) {

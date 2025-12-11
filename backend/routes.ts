@@ -192,6 +192,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      console.warn('[Canva Auth Status] Canva user not linked yet', { canvaUserId, brandId });
+
       // If not linked, try to find user by Google account that was just authenticated
       // This handles the case where OAuth completed but Canva user isn't linked yet
       // We can't directly query for "recently authenticated Google users" without additional tracking,

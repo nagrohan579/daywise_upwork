@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import jwksClient, { JwksClient } from 'jwks-rsa';
+import jwksClient from 'jwks-rsa';
 import { Request, Response, NextFunction } from 'express';
 
 // Extend Express Request type to include Canva user info
@@ -15,26 +15,26 @@ declare global {
   }
 }
 
-export function createJwtMiddleware(defaultAppId?: string) {
-  // Create a cache for JWKS clients per appId
-  const jwksClients = new Map<string, JwksClient>();
-
-  function getJwksClient(appId: string): jwksClient.JwksClient {
-    if (!jwksClients.has(appId)) {
-      const client = jwksClient({
-        jwksUri: `https://api.canva.com/rest/v1/apps/${appId}/jwks`,
-        cache: true,
-        cacheMaxAge: 86400000, // 24 hours
-        rateLimit: true,
-        jwksRequestsPerMinute: 10,
-      });
-      jwksClients.set(appId, client);
-    }
-    return jwksClients.get(appId)!;
+export function createJwtMiddleware(appId: string) {
+  if (!appId) {
+    throw new Error('CANVA_APP_ID environment variable is required. Please set it in your backend .env file.');
   }
 
-  function getKey(appId: string, header: any, callback: any) {
-    const client = getJwksClient(appId);
+  console.log(`[Canva JWT] Initializing middleware with appId: ${appId}`);
+
+  const client = jwksClient({
+    jwksUri: `https://api.canva.com/rest/v1/apps/${appId}/jwks`,
+    cache: true,
+    cacheMaxAge: 86400000, // 24 hours
+    rateLimit: true,
+    jwksRequestsPerMinute: 10,
+  });
+
+  function getKey(header: any, callback: any) {
+    if (!header?.kid) {
+      return callback(new Error('Missing kid in token header'), undefined);
+    }
+
     client.getSigningKey(header.kid, (err, key) => {
       if (err) {
         console.error('[Canva JWT] Failed to get signing key', {
@@ -46,7 +46,7 @@ export function createJwtMiddleware(defaultAppId?: string) {
         return callback(err, undefined);
       }
       const signingKey = key?.getPublicKey();
-      callback(err, signingKey);
+      callback(null, signingKey);
     });
   }
 
@@ -60,10 +60,10 @@ export function createJwtMiddleware(defaultAppId?: string) {
     const token = authHeader.substring(7); // Remove 'Bearer '
 
     try {
-      // Decode token without verification to extract appId
+      // Decode token header to check algorithm
       const decodedHeader = jwt.decode(token, { complete: true }) as any;
-      if (!decodedHeader?.header || !decodedHeader?.payload) {
-        console.error('[Canva JWT] Invalid token structure');
+      if (!decodedHeader?.header) {
+        console.error('[Canva JWT] Invalid token structure - missing header');
         return res.status(401).json({ message: 'Invalid token' });
       }
 
@@ -73,27 +73,33 @@ export function createJwtMiddleware(defaultAppId?: string) {
         return res.status(401).json({ message: 'Invalid token' });
       }
 
-      // Extract appId from token payload (or use default from env)
-      const tokenAppId = decodedHeader.payload.appId || defaultAppId;
-      
-      if (!tokenAppId) {
-        console.error('[Canva JWT] No appId found in token and CANVA_APP_ID not set');
-        return res.status(401).json({ message: 'Invalid token: missing appId' });
-      }
-
-      // Verify token using the appId from the token
+      // Verify token using CANVA_APP_ID from environment
+      // The token's 'aud' (audience) field should match the appId
       const decoded = await new Promise<any>((resolve, reject) => {
-        jwt.verify(token, (header, callback) => getKey(tokenAppId, header, callback), { 
-          algorithms: ['RS256'] 
+        jwt.verify(token, getKey, { 
+          algorithms: ['RS256'],
+          audience: appId, // Verify the audience matches our appId
         }, (err, decoded) => {
           if (err) reject(err);
           else resolve(decoded);
         });
       });
 
+      // Canva JWT payload structure: { aud, userId, brandId, ... }
+      // aud is the appId, not a separate appId field
+      if (!decoded.userId || !decoded.brandId) {
+        console.error('[Canva JWT] Missing required fields in token payload', {
+          hasUserId: !!decoded.userId,
+          hasBrandId: !!decoded.brandId,
+          aud: decoded.aud,
+        });
+        return res.status(401).json({ message: 'Invalid token: missing required fields' });
+      }
+
       // Attach Canva user info to request
+      // Use 'aud' from token as appId (it should match the env var, but use what's in token)
       req.canva = {
-        appId: decoded.appId,
+        appId: decoded.aud || appId, // Use aud from token, fallback to env appId
         userId: decoded.userId,
         brandId: decoded.brandId
       };
@@ -103,7 +109,7 @@ export function createJwtMiddleware(defaultAppId?: string) {
       console.error('[Canva JWT] verification failed', {
         message: (error as any)?.message,
         name: (error as any)?.name,
-        defaultAppId,
+        appId,
       });
       return res.status(401).json({ message: 'Invalid token' });
     }

@@ -37,7 +37,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================
   // CANVA JWT MIDDLEWARE
   // ============================================
-  const canvaJwtMiddleware = createJwtMiddleware(process.env.CANVA_APP_ID || '');
+  const canvaAppId = process.env.CANVA_APP_ID;
+  if (!canvaAppId) {
+    console.error('⚠️  CANVA_APP_ID is not set in backend .env file. Canva JWT verification will fail.');
+    console.error('   Please add CANVA_APP_ID=your-app-id to your backend/.env file');
+    console.error('   You can find your App ID in the Canva Developer Portal');
+    throw new Error('CANVA_APP_ID environment variable is required. Please set it in backend/.env');
+  }
+  const canvaJwtMiddleware = createJwtMiddleware(canvaAppId);
 
   // Initialize dayjs plugins
   dayjs.extend(utc);

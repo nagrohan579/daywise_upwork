@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import jwksClient from 'jwks-rsa';
+import jwksClient, { JwksClient } from 'jwks-rsa';
 import { Request, Response, NextFunction } from 'express';
 
 // Extend Express Request type to include Canva user info
@@ -15,21 +15,32 @@ declare global {
   }
 }
 
-export function createJwtMiddleware(appId: string) {
-  if (!appId) {
-    console.warn('[Canva JWT] Missing CANVA_APP_ID. JWT verification will fail.');
+export function createJwtMiddleware(defaultAppId?: string) {
+  // Create a cache for JWKS clients per appId
+  const jwksClients = new Map<string, JwksClient>();
+
+  function getJwksClient(appId: string): jwksClient.JwksClient {
+    if (!jwksClients.has(appId)) {
+      const client = jwksClient({
+        jwksUri: `https://api.canva.com/rest/v1/apps/${appId}/jwks`,
+        cache: true,
+        cacheMaxAge: 86400000, // 24 hours
+        rateLimit: true,
+        jwksRequestsPerMinute: 10,
+      });
+      jwksClients.set(appId, client);
+    }
+    return jwksClients.get(appId)!;
   }
 
-  const client = jwksClient({
-    jwksUri: `https://api.canva.com/rest/v1/apps/${appId}/jwks`
-  });
-
-  function getKey(header: any, callback: any) {
+  function getKey(appId: string, header: any, callback: any) {
+    const client = getJwksClient(appId);
     client.getSigningKey(header.kid, (err, key) => {
       if (err) {
         console.error('[Canva JWT] Failed to get signing key', {
           kid: header?.kid,
           alg: header?.alg,
+          appId,
           error: err?.message,
         });
         return callback(err, undefined);
@@ -49,9 +60,10 @@ export function createJwtMiddleware(appId: string) {
     const token = authHeader.substring(7); // Remove 'Bearer '
 
     try {
+      // Decode token without verification to extract appId
       const decodedHeader = jwt.decode(token, { complete: true }) as any;
-      if (!decodedHeader?.header) {
-        console.error('[Canva JWT] Invalid token header');
+      if (!decodedHeader?.header || !decodedHeader?.payload) {
+        console.error('[Canva JWT] Invalid token structure');
         return res.status(401).json({ message: 'Invalid token' });
       }
 
@@ -61,8 +73,19 @@ export function createJwtMiddleware(appId: string) {
         return res.status(401).json({ message: 'Invalid token' });
       }
 
+      // Extract appId from token payload (or use default from env)
+      const tokenAppId = decodedHeader.payload.appId || defaultAppId;
+      
+      if (!tokenAppId) {
+        console.error('[Canva JWT] No appId found in token and CANVA_APP_ID not set');
+        return res.status(401).json({ message: 'Invalid token: missing appId' });
+      }
+
+      // Verify token using the appId from the token
       const decoded = await new Promise<any>((resolve, reject) => {
-        jwt.verify(token, getKey, { algorithms: ['RS256'] }, (err, decoded) => {
+        jwt.verify(token, (header, callback) => getKey(tokenAppId, header, callback), { 
+          algorithms: ['RS256'] 
+        }, (err, decoded) => {
           if (err) reject(err);
           else resolve(decoded);
         });
@@ -80,7 +103,7 @@ export function createJwtMiddleware(appId: string) {
       console.error('[Canva JWT] verification failed', {
         message: (error as any)?.message,
         name: (error as any)?.name,
-        appId,
+        defaultAppId,
       });
       return res.status(401).json({ message: 'Invalid token' });
     }

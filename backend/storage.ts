@@ -760,10 +760,10 @@ export const storage = {
     return await convex.mutation(api.users.update, {
       id: userId as Id<"users">,
       updates: {
-        canvaUserId: undefined,
-        canvaBrandId: undefined,
-        canvaLinkedAt: undefined,
-        lastCanvaAccess: undefined,
+        canvaUserId: null, // Use null so Convex removes the field
+        canvaBrandId: null,
+        canvaLinkedAt: null,
+        lastCanvaAccess: null,
       },
     });
   },

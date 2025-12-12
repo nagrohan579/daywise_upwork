@@ -132,6 +132,7 @@ export const App = () => {
 
       // Clear local state so user can reconnect
       setUser(null);
+      setError(''); // Clear any previous errors
       setAuthState('connect');
     } catch (err: any) {
       console.error('Disconnect error:', err);

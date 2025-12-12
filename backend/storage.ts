@@ -755,6 +755,19 @@ export const storage = {
     });
   },
 
+  // Unlink Canva from a user (remove Canva identifiers so they can reconnect)
+  async unlinkCanvaFromUser(userId: string) {
+    return await convex.mutation(api.users.update, {
+      id: userId as Id<"users">,
+      updates: {
+        canvaUserId: undefined,
+        canvaBrandId: undefined,
+        canvaLinkedAt: undefined,
+        lastCanvaAccess: undefined,
+      },
+    });
+  },
+
   // Create new DayWise user from Canva signup (email/password)
   async createUserFromCanva(data: {
     email: string;

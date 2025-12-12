@@ -527,6 +527,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Disconnect Canva account from DayWise (removes Canva link so user can reconnect)
+  app.post("/api/canva/auth/disconnect", canvaJwtMiddleware, async (req, res) => {
+    try {
+      const { userId: canvaUserId } = req.canva!;
+
+      if (!canvaUserId) {
+        return res.status(400).json({ message: "Missing Canva user ID" });
+      }
+
+      const user = await storage.getUserByCanvaId(canvaUserId);
+      if (!user) {
+        return res.status(404).json({ message: "Canva user not linked" });
+      }
+
+      await storage.unlinkCanvaFromUser(user._id);
+      console.log(`🔌 Unlinked Canva user ${canvaUserId} from DayWise user ${user._id}`);
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Canva disconnect error:', error);
+      res.status(500).json({ message: error.message || "Failed to disconnect Canva account" });
+    }
+  });
+
   // Google OAuth Start for Canva (JWT-based, no sessions)
   app.get("/api/canva/auth/google/start", async (req, res) => {
     try {

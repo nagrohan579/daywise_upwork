@@ -67,10 +67,7 @@ export const App = () => {
       // Request authorization from Canva's OAuth provider (Google)
       // Canva will handle the OAuth flow and call our token exchange endpoint
       const scope = new Set(["openid", "email", "profile"]);
-      const queryParams = new Map<string, string>([
-        ['prompt', 'select_account'], // Force Google account chooser every time
-      ]);
-      await oauth.requestAuthorization({ scope, queryParams });
+      await oauth.requestAuthorization({ scope });
       
       // Get Google access token from Canva and send to backend to link Canva user
       const tokenResponse: AccessTokenResponse = await oauth.getAccessToken({ scope });

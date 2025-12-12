@@ -64,15 +64,30 @@ export const App = () => {
     setError('');
 
     try {
-      // Request authorization from Canva's OAuth provider (Google)
-      // Canva will handle the OAuth flow and call our token exchange endpoint
       const scope = new Set(["openid", "email", "profile"]);
-      await oauth.requestAuthorization({ scope });
       
-      // Get Google access token from Canva and send to backend to link Canva user
-      const tokenResponse: AccessTokenResponse = await oauth.getAccessToken({ scope });
+      // First, deauthorize any existing OAuth connection to force account selection
+      // This ensures Google shows the account picker instead of auto-selecting
+      try {
+        await oauth.deauthorize();
+      } catch (deauthError) {
+        // Ignore errors if not already authorized - this is fine
+        console.log('No existing authorization to revoke');
+      }
+      
+      // Now request authorization - this should show Google's account picker
+      const authResponse = await oauth.requestAuthorization({ scope });
+      
+      // If user aborted, stop here
+      if (authResponse.status === 'aborted') {
+        setAuthState('connect');
+        return;
+      }
+      
+      // After authorization, get the access token
+      const tokenResponse: AccessTokenResponse | null = await oauth.getAccessToken({ scope });
       if (!tokenResponse || !tokenResponse.token) {
-        throw new Error('Failed to get access token');
+        throw new Error('Failed to get access token after authorization');
       }
 
       // Get Canva user token for backend authentication

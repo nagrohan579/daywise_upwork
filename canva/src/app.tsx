@@ -287,8 +287,55 @@ export const App = () => {
     }, 2000);
   }, [onboardingStep]);
 
-  const handleAddFormToPage = () => {
-    console.log('Add form to page');
+  const handleAddFormToPage = async () => {
+    try {
+      // Step 1: Get authenticated user's slug
+      const token = await auth.getCanvaUserToken();
+      const backendHost = BACKEND_HOST || 'http://localhost:3000';
+
+      const userResponse = await fetch(`${backendHost}/api/canva/user-slug`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!userResponse.ok) {
+        const errorData = await userResponse.json();
+        throw new Error(errorData.message || 'Failed to get user slug');
+      }
+
+      const userData = await userResponse.json();
+      const slug = userData.slug;
+
+      if (!slug) {
+        throw new Error('User does not have a booking page. Please complete your profile setup.');
+      }
+
+      // Step 2: Construct booking page URL
+      const frontendUrl = WEBAPP_FRONTEND_URL || 'https://app.daywisebooking.com';
+      const bookingPageUrl = `${frontendUrl}/${slug}`;
+
+      console.log('Adding booking form to design:', bookingPageUrl);
+
+      // Step 3: Add embed element to design
+      const { addElementAtPoint } = await import('@canva/design');
+
+      await addElementAtPoint({
+        type: 'embed',
+        url: bookingPageUrl,
+        top: 100,
+        left: 100,
+        width: 600,
+        height: 800,
+      });
+
+      console.log('✅ Booking form successfully added to design!');
+
+    } catch (err: any) {
+      console.error('Error adding form to page:', err);
+      setError(err.message || 'Failed to add booking form');
+    }
   };
 
   const handleBack = () => {
@@ -301,19 +348,102 @@ export const App = () => {
     }
   };
 
-  const handleStep2Next = () => {
-    console.log('Step 2 data:', {
-      businessName,
-      appointmentType,
-      duration,
-      timezone
-    });
-    setOnboardingStep('step3');
+  const handleStep2Next = async () => {
+    try {
+      setError('');
+      const token = await auth.getCanvaUserToken();
+      const backendHost = BACKEND_HOST || 'http://localhost:3000';
+
+      // Save business name and timezone
+      if (businessName || timezone) {
+        const updateData: any = {};
+        if (businessName) updateData.businessName = businessName;
+        if (timezone) updateData.timezone = timezone;
+
+        const userResponse = await fetch(`${backendHost}/api/canva/user/update`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(updateData)
+        });
+
+        if (!userResponse.ok) {
+          const errorData = await userResponse.json();
+          throw new Error(errorData.message || 'Failed to save business settings');
+        }
+      }
+
+      // Save appointment type only if both name and duration are provided
+      if (appointmentType && appointmentType.trim() && duration && duration.trim()) {
+        const serviceResponse = await fetch(`${backendHost}/api/canva/appointment-types`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: appointmentType.trim(),
+            description: '',
+            duration: parseInt(duration, 10),
+            bufferTime: 0,
+            price: 0,
+            color: '#F19B11',
+            isActive: true,
+          })
+        });
+
+        if (!serviceResponse.ok) {
+          const errorData = await serviceResponse.json();
+          throw new Error(errorData.message || 'Failed to save appointment type');
+        }
+      }
+
+      setOnboardingStep('step3');
+    } catch (err: any) {
+      console.error('Error saving Step 2 data:', err);
+      setError(err.message || 'Failed to save settings');
+    }
   };
 
-  const handleStep3Next = () => {
-    console.log('Step 3 data:', weeklyAvailability);
-    setOnboardingStep('step4');
+  const handleStep3Next = async () => {
+    try {
+      setError('');
+      const token = await auth.getCanvaUserToken();
+      const backendHost = BACKEND_HOST || 'http://localhost:3000';
+
+      // Convert weekly availability to backend format
+      const weeklySchedule: Record<string, { enabled: boolean; startTime: string; endTime: string }> = {};
+      for (const [day, availability] of Object.entries(weeklyAvailability)) {
+        weeklySchedule[day] = {
+          enabled: availability.enabled,
+          startTime: availability.startTime,
+          endTime: availability.endTime,
+        };
+      }
+
+      const availabilityResponse = await fetch(`${backendHost}/api/canva/availability/weekly`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          weeklySchedule
+        })
+      });
+
+      if (!availabilityResponse.ok) {
+        const errorData = await availabilityResponse.json();
+        throw new Error(errorData.message || 'Failed to save weekly availability');
+      }
+
+      setOnboardingStep('step4');
+    } catch (err: any) {
+      console.error('Error saving Step 3 data:', err);
+      setError(err.message || 'Failed to save availability');
+    }
   };
 
   const handleDayToggle = (day: string, enabled: boolean) => {

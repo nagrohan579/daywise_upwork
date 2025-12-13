@@ -774,7 +774,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get user's appointment types
-      const appointmentTypes = await storage.getAppointmentTypesByUserId(user._id);
+      const appointmentTypes = await storage.getAppointmentTypesByUser(user._id);
 
       res.json({ appointmentTypes });
     } catch (error: any) {
@@ -783,9 +783,270 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get authenticated user's slug for Canva app
+  app.get("/api/canva/user-slug", canvaJwtMiddleware, async (req, res) => {
+    try {
+      const { userId: canvaUserId } = req.canva!;
+
+      const user = await storage.getUserByCanvaId(canvaUserId);
+
+      if (!user) {
+        return res.status(404).json({
+          message: "User not found. Please complete onboarding first."
+        });
+      }
+
+      if (!user.slug) {
+        return res.status(404).json({
+          message: "User does not have a booking page. Please complete profile setup."
+        });
+      }
+
+      res.json({
+        slug: user.slug,
+        businessName: user.businessName || user.name,
+        logoUrl: user.logoUrl
+      });
+    } catch (error) {
+      console.error('Error fetching user slug:', error);
+      res.status(500).json({ message: "Failed to fetch user slug" });
+    }
+  });
+
+  // Update user business name and timezone (for Canva app)
+  app.put("/api/canva/user/update", canvaJwtMiddleware, async (req, res) => {
+    try {
+      const { userId: canvaUserId } = req.canva!;
+      const { businessName, timezone } = req.body;
+
+      const user = await storage.getUserByCanvaId(canvaUserId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const updates: any = {};
+      if (businessName !== undefined) {
+        updates.businessName = businessName;
+      }
+      if (timezone !== undefined) {
+        updates.timezone = timezone;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ message: "No valid fields to update" });
+      }
+
+      await storage.updateUser(user._id, updates);
+      const updatedUser = await storage.getUser(user._id);
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found after update" });
+      }
+
+      res.json({
+        message: "User updated successfully",
+        user: {
+          id: updatedUser._id,
+          businessName: updatedUser.businessName,
+          timezone: updatedUser.timezone,
+        }
+      });
+    } catch (error: any) {
+      console.error('Error updating user:', error);
+      res.status(500).json({ message: error.message || "Failed to update user" });
+    }
+  });
+
+  // Create appointment type (for Canva app)
+  app.post("/api/canva/appointment-types", canvaJwtMiddleware, async (req, res) => {
+    try {
+      const { userId: canvaUserId } = req.canva!;
+      const { name, description, duration, bufferTime, price, color, isActive } = req.body;
+
+      const user = await storage.getUserByCanvaId(canvaUserId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check user's plan and enforce appointment type limit
+      const features = await getUserFeatures(user._id);
+      if (features.appointmentTypeLimit !== null) {
+        const existingAppointmentTypes = await storage.getAppointmentTypesByUser(user._id);
+        const currentCount = existingAppointmentTypes.length;
+
+        if (currentCount >= features.appointmentTypeLimit) {
+          return res.status(403).json({
+            message: `Upgrade to Pro plan to add more services.`
+          });
+        }
+      }
+
+      const validation = insertAppointmentTypeSchema.safeParse({
+        userId: user._id,
+        name: name || '',
+        description: description || '',
+        duration: duration || 30,
+        bufferTimeBefore: 0,
+        bufferTime: bufferTime || 0,
+        price: price || 0,
+        color: color || '#F19B11',
+        isActive: isActive !== false,
+        sortOrder: 0,
+        requirePayment: false,
+      });
+
+      if (!validation.success) {
+        return res.status(400).json({
+          message: "Invalid appointment type data",
+          errors: validation.error.issues
+        });
+      }
+
+      const appointmentType = await storage.createAppointmentType(validation.data);
+      res.json({
+        message: "Appointment type created successfully",
+        appointmentType
+      });
+    } catch (error: any) {
+      console.error('Error creating appointment type:', error);
+      res.status(500).json({ message: error.message || "Failed to create appointment type" });
+    }
+  });
+
+  // Update weekly availability (for Canva app)
+  app.put("/api/canva/availability/weekly", canvaJwtMiddleware, async (req, res) => {
+    try {
+      const { userId: canvaUserId } = req.canva!;
+      const { weeklySchedule } = req.body;
+
+      if (!weeklySchedule || typeof weeklySchedule !== 'object') {
+        return res.status(400).json({ message: "Weekly schedule is required" });
+      }
+
+      const user = await storage.getUserByCanvaId(canvaUserId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Convert Canva format to backend format
+      // Canva format: { monday: { enabled: true, startTime: '09:00', endTime: '17:00' }, ... }
+      // Backend format: { monday: [{ start: '09:00', end: '17:00' }], ... }
+      const backendFormat: Record<string, Array<{ start: string; end: string }>> = {
+        sunday: [],
+        monday: [],
+        tuesday: [],
+        wednesday: [],
+        thursday: [],
+        friday: [],
+        saturday: [],
+      };
+
+      const dayMap: Record<string, string> = {
+        monday: 'monday',
+        tuesday: 'tuesday',
+        wednesday: 'wednesday',
+        thursday: 'thursday',
+        friday: 'friday',
+        saturday: 'saturday',
+        sunday: 'sunday',
+      };
+
+      for (const [day, availability] of Object.entries(weeklySchedule)) {
+        const normalizedDay = dayMap[day.toLowerCase()];
+        if (normalizedDay && availability && typeof availability === 'object') {
+          const avail = availability as any;
+          if (avail.enabled && avail.startTime && avail.endTime) {
+            backendFormat[normalizedDay] = [{
+              start: avail.startTime,
+              end: avail.endTime,
+            }];
+          }
+        }
+      }
+
+      const availability = await storage.updateWeeklyAvailability(user._id, backendFormat);
+      res.json({
+        message: "Weekly availability updated successfully",
+        availability,
+        count: availability.length
+      });
+    } catch (error: any) {
+      console.error("Error updating weekly availability:", error);
+      res.status(500).json({
+        message: "Failed to update weekly availability",
+        error: error.message || "Unknown error"
+      });
+    }
+  });
+
   // ============================================
   // END CANVA APP ROUTES
   // ============================================
+
+  // ============================================
+  // oEmbed Endpoint for Canva Embed Support
+  // ============================================
+
+  app.get("/api/oembed", async (req, res) => {
+    try {
+      const { url, maxwidth, maxheight } = req.query;
+
+      if (!url || typeof url !== "string") {
+        return res.status(400).json({ error: "url parameter is required" });
+      }
+
+      // Extract slug from URL (e.g., https://app.daywisebooking.com/business-slug)
+      const urlObj = new URL(url);
+      const slug = urlObj.pathname.replace(/^\//, "").split("/")[0];
+
+      if (!slug) {
+        return res.status(400).json({ error: "Invalid booking page URL" });
+      }
+
+      // Verify slug exists
+      const user = await storage.getUserBySlug(slug);
+      if (!user) {
+        return res.status(404).json({ error: "Booking page not found" });
+      }
+
+      // Determine iframe dimensions
+      const width = maxwidth ? parseInt(maxwidth as string) : 600;
+      const height = maxheight ? parseInt(maxheight as string) : 800;
+
+      // Return oEmbed JSON response
+      const oembedResponse = {
+        version: "1.0",
+        type: "rich",
+        provider_name: "DayWise Booking",
+        provider_url: "https://daywisebooking.com",
+        title: `${user.businessName || user.name} - Book an Appointment`,
+        author_name: user.businessName || user.name,
+        author_url: url,
+        html: `<iframe src="${url}" width="${width}" height="${height}" frameborder="0" scrolling="yes" allowfullscreen style="border: none; border-radius: 8px;"></iframe>`,
+        width: width,
+        height: height,
+        thumbnail_url: user.logoUrl || "https://daywisebookingsspace.tor1.cdn.digitaloceanspaces.com/brand_assets/logo.svg",
+        thumbnail_width: 200,
+        thumbnail_height: 200,
+      };
+
+      // CORS headers for Iframely access
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Cache-Control", "public, max-age=3600"); // Cache for 1 hour
+
+      res.json(oembedResponse);
+    } catch (error) {
+      console.error("oEmbed endpoint error:", error);
+      res.status(500).json({ error: "Failed to generate oEmbed response" });
+    }
+  });
+
+  // Handle CORS preflight
+  app.options("/api/oembed", (req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+    res.status(200).end();
+  });
 
   // Google OAuth start endpoint (redirect-based flow) - COMMENTED OUT
   app.get("/api/auth/google", (req, res) => {

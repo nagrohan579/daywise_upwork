@@ -276,6 +276,53 @@ const PublicBooking = () => {
     fetchUserData();
   }, [slug]);
 
+  // Add oEmbed discovery meta tags for Canva/Iframely
+  useEffect(() => {
+    if (!userData || !slug) return;
+
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    const frontendUrl = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
+    const bookingPageUrl = `${frontendUrl}/${slug}`;
+
+    // Helper to update meta tags
+    const updateMetaTag = (property, content) => {
+      let meta = document.querySelector(`meta[property="${property}"]`);
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute('property', property);
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', content);
+    };
+
+    const updateLinkTag = (rel, type, href) => {
+      let link = document.querySelector(`link[rel="${rel}"][type="${type}"]`);
+      if (!link) {
+        link = document.createElement('link');
+        link.setAttribute('rel', rel);
+        link.setAttribute('type', type);
+        document.head.appendChild(link);
+      }
+      link.setAttribute('href', href);
+    };
+
+    // Open Graph meta tags (bonus: enables social sharing previews)
+    updateMetaTag('og:type', 'website');
+    updateMetaTag('og:url', bookingPageUrl);
+    updateMetaTag('og:title', `${userData.businessName || userData.name} - Book an Appointment`);
+    updateMetaTag('og:description', userData.welcomeMessage || 'Schedule your appointment');
+    updateMetaTag('og:site_name', 'DayWise Booking');
+
+    if (branding?.logoUrl) {
+      updateMetaTag('og:image', branding.logoUrl);
+    }
+
+    // oEmbed discovery link - tells Iframely where to find oEmbed data
+    const oembedUrl = `${apiUrl}/api/oembed?url=${encodeURIComponent(bookingPageUrl)}`;
+    updateLinkTag('alternate', 'application/json+oembed', oembedUrl);
+
+  }, [userData, slug, branding]);
+
   const fetchUserData = async () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';

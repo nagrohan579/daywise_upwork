@@ -222,7 +222,7 @@ function buildDevConfig(options?: DevConfig): {
   if (enableHmr && appOrigin) {
     devServer = {
       ...devServer,
-      allowedHosts: [host, new URL(appOrigin).hostname],
+      allowedHosts: "all", // Keep "all" to prevent "Invalid Host/Origin header" errors
       headers: {
         "Access-Control-Allow-Origin": appOrigin,
         "Access-Control-Allow-Credentials": "true",

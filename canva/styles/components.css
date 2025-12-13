@@ -1,15 +1,24 @@
 /* Scroll container */
 .scrollContainer {
   box-sizing: border-box;
-  overflow-y: scroll;
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+  min-height: 100%;
   height: 100%;
   padding-top: var(--ui-kit-space-200);
   padding-right: var(--ui-kit-space-200);
   padding-bottom: var(--ui-kit-space-200);
+  padding-left: var(--ui-kit-space-200);
 
   /* for firefox */
   scrollbar-width: thin;
   scrollbar-color: var(--ui-kit-color-content-placeholder-fg) transparent;
+  
+  /* Ensure container is always visible */
+  display: block;
+  visibility: visible;
+  opacity: 1;
 }
 
 .scrollContainer::-webkit-scrollbar {
@@ -35,4 +44,16 @@
 .scrollContainer:focus::-webkit-scrollbar-thumb,
 .scrollContainer:focus-within::-webkit-scrollbar-thumb {
   visibility: visible;
+}
+
+/* Mobile-specific styles - ensure app is visible and functional on mobile */
+@media (max-width: 768px) {
+  .scrollContainer {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: pan-y;
+    /* Ensure container is visible on mobile */
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
 }

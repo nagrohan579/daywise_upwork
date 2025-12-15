@@ -7026,6 +7026,142 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Canva: Start Stripe checkout for Pro monthly plan
+  // This route is isolated from the main web app checkout flow and uses the same Stripe configuration.
+  app.post("/api/canva/checkout/start", canvaJwtMiddleware, async (req, res) => {
+    try {
+      const { userId: canvaUserId } = req.canva!;
+
+      // Map Canva user to existing DayWise user
+      const user = await storage.getUserByCanvaId(canvaUserId);
+      if (!user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const userId = user._id;
+
+      // For Canva we currently always sell the Pro monthly subscription
+      const planId = "pro";
+      const interval: "month" | "year" = "month";
+
+      const plan = await storage.getSubscriptionPlan(planId);
+      if (!plan?.isActive) {
+        return res.status(404).json({ message: "Plan not found or inactive" });
+      }
+
+      let priceId = plan.stripePriceMonthly;
+
+      // If no Stripe price exists yet, create it on the fly
+      if (!priceId) {
+        const prices = await ensureStripePrices({
+          id: plan._id,
+          name: plan.name,
+          priceMonthly: plan.priceMonthly,
+          priceYearly: plan.priceYearly,
+          stripePriceMonthly: plan.stripePriceMonthly,
+          stripePriceYearly: plan.stripePriceYearly,
+        });
+
+        if (prices.monthly) {
+          await storage.updateSubscriptionPlan(planId, { stripePriceMonthly: prices.monthly });
+          priceId = prices.monthly;
+        }
+
+        if (!priceId) {
+          return res.status(400).json({ message: "Pro monthly plan not purchasable" });
+        }
+      }
+
+      // Ensure Stripe customer
+      let sub = await storage.getUserSubscription(userId);
+      let validCustomerId: string;
+
+      try {
+        validCustomerId = await ensureValidStripeCustomer(userId, sub?.stripeCustomerId);
+
+        if (validCustomerId !== sub?.stripeCustomerId) {
+          if (sub) {
+            sub = await storage.updateUserSubscription(userId, { stripeCustomerId: validCustomerId });
+          } else {
+            const payload: any = {
+              userId,
+              planId,
+              stripeCustomerId: validCustomerId,
+              isAnnual: false,
+              status: "inactive",
+            };
+            await storage.createUserSubscription(payload);
+          }
+        }
+      } catch (error: any) {
+        console.error(`❌ Canva checkout - failed to ensure valid Stripe customer for user ${userId}:`, error);
+        return res.status(500).json({
+          message: "Failed to initialize payment. Please try again.",
+          error: error?.message,
+        });
+      }
+
+      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+      const success = `${frontendUrl}/billing?success=1`;
+      const cancel = `${frontendUrl}/billing?canceled=1`;
+
+      const checkoutOptions: any = {
+        mode: "subscription",
+        customer: validCustomerId,
+        line_items: [{ price: priceId, quantity: 1 }],
+        success_url: success,
+        cancel_url: cancel,
+        metadata: { userId, planId, source: "canva" },
+        allow_promotion_codes: true,
+      };
+
+      let checkout;
+      try {
+        checkout = await stripe.checkout.sessions.create(checkoutOptions);
+      } catch (stripeError: any) {
+        if (
+          stripeError.type === "StripeInvalidRequestError" &&
+          (stripeError.code === "resource_missing" || stripeError.param === "customer")
+        ) {
+          console.error(`❌ Canva checkout failed with invalid customer ${validCustomerId}, attempting recovery`);
+
+          try {
+            const newCustomer = await stripe.customers.create({
+              metadata: { userId },
+              description: `User ${userId} (canva recovery)`,
+            });
+
+            await storage.updateUserSubscription(userId, { stripeCustomerId: newCustomer.id });
+
+            checkoutOptions.customer = newCustomer.id;
+            checkout = await stripe.checkout.sessions.create(checkoutOptions);
+            console.log(`✅ Canva checkout recovered with new customer ${newCustomer.id}`);
+          } catch (recoveryError: any) {
+            console.error(`❌ Canva checkout recovery failed:`, recoveryError);
+            return res.status(500).json({
+              message: "Payment setup failed. Please contact support.",
+              error: recoveryError?.message,
+            });
+          }
+        } else {
+          console.error("❌ Canva checkout - Stripe error:", stripeError);
+          return res.status(500).json({
+            message: "Checkout error. Please try again.",
+            error: stripeError?.message,
+          });
+        }
+      }
+
+      // Do not update subscription status here; rely on existing Stripe webhooks.
+      return res.json({ url: checkout.url });
+    } catch (e: any) {
+      console.error("❌ Canva checkout error:", e);
+      return res.status(500).json({
+        message: e?.message ?? "Checkout error. Please try again.",
+      });
+    }
+  });
+
   app.post("/api/user-subscriptions", requireAuth, async (req, res) => {
     try {
       const session = req.session as any;

@@ -97,12 +97,43 @@ export const App = () => {
     </Box>
   );
 
+  const handleUpgradeToPro = useCallback(async () => {
+    try {
+      // Get Canva user token for backend authentication
+      const token = await auth.getCanvaUserToken();
+
+      const res = await fetch(`${BACKEND_URL}/checkout/start`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        console.error("Canva upgrade checkout failed:", data);
+        return;
+      }
+
+      const data = await res.json();
+      const checkoutUrl = data.url;
+      if (!checkoutUrl) {
+        console.error("Canva upgrade checkout: no URL returned from backend");
+        return;
+      }
+
+      // Open the Stripe Checkout page in an external browser window
+      await requestOpenExternalUrl(checkoutUrl);
+    } catch (error) {
+      console.error("Error starting Canva upgrade checkout:", error);
+    }
+  }, []);
+
   const renderPlanBanner = () => {
     if (isPro !== false) {
       return null;
     }
-
-    const upgradeUrl = 'https://app.daywisebooking.com/pricing';
 
     return (
       <Box paddingTop="2u" paddingBottom="2u">
@@ -111,8 +142,8 @@ export const App = () => {
         </Text>
         <Box paddingTop="0.5u" display="flex" justifyContent="center">
           <Link
-            href={upgradeUrl}
-            requestOpenExternalUrl={() => openExternalUrl(upgradeUrl)}
+            href="#"
+            requestOpenExternalUrl={handleUpgradeToPro}
             ariaLabel="Upgrade to Daywise Booking Pro"
           >
             Upgrade to Daywise Booking Pro
@@ -507,76 +538,17 @@ export const App = () => {
   };
 
   const handleStep2Next = async () => {
-    try {
-      setError('');
-      const token = await auth.getCanvaUserToken();
-      const backendHost = BACKEND_HOST || 'http://localhost:3000';
-
-      // Save business name and timezone
-      if (businessName || timezone) {
-        const updateData: any = {};
-        if (businessName) updateData.businessName = businessName;
-        if (timezone) updateData.timezone = timezone;
-
-        const userResponse = await fetch(`${backendHost}/api/canva/user/update`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(updateData)
-        });
-
-        if (!userResponse.ok) {
-          const errorData = await userResponse.json();
-          throw new Error(errorData.message || 'Failed to save business settings');
-        }
-      }
-
-      setOnboardingStep('services');
-    } catch (err: any) {
-      console.error('Error saving Step 2 data:', err);
-      setError(err.message || 'Failed to save settings');
-    }
+    // Temporarily skip saving business name/timezone from Canva.
+    // Backend endpoints remain available; just move to the next step.
+    setError('');
+    setOnboardingStep('services');
   };
 
   const handleStep3Next = async () => {
-    try {
-      setError('');
-      const token = await auth.getCanvaUserToken();
-      const backendHost = BACKEND_HOST || 'http://localhost:3000';
-
-      // Convert weekly availability to backend format
-      const weeklySchedule: Record<string, { enabled: boolean; startTime: string; endTime: string }> = {};
-      for (const [day, availability] of Object.entries(weeklyAvailability)) {
-        weeklySchedule[day] = {
-          enabled: availability.enabled,
-          startTime: availability.startTime,
-          endTime: availability.endTime,
-        };
-      }
-
-      const availabilityResponse = await fetch(`${backendHost}/api/canva/availability/weekly`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          weeklySchedule
-        })
-      });
-
-      if (!availabilityResponse.ok) {
-        const errorData = await availabilityResponse.json();
-        throw new Error(errorData.message || 'Failed to save weekly availability');
-      }
-
-      setOnboardingStep('design');
-    } catch (err: any) {
-      console.error('Error saving Step 3 data:', err);
-      setError(err.message || 'Failed to save availability');
-    }
+    // Temporarily skip saving weekly availability from Canva.
+    // Backend endpoint remains available; just move to the next step.
+    setError('');
+    setOnboardingStep('design');
   };
 
   const handleDayToggle = (day: string, enabled: boolean) => {

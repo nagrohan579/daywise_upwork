@@ -206,7 +206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // We can't directly query for "recently authenticated Google users" without additional tracking,
       // so we'll just return not authenticated and let the user try again
       // In practice, the token exchange should have created the user, and we link on first auth check
-      
+
       res.json({ authenticated: false });
     } catch (error: any) {
       console.error('Auth status check error:', error);
@@ -417,16 +417,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Try to verify as ID token first
       try {
-        const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-        const ticket = await client.verifyIdToken({
-          idToken: googleToken,
-          audience: process.env.GOOGLE_CLIENT_ID,
-        });
+      const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+      const ticket = await client.verifyIdToken({
+        idToken: googleToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
 
-        const payload = ticket.getPayload();
-        if (!payload) {
+      const payload = ticket.getPayload();
+      if (!payload) {
           throw new Error("Invalid ID token payload");
-        }
+      }
 
         googleId = payload.sub;
         email = payload.email!;
@@ -6994,6 +6994,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch user subscription", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  // Canva: Get user subscription/features for the linked DayWise user
+  app.get("/api/canva/user-subscription", canvaJwtMiddleware, async (req, res) => {
+    try {
+      const { userId: canvaUserId } = req.canva!;
+
+      // Find linked DayWise user
+      const user = await storage.getUserByCanvaId(canvaUserId);
+      if (!user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const subscription = await storage.getUserSubscription(user._id);
+      const plan = subscription ? await storage.getSubscriptionPlan(subscription.planId) : null;
+
+      const { getUserFeatures } = await import("./lib/plan-features");
+      const features = await getUserFeatures(user._id);
+
+      res.json({ subscription, plan, features });
+    } catch (error) {
+      console.error("Canva - Failed to fetch user subscription:", error);
+      res
+        .status(500)
+        .json({
+          message: "Failed to fetch user subscription",
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
     }
   });
 

@@ -1,4 +1,4 @@
-import { Button, Rows, Text, Title, Box, Link, FormField, TextInput, Select, Columns, Column, Switch, OpenInNewIcon } from "@canva/app-ui-kit";
+import { Button, Rows, Text, Title, Box, Link, FormField, TextInput, Select, Columns, Column, Switch, OpenInNewIcon, TrashIcon, FileInput } from "@canva/app-ui-kit";
 import { auth, type AccessTokenResponse } from "@canva/user";
 import { requestOpenExternalUrl } from "@canva/platform";
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
@@ -38,11 +38,89 @@ export const App = () => {
   const [error, setError] = useState('');
   
   // Onboarding form state
-  const [onboardingStep, setOnboardingStep] = useState<'step2' | 'step3' | 'step4'>('step2');
+  const [onboardingStep, setOnboardingStep] = useState<'step2' | 'services' | 'step3' | 'design' | 'step4'>('step2');
+  const [activeTab, setActiveTab] = useState<'setup' | 'manage'>('setup');
   const [businessName, setBusinessName] = useState('');
   const [appointmentType, setAppointmentType] = useState('');
   const [duration, setDuration] = useState<string>('');
   const [timezone, setTimezone] = useState<string>('');
+  const [services, setServices] = useState<Array<{ id: string; name: string; duration: string; price: string }>>([
+    { id: 'svc-1', name: '', duration: '', price: '' },
+  ]);
+  // Match frontend Branding defaults
+  const [mainColor, setMainColor] = useState('#0053F1');
+  const [secondaryColor, setSecondaryColor] = useState('#64748B');
+  const [textColor, setTextColor] = useState('#121212');
+  const [logoName, setLogoName] = useState('');
+  const [logoError, setLogoError] = useState('');
+  const logoAcceptTypes = ['image/png', 'image/jpeg', 'image/gif'];
+  const mainColorInputRef = useRef<HTMLInputElement | null>(null);
+  const secondaryColorInputRef = useRef<HTMLInputElement | null>(null);
+  const textColorInputRef = useRef<HTMLInputElement | null>(null);
+  const [isPro, setIsPro] = useState<boolean | null>(null);
+  const planCheckedRef = useRef(false);
+
+  const renderColorSwatch = (
+    label: string,
+    color: string,
+    setColor: (val: string) => void,
+    inputRef: React.RefObject<HTMLInputElement>
+  ) => (
+    <Box paddingBottom="2u">
+      <Columns alignY="center" spacing="2u">
+        <Column>
+          <Text size="small">{label}</Text>
+        </Column>
+        <Column width="content">
+          <div
+            onClick={() => inputRef.current?.click()}
+            aria-label={label}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              border: '1px solid #d5d9e2',
+              backgroundColor: color,
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
+            }}
+          />
+          <input
+            ref={inputRef}
+            type="color"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            style={{ display: 'none' }}
+          />
+        </Column>
+      </Columns>
+    </Box>
+  );
+
+  const renderPlanBanner = () => {
+    if (isPro !== false) {
+      return null;
+    }
+
+    const upgradeUrl = 'https://app.daywisebooking.com/pricing';
+
+    return (
+      <Box paddingTop="2u" paddingBottom="2u">
+        <Text size="small" tone="tertiary" alignment="center">
+          You&apos;re using Daywise Booking Free
+        </Text>
+        <Box paddingTop="0.5u" display="flex" justifyContent="center">
+          <Link
+            href={upgradeUrl}
+            requestOpenExternalUrl={() => openExternalUrl(upgradeUrl)}
+            ariaLabel="Upgrade to Daywise Booking Pro"
+          >
+            Upgrade to Daywise Booking Pro
+          </Link>
+        </Box>
+      </Box>
+    );
+  };
   
   // Weekly availability state - each day has enabled flag and time range
   type DayAvailability = {
@@ -138,6 +216,9 @@ export const App = () => {
       if (data.authenticated) {
         setUser(data.user);
         setAuthState('authenticated');
+        fetchCanvaPlan().catch((err) =>
+          console.error('Error fetching Canva plan after auth status:', err)
+        );
         return true;
       } else {
         setAuthState('connect');
@@ -209,7 +290,7 @@ export const App = () => {
       setError(err.message || 'Authentication failed');
       setAuthState('connect');
     }
-  }, [oauth]);
+  }, [oauth, checkAuthStatus]);
 
   const handleDisconnect = useCallback(async () => {
     try {
@@ -264,28 +345,101 @@ export const App = () => {
   // Simple ref to track if dashboard button was clicked (prevents double-clicks)
   const dashboardClickedRef = useRef(false);
 
-  const handleOpenDashboard = useCallback(async (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (onboardingStep !== 'step4') {
+  const fetchCanvaPlan = useCallback(async () => {
+    if (planCheckedRef.current) {
       return;
     }
-    
+    planCheckedRef.current = true;
+
+    try {
+      const token = await auth.getCanvaUserToken();
+      const backendHost = BACKEND_HOST || 'http://localhost:3000';
+
+      const res = await fetch(`${backendHost}/api/canva/user-subscription`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        console.error('Failed to fetch Canva user subscription');
+        return;
+      }
+
+      const data = await res.json();
+      const pro = !!data.features?.customBranding;
+      setIsPro(pro);
+    } catch (error) {
+      console.error('Error fetching Canva user subscription:', error);
+    }
+  }, []);
+
+  const handleOpenDashboard = useCallback(async () => {
     if (dashboardClickedRef.current) {
       return;
     }
-    
+
     dashboardClickedRef.current = true;
-    
+
     try {
       await openExternalUrl('https://app.daywisebooking.com/login');
     } catch (error) {
       console.error('Error opening dashboard:', error);
       dashboardClickedRef.current = false;
     }
-    
+
     setTimeout(() => {
       dashboardClickedRef.current = false;
     }, 2000);
-  }, [onboardingStep]);
+  }, []);
+
+  const renderTabs = () => (
+    <Box paddingBottom="2u">
+      <div className={styles.tabContainer}>
+        <button
+          className={`${styles.tabButton} ${activeTab === 'setup' ? '' : styles.tabButtonInactive}`}
+          onClick={() => setActiveTab('setup')}
+        >
+          <Text size="medium" weight={activeTab === 'setup' ? 'bold' : 'regular'} alignment="center">
+            Setup
+          </Text>
+        </button>
+        <button
+          className={`${styles.tabButton} ${activeTab === 'manage' ? '' : styles.tabButtonInactive}`}
+          onClick={() => setActiveTab('manage')}
+        >
+          <Text size="medium" weight={activeTab === 'manage' ? 'bold' : 'regular'} alignment="center">
+            Manage
+          </Text>
+        </button>
+        <div
+          className={styles.tabIndicator}
+          style={{ transform: activeTab === 'setup' ? 'translateX(0%)' : 'translateX(100%)' }}
+        />
+      </div>
+    </Box>
+  );
+
+  const manageContent = (
+    <Rows spacing="2u">
+      <Title size="medium">Manage your bookings</Title>
+      <Text>
+        View bookings, update services, availability, and advanced settings in your Daywise dashboard.
+      </Text>
+      <Box width="full">
+        <Button
+          variant="secondary"
+          onClick={handleOpenDashboard}
+          stretch
+          icon={OpenInNewIcon}
+          aria-label="Open Dashboard"
+          type="button"
+        >
+          Open Dashboard
+        </Button>
+      </Box>
+    </Rows>
+  );
 
   const handleAddFormToPage = async () => {
     try {
@@ -340,8 +494,12 @@ export const App = () => {
 
   const handleBack = () => {
     if (onboardingStep === 'step4') {
-      setOnboardingStep('step3');
+      setOnboardingStep('design');
     } else if (onboardingStep === 'step3') {
+      setOnboardingStep('services');
+    } else if (onboardingStep === 'design') {
+      setOnboardingStep('step3');
+    } else if (onboardingStep === 'services') {
       setOnboardingStep('step2');
     } else {
       setAuthState('connect');
@@ -375,32 +533,7 @@ export const App = () => {
         }
       }
 
-      // Save appointment type only if both name and duration are provided
-      if (appointmentType && appointmentType.trim() && duration && duration.trim()) {
-        const serviceResponse = await fetch(`${backendHost}/api/canva/appointment-types`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            name: appointmentType.trim(),
-            description: '',
-            duration: parseInt(duration, 10),
-            bufferTime: 0,
-            price: 0,
-            color: '#F19B11',
-            isActive: true,
-          })
-        });
-
-        if (!serviceResponse.ok) {
-          const errorData = await serviceResponse.json();
-          throw new Error(errorData.message || 'Failed to save appointment type');
-        }
-      }
-
-      setOnboardingStep('step3');
+      setOnboardingStep('services');
     } catch (err: any) {
       console.error('Error saving Step 2 data:', err);
       setError(err.message || 'Failed to save settings');
@@ -439,7 +572,7 @@ export const App = () => {
         throw new Error(errorData.message || 'Failed to save weekly availability');
       }
 
-      setOnboardingStep('step4');
+      setOnboardingStep('design');
     } catch (err: any) {
       console.error('Error saving Step 3 data:', err);
       setError(err.message || 'Failed to save availability');
@@ -479,6 +612,74 @@ export const App = () => {
     return `${String(hour).padStart(2, '0')}:${minutes}`;
   };
 
+  // Services helpers
+  const handleServiceChange = (id: string, field: 'name' | 'duration' | 'price', value: string) => {
+    setServices(prev => prev.map(s => (s.id === id ? { ...s, [field]: value } : s)));
+  };
+
+  const handleAddServiceCard = () => {
+    const nextId = `svc-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`;
+    setServices(prev => [...prev, { id: nextId, name: '', duration: '', price: '' }]);
+  };
+
+  const handleDeleteServiceCard = (id: string) => {
+    setServices(prev => (prev.length === 1 ? prev : prev.filter(s => s.id !== id)));
+  };
+
+  const handleServicesNext = async () => {
+    try {
+      setError('');
+      const token = await auth.getCanvaUserToken();
+      const backendHost = BACKEND_HOST || 'http://localhost:3000';
+
+      const validServices = services.filter(
+        (s) => s.name.trim() && s.duration.trim()
+      );
+
+      for (const svc of validServices) {
+        const durationNumber = parseInt(svc.duration, 10);
+        const priceNumber = svc.price ? Number(svc.price) : 0;
+
+        const serviceResponse = await fetch(`${backendHost}/api/canva/appointment-types`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: svc.name.trim(),
+            description: '',
+            duration: Number.isFinite(durationNumber) ? durationNumber : 0,
+            bufferTime: 0,
+            price: Number.isFinite(priceNumber) ? priceNumber : 0,
+            color: '#F19B11',
+            isActive: true,
+          })
+        });
+
+        if (!serviceResponse.ok) {
+          const errorData = await serviceResponse.json();
+          throw new Error(errorData.message || 'Failed to save appointment type');
+        }
+      }
+
+      setOnboardingStep('step3');
+    } catch (err: any) {
+      console.error('Error saving services:', err);
+      setError(err.message || 'Failed to save services');
+    }
+  };
+
+  const handleLogoChange = (files: string[]) => {
+    setLogoError('');
+    setLogoName(files[0] || '');
+  };
+
+  const handleDesignNext = async () => {
+    // Currently just advances; integrate backend save if needed
+    setOnboardingStep('step4');
+  };
+
   // Preview Screen - shown initially
   if (authState === 'preview') {
     const webappUrl = WEBAPP_FRONTEND_URL || '';
@@ -510,10 +711,10 @@ export const App = () => {
 
           <Box>
             <Title size="medium">
-              Easily add a booking form to your Canva website
+              Easily add a booking section to your Canva website
             </Title>
             <Text size="medium">
-              Let your customers book appointments with your business directly on your Canva website. Set up in minutes and start taking bookings right away.
+              Let customers schedule appointments with your small business through your Daywise booking page. Set up your services and availability, then add a booking section to your Canva website that links directly to your booking page.
             </Text>
           </Box>
 
@@ -666,44 +867,36 @@ export const App = () => {
   if (onboardingStep === 'step4') {
     return (
       <div className={styles.scrollContainer}>
-        <Rows spacing="3u" align="center">
-          <Box paddingTop="4u" />
-          <Title size="medium" alignment="center">You're all set!</Title>
-          <Box paddingTop="2u" width="full">
-            <Button variant="primary" onClick={handleAddFormToPage} stretch>
-              Add Form to Page
-            </Button>
-          </Box>
-          <Box width="full">
-            <Button 
-              variant="secondary" 
-              onClick={handleOpenDashboard} 
-              stretch 
-              icon={OpenInNewIcon}
-              aria-label="Open Dashboard"
-              type="button"
-            >
-              Open Dashboard
-            </Button>
-          </Box>
-          <Box paddingTop="1u">
-            <Text size="small" alignment="center">
-              Congrats! Your booking form is ready. To configure additional services, branding, or advanced settings, open the full dashboard.
-            </Text>
-          </Box>
-          <Box paddingTop="2u" width="full">
-            <Button variant="secondary" onClick={handleBack} stretch>
-              Back
-            </Button>
-          </Box>
-          {error && (
-            <Box paddingStart="4u" paddingEnd="4u">
-              <Text tone="critical" alignment="center">
-                {error}
+        <Rows spacing="3u">
+          {renderTabs()}
+
+          {activeTab === 'setup' ? (
+            <>
+              <Title size="medium">You&apos;re all set!</Title>
+              <Text size="small">
+                Your booking section is ready. Add it to your page so clients can book appointments
+                through your Daywise booking page.
               </Text>
-            </Box>
-          )}
-          <Box paddingTop="4u" paddingBottom="2u">
+
+              <Box paddingTop="2u" width="full">
+                <Button variant="primary" onClick={handleAddFormToPage} stretch>
+                  Add Design to Page
+                </Button>
+              </Box>
+
+              {error && (
+                <Box paddingStart="4u" paddingEnd="4u">
+                  <Text tone="critical" alignment="center">
+                    {error}
+                  </Text>
+                </Box>
+              )}
+            </>
+          ) : manageContent}
+
+          {renderPlanBanner()}
+
+          <Box paddingTop="4u" paddingBottom="2u" width="full">
             <Button variant="secondary" onClick={handleDisconnect} stretch>
               Disconnect
             </Button>
@@ -738,74 +931,270 @@ export const App = () => {
     return (
       <div className={styles.scrollContainer}>
         <Rows spacing="3u">
-          <Title size="medium">Set your weekly availability</Title>
-          {days.map((day) => {
-            const availability = weeklyAvailability[day.key];
-            return (
-              <Box key={day.key}>
-                <Rows spacing="2u">
-                  <Columns spacing="2u" alignY="center">
-                    <Column>
-                      <Text size="medium" weight="bold">{day.label}</Text>
-                    </Column>
-                    <Column width="content">
-                      <Switch
-                        checked={availability.enabled}
-                        onChange={(checked) => handleDayToggle(day.key, checked)}
-                      />
-                    </Column>
-                  </Columns>
-                  {availability.enabled && (
+          {renderTabs()}
+
+          {activeTab === 'setup' ? (
+            <>
+              <Title size="medium">Set your weekly availability</Title>
+              {days.map((day) => {
+                const availability = weeklyAvailability[day.key];
+                return (
+                  <Box key={day.key}>
+                    <Rows spacing="2u">
+                      <Columns spacing="2u" alignY="center">
+                        <Column>
+                          <Text size="medium" weight="bold">{day.label}</Text>
+                        </Column>
+                        <Column width="content">
+                          <Switch
+                            checked={availability.enabled}
+                            onChange={(checked) => handleDayToggle(day.key, checked)}
+                          />
+                        </Column>
+                      </Columns>
+                      {availability.enabled && (
+                        <Columns spacing="2u">
+                          <Column>
+                            <Rows spacing="1u">
+                              <Text size="small" tone="tertiary">Start Time</Text>
+                              <Select
+                                stretch
+                                value={availability.startTime}
+                                options={timeOptions}
+                                onChange={(value) => handleTimeChange(day.key, 'startTime', value)}
+                              />
+                            </Rows>
+                          </Column>
+                          <Column>
+                            <Rows spacing="1u">
+                              <Text size="small" tone="tertiary">End Time</Text>
+                              <Select
+                                stretch
+                                value={availability.endTime}
+                                options={timeOptions}
+                                onChange={(value) => handleTimeChange(day.key, 'endTime', value)}
+                              />
+                            </Rows>
+                          </Column>
+                        </Columns>
+                      )}
+                    </Rows>
+                  </Box>
+                );
+              })}
+              <Box paddingTop="2u">
+                <Columns spacing="2u">
+                  <Column>
+                    <Button variant="secondary" onClick={handleBack} stretch>
+                      Back
+                    </Button>
+                  </Column>
+                  <Column>
+                    <Button variant="primary" onClick={handleStep3Next} stretch>
+                      Next
+                    </Button>
+                  </Column>
+                </Columns>
+              </Box>
+              {error && (
+                <Box>
+                  <Text tone="critical" alignment="center">
+                    {error}
+                  </Text>
+                </Box>
+              )}
+            </>
+          ) : manageContent}
+
+          {renderPlanBanner()}
+
+          <Box paddingTop="4u" paddingBottom="2u">
+            <Button variant="secondary" onClick={handleDisconnect} stretch>
+              Disconnect
+            </Button>
+          </Box>
+        </Rows>
+      </div>
+    );
+  }
+
+  // Step 4: Design (colors & logo)
+  if (onboardingStep === 'design') {
+    return (
+      <div className={styles.scrollContainer}>
+        <Rows spacing="3u">
+          {renderTabs()}
+
+          {activeTab === 'setup' ? (
+            <>
+              <Title size="medium">Design</Title>
+              <Rows spacing="3u">
+                {renderColorSwatch('Main Color', mainColor, setMainColor, mainColorInputRef)}
+                {renderColorSwatch('Secondary Color', secondaryColor, setSecondaryColor, secondaryColorInputRef)}
+                {renderColorSwatch('Text Color', textColor, setTextColor, textColorInputRef)}
+
+                <Box>
+                  <Title size="small">Logo Upload</Title>
+                  <FileInput
+                    accept={logoAcceptTypes}
+                    onChange={handleLogoChange}
+                    stretch
+                  />
+                  <Text size="small" tone="tertiary">Maximum file size: 5MB. JPG, PNG, or GIF.</Text>
+                  {logoName && (
+                    <Text size="small">Selected: {logoName}</Text>
+                  )}
+                  {logoError && (
+                    <Text size="small" tone="critical">{logoError}</Text>
+                  )}
+                </Box>
+              </Rows>
+
+              <Box paddingTop="2u">
+                <Columns spacing="2u">
+                  <Column>
+                    <Button variant="secondary" onClick={handleBack} stretch>
+                      Back
+                    </Button>
+                  </Column>
+                  <Column>
+                    <Button variant="primary" onClick={handleDesignNext} stretch>
+                      Next
+                    </Button>
+                  </Column>
+                </Columns>
+              </Box>
+              {error && (
+                <Box>
+                  <Text tone="critical" alignment="center">
+                    {error}
+                  </Text>
+                </Box>
+              )}
+            </>
+          ) : manageContent}
+
+          {renderPlanBanner()}
+
+          <Box paddingTop="4u" paddingBottom="2u" width="full">
+            <Button variant="secondary" onClick={handleDisconnect} stretch>
+              Disconnect
+            </Button>
+          </Box>
+        </Rows>
+      </div>
+    );
+  }
+
+  // Step 2: Business Details
+  if (onboardingStep === 'services') {
+    return (
+      <div className={styles.scrollContainer}>
+        <Rows spacing="3u">
+          {renderTabs()}
+
+          {activeTab === 'setup' ? (
+            <>
+              <Title size="medium">Add your appointment/service types</Title>
+
+              {services.map((svc, idx) => (
+                <Box
+                  key={svc.id}
+                  padding="2u"
+                  borderRadius="standard"
+                  border
+                  style={{
+                    backgroundColor: '#eef1f6',
+                    borderColor: '#cbd4e2',
+                    boxShadow: '0 10px 24px rgba(0,0,0,0.12)'
+                  }}
+                >
+                  <Rows spacing="2u">
+                    <FormField
+                      label="Enter your appointment/service name"
+                      value={svc.name}
+                      control={(props) => (
+                        <TextInput
+                          {...props}
+                          placeholder="Enter your appointment/service name"
+                          onChange={(value) => handleServiceChange(svc.id, 'name', value)}
+                        />
+                      )}
+                    />
                     <Columns spacing="2u">
                       <Column>
-                        <Rows spacing="1u">
-                          <Text size="small" tone="tertiary">Start Time</Text>
-                          <Select
-                            stretch
-                            value={availability.startTime}
-                            options={timeOptions}
-                            onChange={(value) => handleTimeChange(day.key, 'startTime', value)}
-                          />
-                        </Rows>
+                        <FormField
+                          label="Duration (mins)"
+                          value={svc.duration}
+                          control={(props) => (
+                            <Select
+                              {...props}
+                              placeholder="Duration (mins)"
+                              options={durationOptions}
+                              value={svc.duration}
+                              onChange={(value) => handleServiceChange(svc.id, 'duration', value)}
+                            />
+                          )}
+                        />
                       </Column>
                       <Column>
-                        <Rows spacing="1u">
-                          <Text size="small" tone="tertiary">End Time</Text>
-                          <Select
-                            stretch
-                            value={availability.endTime}
-                            options={timeOptions}
-                            onChange={(value) => handleTimeChange(day.key, 'endTime', value)}
-                          />
-                        </Rows>
+                        <FormField
+                          label="Price ($)"
+                          value={svc.price}
+                          control={(props) => (
+                            <TextInput
+                              {...props}
+                              placeholder="Price ($)"
+                              onChange={(value) => handleServiceChange(svc.id, 'price', value)}
+                            />
+                          )}
+                        />
                       </Column>
                     </Columns>
-                  )}
-                </Rows>
+                    <Box display="flex" justifyContent="flex-end">
+                      <Button
+                        variant="tertiary"
+                        icon={TrashIcon}
+                        aria-label="Delete service"
+                        onClick={() => handleDeleteServiceCard(svc.id)}
+                      >
+                        Delete
+                      </Button>
+                    </Box>
+                  </Rows>
+                </Box>
+              ))}
+
+              <Box paddingTop="1u">
+                <Button variant="secondary" onClick={handleAddServiceCard} stretch>
+                  Add another
+                </Button>
               </Box>
-            );
-          })}
-          <Box paddingTop="2u">
-            <Columns spacing="2u">
-              <Column>
-                <Button variant="secondary" onClick={handleBack} stretch>
-                  Back
-                </Button>
-              </Column>
-              <Column>
-                <Button variant="primary" onClick={handleStep3Next} stretch>
-                  Next
-                </Button>
-              </Column>
-            </Columns>
-          </Box>
-          {error && (
-            <Box>
-              <Text tone="critical" alignment="center">
-                {error}
-              </Text>
-            </Box>
-          )}
+
+              <Box paddingTop="2u">
+                <Columns spacing="2u">
+                  <Column>
+                    <Button variant="secondary" onClick={handleBack} stretch>
+                      Back
+                    </Button>
+                  </Column>
+                  <Column>
+                    <Button variant="primary" onClick={handleServicesNext} stretch>
+                      Next
+                    </Button>
+                  </Column>
+                </Columns>
+              </Box>
+              {error && (
+                <Box>
+                  <Text tone="critical" alignment="center">
+                    {error}
+                  </Text>
+                </Box>
+              )}
+            </>
+          ) : manageContent}
+
           <Box paddingTop="4u" paddingBottom="2u">
             <Button variant="secondary" onClick={handleDisconnect} stretch>
               Disconnect
@@ -820,75 +1209,61 @@ export const App = () => {
   return (
     <div className={styles.scrollContainer}>
       <Rows spacing="3u">
-        <FormField
-          label="Business name"
-          value={businessName}
-          control={(props) => (
-            <TextInput
-              {...props}
-              placeholder="Enter your business name"
-              onChange={(value) => setBusinessName(value)}
+        {renderTabs()}
+
+        {activeTab === 'setup' ? (
+          <>
+            <Title size="medium">Add your business details</Title>
+            <FormField
+              label="Business name"
+              value={businessName}
+              control={(props) => (
+                <TextInput
+                  {...props}
+                  placeholder="Enter your business name"
+                  onChange={(value) => setBusinessName(value)}
+                />
+              )}
             />
-          )}
-        />
-        <FormField
-          label="Add an appointment type"
-          value={appointmentType}
-          control={(props) => (
-            <TextInput
-              {...props}
-              placeholder="Add a service/appointment type"
-              onChange={(value) => setAppointmentType(value)}
+            <FormField
+              label="Select your timezone"
+              value={timezone}
+              control={(props) => (
+                <Select
+                  {...props}
+                  stretch
+                  placeholder="Select timezone"
+                  options={timezoneOptions}
+                  onChange={(value) => setTimezone(value)}
+                />
+              )}
             />
-          )}
-        />
-        <FormField
-          label="Duration"
-          value={duration}
-          control={(props) => (
-            <Select
-              {...props}
-              stretch
-              placeholder="Duration"
-              options={durationOptions}
-              onChange={(value) => setDuration(value)}
-            />
-          )}
-        />
-        <FormField
-          label="Select your timezone"
-          value={timezone}
-          control={(props) => (
-            <Select
-              {...props}
-              stretch
-              placeholder="Select timezone"
-              options={timezoneOptions}
-              onChange={(value) => setTimezone(value)}
-            />
-          )}
-        />
-        <Box paddingTop="2u">
-          <Columns spacing="2u">
-            <Column>
-              <Button variant="secondary" onClick={handleBack} stretch>
-                Back
-              </Button>
-            </Column>
-            <Column>
-              <Button variant="primary" onClick={handleStep2Next} stretch>
-                Next
-              </Button>
-            </Column>
-          </Columns>
-        </Box>
-        {error && (
-          <Box>
-            <Text tone="critical" alignment="center">
-              {error}
-            </Text>
-          </Box>
-        )}
+            <Box paddingTop="2u">
+              <Columns spacing="2u">
+                <Column>
+                  <Button variant="secondary" onClick={handleBack} stretch>
+                    Back
+                  </Button>
+                </Column>
+                <Column>
+                  <Button variant="primary" onClick={handleStep2Next} stretch>
+                    Next
+                  </Button>
+                </Column>
+              </Columns>
+            </Box>
+            {error && (
+              <Box>
+                <Text tone="critical" alignment="center">
+                  {error}
+                </Text>
+              </Box>
+            )}
+          </>
+        ) : manageContent}
+
+          {renderPlanBanner()}
+
         <Box paddingTop="4u" paddingBottom="2u">
           <Button variant="secondary" onClick={handleDisconnect} stretch>
             Disconnect

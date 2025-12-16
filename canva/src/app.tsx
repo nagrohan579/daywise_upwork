@@ -37,6 +37,7 @@ interface BookingCardData {
   };
   dataVersion: string;
   businessName: string;
+  slug: string;
 }
 
 export const App = () => {
@@ -576,16 +577,46 @@ export const App = () => {
       localStorage.setItem('daywise_card_version', cardData.dataVersion);
 
       // Build card elements
-      const elements = buildBookingCardElements(cardData);
+      const cardInfo = buildBookingCardElements(cardData);
+
+      // Construct booking page URL
+      const frontendUrl = WEBAPP_FRONTEND_URL || 'https://app.daywisebooking.com';
+      const bookingPageUrl = `${frontendUrl}/${cardData.slug}`;
 
       // Add group element to design
       const { addElementAtPoint } = await import('@canva/design');
+
+      const cardTop = 100;
+      const cardLeft = 100;
+
+      // Add the visual card as a group
       await addElementAtPoint({
         type: 'group',
-        children: elements
+        children: cardInfo.elements,
+        top: cardTop,
+        left: cardLeft
+      });
+
+      // Add a clickable "Book Now" text on top of the visual button
+      // This will be clickable on published Canva websites
+      // We position it exactly over the button text so it's invisible but clickable
+      await addElementAtPoint({
+        type: 'text',
+        children: ['Book Now'],
+        color: '#FFFFFF',
+        fontWeight: 'bold',
+        fontSize: 18,
+        width: cardInfo.buttonWidth,
+        top: cardTop + cardInfo.buttonTop + 13,
+        left: cardLeft + cardInfo.buttonLeft,
+        textAlign: 'center',
+        decoration: {
+          url: bookingPageUrl
+        }
       });
 
       console.log('✅ Booking card successfully added to design!');
+      console.log('🔗 Booking URL:', bookingPageUrl);
 
     } catch (err: any) {
       console.error('Error adding booking card:', err);
@@ -598,8 +629,11 @@ export const App = () => {
 
     const CARD_WIDTH = 600;
     const PADDING = 24;
+    const BUTTON_WIDTH = 300;
+    const BUTTON_HEIGHT = 48;
     let currentY = PADDING;
     const elements: any[] = [];
+    let cardHeight = 0;
 
     // Background rectangle
     elements.push({
@@ -782,21 +816,41 @@ export const App = () => {
       left: PADDING
     });
 
-    currentY += 16;
+    currentY += 24;
 
-    // Footer text
+    // Book Now button background
+    const buttonTop = currentY;
+    const buttonLeft = (CARD_WIDTH - BUTTON_WIDTH) / 2;
+
     elements.push({
-      type: "text",
-      children: ["Book an appointment"],
-      color: branding.secondary,
-      fontSize: 12,
-      textAlign: "center",
-      width: CARD_WIDTH - (PADDING * 2),
-      top: currentY,
-      left: PADDING
+      type: "shape",
+      paths: [{
+        d: `M 0 0 H ${BUTTON_WIDTH} V ${BUTTON_HEIGHT} H 0 Z`,
+        fill: { color: branding.primary }
+      }],
+      viewBox: { width: BUTTON_WIDTH, height: BUTTON_HEIGHT, top: 0, left: 0 },
+      width: BUTTON_WIDTH,
+      height: BUTTON_HEIGHT,
+      top: buttonTop,
+      left: buttonLeft
     });
 
-    return elements;
+    // Book Now button text (visual only)
+    elements.push({
+      type: "text",
+      children: ["Book Now"],
+      color: "#FFFFFF",
+      fontWeight: "bold",
+      fontSize: 18,
+      textAlign: "center",
+      width: BUTTON_WIDTH,
+      top: buttonTop + 13,
+      left: buttonLeft
+    });
+
+    cardHeight = currentY + BUTTON_HEIGHT + PADDING;
+
+    return { elements, buttonTop, buttonLeft, cardWidth: CARD_WIDTH, buttonWidth: BUTTON_WIDTH, cardHeight };
   };
 
   const handleBack = () => {

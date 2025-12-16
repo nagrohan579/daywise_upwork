@@ -1081,7 +1081,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           logoUrl: branding?.logoUrl || null
         },
         dataVersion: dataHash,
-        businessName: user.businessName || user.name
+        businessName: user.businessName || user.name,
+        slug: user.slug || ''
       };
 
       console.log('✅ Sending response:', JSON.stringify(response, null, 2));

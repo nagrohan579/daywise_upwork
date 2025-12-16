@@ -1,0 +1,124 @@
+.canva-upgrade-success {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background-color: #F9FAFB;
+}
+
+.canva-upgrade-success-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0;
+  gap: 34px;
+  width: 100%;
+  max-width: 366px;
+}
+
+/* Logo Section */
+.canva-upgrade-success-logo-wrapper {
+  width: 186px;
+  height: 39px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.canva-upgrade-success-logo {
+  width: 186px;
+  height: 39px;
+  object-fit: contain;
+}
+
+/* Content Section */
+.canva-upgrade-success-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  gap: 21px;
+  width: 100%;
+}
+
+.canva-upgrade-success-heading {
+  width: 100%;
+  max-width: 223px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #111827;
+  margin: 0;
+}
+
+.canva-upgrade-success-message {
+  width: 100%;
+  max-width: 366px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 21px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #4B5563;
+  margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .canva-upgrade-success-container {
+    gap: 28px;
+    padding: 0 16px;
+  }
+
+  .canva-upgrade-success-heading {
+    font-size: 26px;
+    line-height: 32px;
+  }
+
+  .canva-upgrade-success-message {
+    font-size: 13px;
+    line-height: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .canva-upgrade-success-container {
+    gap: 24px;
+  }
+
+  .canva-upgrade-success-logo-wrapper {
+    width: 150px;
+    height: 32px;
+  }
+
+  .canva-upgrade-success-logo {
+    width: 150px;
+    height: 32px;
+  }
+
+  .canva-upgrade-success-heading {
+    font-size: 24px;
+    line-height: 30px;
+    max-width: 100%;
+  }
+
+  .canva-upgrade-success-message {
+    font-size: 12px;
+    line-height: 18px;
+    max-width: 100%;
+  }
+}
+

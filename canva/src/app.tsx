@@ -14,6 +14,7 @@ import appPreview from "assets/images/app-preview.png";
 // It contains the value of CANVA_BACKEND_HOST from .env file
 // If undefined, fallback to a default (you should set CANVA_BACKEND_HOST in .env)
 const BACKEND_URL = `${BACKEND_HOST || 'http://localhost:3000'}/api/canva`;
+const UPGRADE_FALLBACK_URL = "https://app.daywisebooking.com/pricing";
 
 type AuthState = 'preview' | 'checking' | 'connect' | 'authenticating' | 'authenticated';
 
@@ -113,6 +114,8 @@ export const App = () => {
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         console.error("Canva upgrade checkout failed:", data);
+        // Fallback to pricing page so something still opens
+        await requestOpenExternalUrl({ url: UPGRADE_FALLBACK_URL });
         return;
       }
 
@@ -120,13 +123,16 @@ export const App = () => {
       const checkoutUrl = data.url;
       if (!checkoutUrl) {
         console.error("Canva upgrade checkout: no URL returned from backend");
+        await requestOpenExternalUrl({ url: UPGRADE_FALLBACK_URL });
         return;
       }
 
       // Open the Stripe Checkout page in an external browser window
-      await requestOpenExternalUrl(checkoutUrl);
+      await requestOpenExternalUrl({ url: checkoutUrl });
     } catch (error) {
       console.error("Error starting Canva upgrade checkout:", error);
+      // Fallback if anything goes wrong
+      await requestOpenExternalUrl({ url: UPGRADE_FALLBACK_URL });
     }
   }, []);
 
@@ -142,7 +148,7 @@ export const App = () => {
         </Text>
         <Box paddingTop="0.5u" display="flex" justifyContent="center">
           <Link
-            href="#"
+            href={UPGRADE_FALLBACK_URL}
             requestOpenExternalUrl={handleUpgradeToPro}
             ariaLabel="Upgrade to Daywise Booking Pro"
           >

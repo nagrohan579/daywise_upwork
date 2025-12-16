@@ -31,6 +31,7 @@ import AdminLogin from "./pages/Admin/AdminLogin";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 import Onboarding from "./pages/Onboard/Onboarding";
 import ResetPasswordPage from "./pages/ResetPassword/ResetPassword";
+import CanvaUpgradeSuccessPage from "./pages/CanvaUpgradeSuccess/CanvaUpgradeSuccess";
 
 // Import slick carousel CSS for calendar/slider components
 import "slick-carousel/slick/slick.css";
@@ -75,6 +76,7 @@ function AppContent() {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/onboard" element={<Onboarding />} />
         <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/canva-upgrade-success" element={<CanvaUpgradeSuccessPage />} />
         <Route path="/reschedule_event/:token" element={<RescheduleBookingPage />} />
         <Route path="/event/:token" element={<EventPage />} />
         <Route path="/cancelled_event/:slug" element={<CancelledEventPage />} />

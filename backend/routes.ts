@@ -7102,8 +7102,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-      const success = `${frontendUrl}/billing?success=1`;
-      const cancel = `${frontendUrl}/billing?canceled=1`;
+      const success = `${frontendUrl}/canva-upgrade-success`;
+      const cancel = `${frontendUrl}/canva-upgrade-success?canceled=1`;
 
       const checkoutOptions: any = {
         mode: "subscription",

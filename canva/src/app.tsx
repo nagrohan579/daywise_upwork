@@ -18,6 +18,27 @@ const UPGRADE_FALLBACK_URL = "https://app.daywisebooking.com/pricing";
 
 type AuthState = 'preview' | 'checking' | 'connect' | 'authenticating' | 'authenticated';
 
+interface BookingCardData {
+  services: Array<{
+    id: string;
+    name: string;
+    duration: number;
+    price: number;
+  }>;
+  availability: Array<{
+    day: string;
+    times: string;
+  }>;
+  branding: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    logoUrl: string | null;
+  };
+  dataVersion: string;
+  businessName: string;
+}
+
 export const App = () => {
   // Initialize Canva OAuth client for Google authentication
   const oauth = useMemo(() => {
@@ -60,6 +81,9 @@ export const App = () => {
   const textColorInputRef = useRef<HTMLInputElement | null>(null);
   const [isPro, setIsPro] = useState<boolean | null>(null);
   const planCheckedRef = useRef(false);
+  const [hasDataChanges, setHasDataChanges] = useState(false);
+  const [isCheckingChanges, setIsCheckingChanges] = useState(false);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const renderColorSwatch = (
     label: string,
@@ -226,6 +250,55 @@ export const App = () => {
       }
     }
   }, [authState, timezone]);
+
+  // Poll for data changes every 30 seconds
+  useEffect(() => {
+    if (authState === 'authenticated') {
+      checkForDataChanges();
+
+      pollingIntervalRef.current = setInterval(() => {
+        checkForDataChanges();
+      }, 30000);
+
+      return () => {
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+        }
+      };
+    }
+  }, [authState]);
+
+  const checkForDataChanges = async () => {
+    try {
+      setIsCheckingChanges(true);
+      const currentVersion = localStorage.getItem('daywise_card_version');
+
+      if (!currentVersion) {
+        return;
+      }
+
+      const token = await auth.getCanvaUserToken();
+      const backendHost = BACKEND_HOST || 'http://localhost:3000';
+
+      const response = await fetch(`${backendHost}/api/canva/check-data-version`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ currentVersion })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setHasDataChanges(data.hasChanges);
+      }
+    } catch (error) {
+      console.error('Error checking for data changes:', error);
+    } finally {
+      setIsCheckingChanges(false);
+    }
+  };
 
   const handleOpenApp = () => {
     try {
@@ -478,55 +551,252 @@ export const App = () => {
     </Rows>
   );
 
-  const handleAddFormToPage = async () => {
+  const handleAddBookingCard = async () => {
     try {
-      // Step 1: Get authenticated user's slug
+      setError('');
       const token = await auth.getCanvaUserToken();
       const backendHost = BACKEND_HOST || 'http://localhost:3000';
 
-      const userResponse = await fetch(`${backendHost}/api/canva/user-slug`, {
+      // Fetch booking card data
+      const response = await fetch(`${backendHost}/api/canva/booking-card-data`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
 
-      if (!userResponse.ok) {
-        const errorData = await userResponse.json();
-        throw new Error(errorData.message || 'Failed to get user slug');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch booking card data');
       }
 
-      const userData = await userResponse.json();
-      const slug = userData.slug;
+      const cardData = await response.json();
 
-      if (!slug) {
-        throw new Error('User does not have a booking page. Please complete your profile setup.');
-      }
+      // Store version for change detection
+      localStorage.setItem('daywise_card_version', cardData.dataVersion);
 
-      // Step 2: Construct booking page URL
-      const frontendUrl = WEBAPP_FRONTEND_URL || 'https://app.daywisebooking.com';
-      const bookingPageUrl = `${frontendUrl}/${slug}`;
+      // Build card elements
+      const elements = buildBookingCardElements(cardData);
 
-      console.log('Adding booking form to design:', bookingPageUrl);
-
-      // Step 3: Add embed element to design
+      // Add group element to design
       const { addElementAtPoint } = await import('@canva/design');
-
       await addElementAtPoint({
-        type: 'embed',
-        url: bookingPageUrl,
-        top: 100,
-        left: 100,
-        width: 600,
-        height: 800,
+        type: 'group',
+        children: elements
       });
 
-      console.log('✅ Booking form successfully added to design!');
+      console.log('✅ Booking card successfully added to design!');
 
     } catch (err: any) {
-      console.error('Error adding form to page:', err);
-      setError(err.message || 'Failed to add booking form');
+      console.error('Error adding booking card:', err);
+      setError(err.message || 'Failed to add booking card');
     }
+  };
+
+  const buildBookingCardElements = (data: BookingCardData) => {
+    const { services, availability, branding, businessName } = data;
+
+    const CARD_WIDTH = 600;
+    const PADDING = 24;
+    let currentY = PADDING;
+    const elements: any[] = [];
+
+    // Background rectangle
+    elements.push({
+      type: "shape",
+      paths: [{
+        d: `M 0 0 H ${CARD_WIDTH} V 1000 H 0 Z`,
+        fill: { color: "#FFFFFF" }
+      }],
+      viewBox: { width: CARD_WIDTH, height: 1000, top: 0, left: 0 },
+      width: CARD_WIDTH,
+      height: 1000,
+      top: 0,
+      left: 0
+    });
+
+    // Accent bar at top
+    elements.push({
+      type: "shape",
+      paths: [{
+        d: `M 0 0 H ${CARD_WIDTH} V 6 H 0 Z`,
+        fill: { color: branding.primary }
+      }],
+      viewBox: { width: CARD_WIDTH, height: 6, top: 0, left: 0 },
+      width: CARD_WIDTH,
+      height: 6,
+      top: 0,
+      left: 0
+    });
+
+    currentY += 24;
+
+    // Business name
+    elements.push({
+      type: "text",
+      children: [businessName],
+      color: branding.accent,
+      fontWeight: "bold",
+      fontSize: 28,
+      width: CARD_WIDTH - (PADDING * 2),
+      top: currentY,
+      left: PADDING
+    });
+
+    currentY += 48;
+
+    // Services header
+    elements.push({
+      type: "text",
+      children: ["Services"],
+      color: branding.primary,
+      fontWeight: "semibold",
+      fontSize: 20,
+      width: CARD_WIDTH - (PADDING * 2),
+      top: currentY,
+      left: PADDING
+    });
+
+    currentY += 36;
+
+    // Services list (show max 5)
+    const servicesToShow = services.slice(0, 5);
+
+    if (servicesToShow.length === 0) {
+      elements.push({
+        type: "text",
+        children: ["No services configured yet"],
+        color: branding.secondary,
+        fontSize: 14,
+        fontStyle: "italic",
+        width: CARD_WIDTH - (PADDING * 2),
+        top: currentY,
+        left: PADDING
+      });
+      currentY += 32;
+    } else {
+      servicesToShow.forEach((service) => {
+        // Truncate long names
+        const serviceName = service.name.length > 40
+          ? service.name.substring(0, 37) + '...'
+          : service.name;
+
+        elements.push({
+          type: "text",
+          children: [serviceName],
+          color: branding.accent,
+          fontWeight: "medium",
+          fontSize: 16,
+          width: CARD_WIDTH - (PADDING * 3) - 120,
+          top: currentY,
+          left: PADDING
+        });
+
+        const priceText = service.price > 0 ? `$${service.price}` : 'Free';
+        elements.push({
+          type: "text",
+          children: [`${service.duration}min · ${priceText}`],
+          color: branding.secondary,
+          fontSize: 14,
+          textAlign: "end",
+          width: 120,
+          top: currentY + 2,
+          left: CARD_WIDTH - PADDING - 120
+        });
+
+        currentY += 32;
+      });
+
+      if (services.length > 5) {
+        elements.push({
+          type: "text",
+          children: [`and ${services.length - 5} more...`],
+          color: branding.secondary,
+          fontSize: 14,
+          fontStyle: "italic",
+          width: CARD_WIDTH - (PADDING * 2),
+          top: currentY,
+          left: PADDING
+        });
+        currentY += 28;
+      }
+    }
+
+    currentY += 24;
+
+    // Availability header
+    elements.push({
+      type: "text",
+      children: ["Availability"],
+      color: branding.primary,
+      fontWeight: "semibold",
+      fontSize: 20,
+      width: CARD_WIDTH - (PADDING * 2),
+      top: currentY,
+      left: PADDING
+    });
+
+    currentY += 36;
+
+    // Availability list
+    if (availability.length === 0) {
+      elements.push({
+        type: "text",
+        children: ["No availability set"],
+        color: branding.secondary,
+        fontSize: 14,
+        fontStyle: "italic",
+        width: CARD_WIDTH - (PADDING * 2),
+        top: currentY,
+        left: PADDING
+      });
+      currentY += 28;
+    } else {
+      availability.forEach((avail) => {
+        elements.push({
+          type: "text",
+          children: [`${avail.day}  ${avail.times}`],
+          color: branding.accent,
+          fontSize: 15,
+          width: CARD_WIDTH - (PADDING * 2),
+          top: currentY,
+          left: PADDING
+        });
+        currentY += 28;
+      });
+    }
+
+    currentY += 32;
+
+    // Footer separator
+    elements.push({
+      type: "shape",
+      paths: [{
+        d: `M 0 0 H ${CARD_WIDTH - (PADDING * 2)} V 1 H 0 Z`,
+        fill: { color: branding.secondary }
+      }],
+      viewBox: { width: CARD_WIDTH - (PADDING * 2), height: 1, top: 0, left: 0 },
+      width: CARD_WIDTH - (PADDING * 2),
+      height: 1,
+      top: currentY,
+      left: PADDING
+    });
+
+    currentY += 16;
+
+    // Footer text
+    elements.push({
+      type: "text",
+      children: ["Book an appointment"],
+      color: branding.secondary,
+      fontSize: 12,
+      textAlign: "center",
+      width: CARD_WIDTH - (PADDING * 2),
+      top: currentY,
+      left: PADDING
+    });
+
+    return elements;
   };
 
   const handleBack = () => {
@@ -841,6 +1111,41 @@ export const App = () => {
     { value: 'Etc/UTC', label: 'Coordinated Universal Time (UTC) (GMT+0)' },
   ];
 
+  const renderRefreshBanner = () => {
+    if (!hasDataChanges) return null;
+
+    return (
+      <Box
+        padding="2u"
+        borderRadius="standard"
+        style={{
+          backgroundColor: '#FFF4E5',
+          border: '1px solid #FFB020',
+          marginBottom: '16px'
+        }}
+      >
+        <Rows spacing="2u">
+          <Text size="small" weight="medium">
+            Your services or availability have changed
+          </Text>
+          <Text size="small">
+            Update your booking section to show the latest information
+          </Text>
+          <Button
+            variant="primary"
+            onClick={async () => {
+              await handleAddBookingCard();
+              setHasDataChanges(false);
+            }}
+            stretch
+          >
+            Refresh booking section
+          </Button>
+        </Rows>
+      </Box>
+    );
+  };
+
   // Step 4: Completion Screen
   if (onboardingStep === 'step4') {
     return (
@@ -856,8 +1161,10 @@ export const App = () => {
                 through your Daywise booking page.
               </Text>
 
+              {renderRefreshBanner()}
+
               <Box paddingTop="2u" width="full">
-                <Button variant="primary" onClick={handleAddFormToPage} stretch>
+                <Button variant="primary" onClick={handleAddBookingCard} stretch>
                   Add Design to Page
                 </Button>
               </Box>

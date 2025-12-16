@@ -88,6 +88,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }, 5 * 60 * 1000);
 
+  // ============================================
+  // CANVA BOOKING CARD HELPER FUNCTIONS
+  // ============================================
+
+  // Generate deterministic hash for change detection
+  function generateDataHash(data: any): string {
+    const jsonString = JSON.stringify(data, Object.keys(data).sort());
+    return crypto.createHash('sha256').update(jsonString).digest('hex').substring(0, 16);
+  }
+
+  // Format availability for card display
+  function formatWeeklyAvailability(availability: any): Array<{day: string, times: string}> {
+    if (!availability?.weeklySchedule) return [];
+
+    const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const dayLabels: {[key: string]: string} = {
+      monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu',
+      friday: 'Fri', saturday: 'Sat', sunday: 'Sun'
+    };
+
+    return dayOrder
+      .filter(day => availability.weeklySchedule[day]?.enabled)
+      .map(day => {
+        const schedule = availability.weeklySchedule[day];
+        return {
+          day: dayLabels[day],
+          times: `${format24To12Hour(schedule.startTime)} - ${format24To12Hour(schedule.endTime)}`
+        };
+      });
+  }
+
+  function format24To12Hour(time24: string): string {
+    const [hours, minutes] = time24.split(':');
+    const hour = parseInt(hours, 10);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+  }
+
   // Helper middleware for authentication and admin checks
   const requireAuth = (req: any, res: any, next: any) => {
     const session = req.session as any;
@@ -979,74 +1018,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ============================================
-  // END CANVA APP ROUTES
-  // ============================================
-
-  // ============================================
-  // oEmbed Endpoint for Canva Embed Support
-  // ============================================
-
-  app.get("/api/oembed", async (req, res) => {
+  // Get booking card data for Canva (services, availability, branding)
+  app.get("/api/canva/booking-card-data", canvaJwtMiddleware, async (req, res) => {
     try {
-      const { url, maxwidth, maxheight } = req.query;
+      const { userId: canvaUserId } = req.canva!;
+      const user = await storage.getUserByCanvaId(canvaUserId);
 
-      if (!url || typeof url !== "string") {
-        return res.status(400).json({ error: "url parameter is required" });
-      }
-
-      // Extract slug from URL (e.g., https://app.daywisebooking.com/business-slug)
-      const urlObj = new URL(url);
-      const slug = urlObj.pathname.replace(/^\//, "").split("/")[0];
-
-      if (!slug) {
-        return res.status(400).json({ error: "Invalid booking page URL" });
-      }
-
-      // Verify slug exists
-      const user = await storage.getUserBySlug(slug);
       if (!user) {
-        return res.status(404).json({ error: "Booking page not found" });
+        return res.status(401).json({ message: "Not authenticated" });
       }
 
-      // Determine iframe dimensions
-      const width = maxwidth ? parseInt(maxwidth as string) : 600;
-      const height = maxheight ? parseInt(maxheight as string) : 800;
+      // Fetch all data in parallel
+      const [appointmentTypes, availability, branding] = await Promise.all([
+        storage.getAppointmentTypesByUser(user._id),
+        storage.getAvailabilityByUser(user._id),
+        storage.getBranding(user._id)
+      ]);
 
-      // Return oEmbed JSON response
-      const oembedResponse = {
-        version: "1.0",
-        type: "rich",
-        provider_name: "DayWise Booking",
-        provider_url: "https://daywisebooking.com",
-        title: `${user.businessName || user.name} - Book an Appointment`,
-        author_name: user.businessName || user.name,
-        author_url: url,
-        html: `<iframe src="${url}" width="${width}" height="${height}" frameborder="0" scrolling="yes" allowfullscreen style="border: none; border-radius: 8px;"></iframe>`,
-        width: width,
-        height: height,
-        thumbnail_url: user.logoUrl || "https://daywisebookingsspace.tor1.cdn.digitaloceanspaces.com/brand_assets/logo.svg",
-        thumbnail_width: 200,
-        thumbnail_height: 200,
-      };
+      // Calculate data version hash
+      const dataHash = generateDataHash({ appointmentTypes, availability, branding });
 
-      // CORS headers for Iframely access
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Cache-Control", "public, max-age=3600"); // Cache for 1 hour
-
-      res.json(oembedResponse);
-    } catch (error) {
-      console.error("oEmbed endpoint error:", error);
-      res.status(500).json({ error: "Failed to generate oEmbed response" });
+      res.json({
+        services: appointmentTypes
+          .filter(apt => apt.isActive !== false)
+          .map(apt => ({
+            id: apt._id,
+            name: apt.name,
+            duration: apt.duration,
+            price: apt.price || 0
+          })),
+        availability: formatWeeklyAvailability(availability),
+        branding: {
+          primary: branding?.primary || '#0053F1',
+          secondary: branding?.secondary || '#64748B',
+          accent: branding?.accent || '#121212',
+          logoUrl: branding?.logoUrl || null
+        },
+        dataVersion: dataHash,
+        businessName: user.businessName || user.name
+      });
+    } catch (error: any) {
+      console.error('Get booking card data error:', error);
+      res.status(500).json({ message: error.message });
     }
   });
 
-  // Handle CORS preflight
-  app.options("/api/oembed", (req, res) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-    res.status(200).end();
+  // Check if booking card data has changed (for auto-detect changes)
+  app.post("/api/canva/check-data-version", canvaJwtMiddleware, async (req, res) => {
+    try {
+      const { userId: canvaUserId } = req.canva!;
+      const { currentVersion } = req.body;
+
+      const user = await storage.getUserByCanvaId(canvaUserId);
+      if (!user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const [appointmentTypes, availability, branding] = await Promise.all([
+        storage.getAppointmentTypesByUser(user._id),
+        storage.getAvailabilityByUser(user._id),
+        storage.getBranding(user._id)
+      ]);
+
+      const latestHash = generateDataHash({ appointmentTypes, availability, branding });
+
+      res.json({
+        hasChanges: latestHash !== currentVersion,
+        latestVersion: latestHash
+      });
+    } catch (error: any) {
+      console.error('Check data version error:', error);
+      res.status(500).json({ message: error.message });
+    }
   });
+
+  // ============================================
+  // END CANVA APP ROUTES
+  // ============================================
 
   // Google OAuth start endpoint (redirect-based flow) - COMMENTED OUT
   app.get("/api/auth/google", (req, res) => {

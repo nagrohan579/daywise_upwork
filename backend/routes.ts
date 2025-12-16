@@ -99,8 +99,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Format availability for card display
-  function formatWeeklyAvailability(availability: any): Array<{day: string, times: string}> {
-    if (!availability?.weeklySchedule) return [];
+  function formatWeeklyAvailability(availability: any[]): Array<{day: string, times: string}> {
+    if (!availability || !Array.isArray(availability)) return [];
 
     const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     const dayLabels: {[key: string]: string} = {
@@ -108,10 +108,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       friday: 'Fri', saturday: 'Sat', sunday: 'Sun'
     };
 
+    // Group by weekday and filter for available slots
+    const availableSlots = availability.filter(slot => slot.isAvailable !== false);
+
+    // Get unique days with their first time slot
+    const dayMap = new Map<string, {startTime: string, endTime: string}>();
+    availableSlots.forEach(slot => {
+      if (!dayMap.has(slot.weekday)) {
+        dayMap.set(slot.weekday, {
+          startTime: slot.startTime,
+          endTime: slot.endTime
+        });
+      }
+    });
+
     return dayOrder
-      .filter(day => availability.weeklySchedule[day]?.enabled)
+      .filter(day => dayMap.has(day))
       .map(day => {
-        const schedule = availability.weeklySchedule[day];
+        const schedule = dayMap.get(day)!;
         return {
           day: dayLabels[day],
           times: `${format24To12Hour(schedule.startTime)} - ${format24To12Hour(schedule.endTime)}`
@@ -1035,19 +1049,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage.getBranding(user._id)
       ]);
 
+      console.log('📊 Canva card data fetched:');
+      console.log('  - Appointment types:', appointmentTypes.length);
+      console.log('  - Raw availability records:', availability.length);
+      console.log('  - Availability data:', JSON.stringify(availability, null, 2));
+
       // Calculate data version hash
       const dataHash = generateDataHash({ appointmentTypes, availability, branding });
 
-      res.json({
-        services: appointmentTypes
-          .filter(apt => apt.isActive !== false)
-          .map(apt => ({
-            id: apt._id,
-            name: apt.name,
-            duration: apt.duration,
-            price: apt.price || 0
-          })),
-        availability: formatWeeklyAvailability(availability),
+      const formattedAvailability = formatWeeklyAvailability(availability);
+      console.log('  - Formatted availability:', formattedAvailability);
+
+      const services = appointmentTypes
+        .filter(apt => apt.isActive !== false)
+        .map(apt => ({
+          id: apt._id,
+          name: apt.name,
+          duration: apt.duration,
+          price: apt.price || 0
+        }));
+
+      console.log('  - Services:', services);
+
+      const response = {
+        services,
+        availability: formattedAvailability,
         branding: {
           primary: branding?.primary || '#0053F1',
           secondary: branding?.secondary || '#64748B',
@@ -1056,7 +1082,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         dataVersion: dataHash,
         businessName: user.businessName || user.name
-      });
+      };
+
+      console.log('✅ Sending response:', JSON.stringify(response, null, 2));
+
+      res.json(response);
     } catch (error: any) {
       console.error('Get booking card data error:', error);
       res.status(500).json({ message: error.message });

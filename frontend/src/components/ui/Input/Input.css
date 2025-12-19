@@ -141,7 +141,7 @@
 
 .textarea-label {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-color);
 }
 
@@ -186,6 +186,11 @@
   gap: 6px;
   margin-bottom: 16px;
   position: relative;
+}
+
+/* Remove margin-bottom from select-group when inside input-group-comp to avoid double spacing */
+.input-group-comp .select-group {
+  margin-bottom: 0;
 }
 
 .select-group .wrap {

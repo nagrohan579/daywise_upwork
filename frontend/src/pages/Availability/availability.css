@@ -155,6 +155,11 @@
   vertical-align: middle;
 }
 
+.show-date-specific-hour .box .bottom button.closed-months-button {
+  justify-content: flex-start;
+  text-align: left;
+}
+
 /* Loading spinner animation */
 @keyframes spin {
   0% {

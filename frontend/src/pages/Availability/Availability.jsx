@@ -481,7 +481,7 @@ const Availability = () => {
                                         />
                                       </div>
                                       <div className="bottom">
-                                        <button>
+                                        <button className="closed-months-button">
                                           <InfoIcon width={20} height={20} />
                                           {monthNamesList}
                                         </button>

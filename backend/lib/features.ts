@@ -10,7 +10,7 @@ export type FeaturesShape = {
   emailConfirmations: boolean;
   emailReminders: boolean;
   prioritySupport: boolean;
-  poweredBy: boolean;          // must show "Powered by DayWise"
+  poweredBy: boolean;          // must show "Powered by Daywise"
 };
 
 export const FEATURE_SPECS: Record<keyof FeaturesShape, FeatureSpec> = {

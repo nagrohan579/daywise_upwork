@@ -359,7 +359,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (user) {
           // Link Google account to existing email/password account
           await storage.updateUser(user._id, { googleId, picture });
-          console.log(`🔗 Linked Google account to existing DayWise user ${user._id}`);
+          console.log(`🔗 Linked Google account to existing Daywise user ${user._id}`);
         }
       }
 
@@ -423,7 +423,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           usePlatformBranding: true,
         });
 
-        console.log(`✅ Created new DayWise user ${userId} from Canva OAuth (Google ID: ${googleId})`);
+        console.log(`✅ Created new Daywise user ${userId} from Canva OAuth (Google ID: ${googleId})`);
       }
 
       if (!user) {
@@ -520,7 +520,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (user) {
           // Link Google account to existing email/password account
           await storage.updateUser(user._id, { googleId, picture });
-          console.log(`🔗 Linked Google account to existing DayWise user ${user._id}`);
+          console.log(`🔗 Linked Google account to existing Daywise user ${user._id}`);
         }
       }
 
@@ -528,7 +528,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Existing user - auto-link to Canva if not already linked
         if (!user.canvaUserId) {
           await storage.linkCanvaToUser(user._id, canvaUserId, brandId);
-          console.log(`🔗 Auto-linked existing DayWise user ${user._id} to Canva user ${canvaUserId}`);
+          console.log(`🔗 Auto-linked existing Daywise user ${user._id} to Canva user ${canvaUserId}`);
         } else if (user.canvaUserId !== canvaUserId) {
           return res.status(409).json({
             message: "This Google account is already linked to a different Canva user"
@@ -563,7 +563,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         country
       });
 
-      console.log(`✅ Created new DayWise user ${newUser._id} from Canva Google OAuth (Canva user ${canvaUserId})`);
+      console.log(`✅ Created new Daywise user ${newUser._id} from Canva Google OAuth (Canva user ${canvaUserId})`);
 
       res.json({
         success: true,
@@ -595,7 +595,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await storage.unlinkCanvaFromUser(user._id);
-      console.log(`🔌 Unlinked Canva user ${canvaUserId} from DayWise user ${user._id}`);
+      console.log(`🔌 Unlinked Canva user ${canvaUserId} from Daywise user ${user._id}`);
 
       res.json({ success: true });
     } catch (error: any) {
@@ -769,7 +769,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Existing user - auto-link to Canva
         if (!user.canvaUserId) {
           await storage.linkCanvaToUser(user._id, canvaUserId, canvaBrandId);
-          console.log(`🔗 Auto-linked existing DayWise user ${user._id} to Canva user ${canvaUserId}`);
+          console.log(`🔗 Auto-linked existing Daywise user ${user._id} to Canva user ${canvaUserId}`);
         } else if (user.canvaUserId !== canvaUserId) {
           return res.status(409).send('This Google account is already linked to a different Canva user');
         } else {
@@ -787,7 +787,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           timezone,
           country
         });
-        console.log(`✅ Created new DayWise user ${user._id} from Canva Google OAuth`);
+        console.log(`✅ Created new Daywise user ${user._id} from Canva Google OAuth`);
       }
 
       // Account is now linked to Canva - no JWT needed, Canva JWT token is used for auth
@@ -3834,7 +3834,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await sendRescheduleConfirmation({
           customerName: updatedBooking.customerName,
           customerEmail: updatedBooking.customerEmail,
-          businessName: user.businessName || user.name || 'DayWise',
+          businessName: user.businessName || user.name || 'Daywise',
           businessEmail: user.email,
           appointmentDate: formatDateForEmail(updatedBooking.appointmentDate, customerTimezone),
           appointmentTime: formatTimeForEmail(updatedBooking.appointmentDate, customerTimezone),
@@ -3958,7 +3958,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await sendCancellationConfirmation({
           customerName: existingBooking.customerName,
           customerEmail: existingBooking.customerEmail,
-          businessName: user.businessName || user.name || 'DayWise',
+          businessName: user.businessName || user.name || 'Daywise',
           businessEmail: user.email,
           appointmentDate: appointmentDate.format('MMMM D, YYYY'),
           appointmentTime: appointmentDate.format('h:mm A'),
@@ -3976,7 +3976,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await sendCancellationBusinessNotification({
           customerName: existingBooking.customerName,
           customerEmail: existingBooking.customerEmail,
-          businessName: user.businessName || user.name || 'DayWise',
+          businessName: user.businessName || user.name || 'Daywise',
           businessEmail: user.email,
           appointmentDate: appointmentDate.format('MMMM D, YYYY'),
           appointmentTime: appointmentDate.format('h:mm A'),

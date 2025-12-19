@@ -672,7 +672,7 @@ export async function sendPasswordResetEmail(email: string, name: string, resetU
   return await handleEmailSend('Password Reset', {
     from: FROM_EMAIL!,
     to: email,
-    subject: 'Reset your password - DayWise',
+    subject: 'Reset your password - Daywise',
     html: `
       <!DOCTYPE html>
       <html>
@@ -721,7 +721,7 @@ export async function sendPasswordResetEmail(email: string, name: string, resetU
         </div>
         
         <div style="text-align: center; margin-top: 24px; color: #9ca3af; font-size: 12px;">
-          <p>© ${new Date().getFullYear()} DayWise. All rights reserved.</p>
+          <p>© ${new Date().getFullYear()} Daywise. All rights reserved.</p>
         </div>
         
       </body>
@@ -800,7 +800,7 @@ export async function sendFeedbackEmail(data: FeedbackEmailData): Promise<boolea
         </div>
         
         <div style="text-align: center; margin-top: 24px; color: #9ca3af; font-size: 12px;">
-          <p>© ${new Date().getFullYear()} DayWise Feedback System</p>
+          <p>© ${new Date().getFullYear()} Daywise Feedback System</p>
         </div>
         
       </body>
@@ -813,7 +813,7 @@ export async function sendEmailChangeOtp(email: string, otp: string): Promise<bo
   return await handleEmailSend('Email Change OTP', {
     from: FROM_EMAIL!,
     to: email,
-    subject: 'Verify your new email address - DayWise',
+    subject: 'Verify your new email address - Daywise',
     html: `
       <!DOCTYPE html>
       <html>
@@ -853,7 +853,7 @@ export async function sendEmailChangeOtp(email: string, otp: string): Promise<bo
         </div>
         
         <div style="text-align: center; margin-top: 24px; color: #9ca3af; font-size: 12px;">
-          <p>© ${new Date().getFullYear()} DayWise. All rights reserved.</p>
+          <p>© ${new Date().getFullYear()} Daywise. All rights reserved.</p>
         </div>
         
       </body>
@@ -866,7 +866,7 @@ export async function sendPasswordChangeOtp(email: string, otp: string): Promise
   return await handleEmailSend('Password Change OTP', {
     from: FROM_EMAIL!,
     to: email,
-    subject: 'Verify your identity to change password - DayWise',
+    subject: 'Verify your identity to change password - Daywise',
     html: `
       <!DOCTYPE html>
       <html>
@@ -906,7 +906,7 @@ export async function sendPasswordChangeOtp(email: string, otp: string): Promise
         </div>
         
         <div style="text-align: center; margin-top: 24px; color: #9ca3af; font-size: 12px;">
-          <p>© ${new Date().getFullYear()} DayWise. All rights reserved.</p>
+          <p>© ${new Date().getFullYear()} Daywise. All rights reserved.</p>
         </div>
         
       </body>

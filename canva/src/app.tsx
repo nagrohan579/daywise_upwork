@@ -594,26 +594,17 @@ export const App = () => {
         type: 'group',
         children: cardInfo.elements,
         top: cardTop,
-        left: cardLeft
+        left: cardLeft,
+        width: cardInfo.cardWidth,
+        height: cardInfo.cardHeight
       });
 
-      // Add a clickable "Book Now" text on top of the visual button
-      // This will be clickable on published Canva websites
-      // We position it exactly over the button text so it's invisible but clickable
-      await addElementAtPoint({
-        type: 'text',
-        children: ['Book Now'],
-        color: '#FFFFFF',
-        fontWeight: 'bold',
-        fontSize: 18,
-        width: cardInfo.buttonWidth,
-        top: cardTop + cardInfo.buttonTop + 13,
-        left: cardLeft + cardInfo.buttonLeft,
-        textAlign: 'center',
-        decoration: {
-          url: bookingPageUrl
-        }
-      });
+      // Note: Canva SDK doesn't support programmatically locking elements after creation
+      // The group will be editable by default. Users can manually lock it in Canva if needed.
+      // To make it uneditable but resizable, users would need to:
+      // 1. Right-click the group in Canva
+      // 2. Select "Lock" from the context menu
+      // This prevents ungrouping and editing individual elements while allowing resize/move
 
       console.log('✅ Booking card successfully added to design!');
       console.log('🔗 Booking URL:', bookingPageUrl);
@@ -626,207 +617,469 @@ export const App = () => {
 
   const buildBookingCardElements = (data: BookingCardData) => {
     const { services, availability, branding, businessName } = data;
+    
+    // Extract branding colors
+    const primaryColor = branding.primary || "#0053F1";
+    const secondaryColor = branding.secondary || "#64748B";
+    const textColor = branding.accent || "#121212";
+    
+    // Helper function to lighten a hex color (for backgrounds)
+    // Returns a very light tint (2% opacity equivalent on white)
+    const getLightTint = (hex: string): string => {
+      // For primary color, return very light blue tint
+      if (hex === "#0053F1" || hex.toLowerCase() === "#0053f1") {
+        return "#FAFBFF";
+      }
+      // For other colors, return a light gray tint
+      return "#F5F6F8";
+    };
+    
+    // Helper function to get a light border color (20% opacity equivalent)
+    const getLightBorder = (hex: string): string => {
+      // For secondary color, return light gray border
+      if (hex === "#64748B" || hex.toLowerCase() === "#64748b") {
+        return "#E0E3E8";
+      }
+      // For other colors, calculate a lighter version
+      return "#E0E3E8";
+    };
 
-    const CARD_WIDTH = 600;
-    const PADDING = 24;
-    const BUTTON_WIDTH = 300;
-    const BUTTON_HEIGHT = 48;
-    let currentY = PADDING;
+    // Figma design dimensions
+    const CARD_WIDTH = 667;
+    const CARD_HEIGHT = 412;
+    const CARD_PADDING_TOP = 30;
+    const CARD_PADDING_LEFT = 48;
+    
+    // Left section dimensions
+    const LEFT_SECTION_WIDTH = 155;
+    const LOGO_SIZE = 52;
+    const LEFT_SECTION_GAP = 22;
+    
+    // Right section dimensions
+    const RIGHT_SECTION_WIDTH = 280;
+    const RIGHT_SECTION_GAP = 30;
+    
+    // Divider
+    const DIVIDER_WIDTH = 1;
+    const DIVIDER_HEIGHT = 352;
+    const DIVIDER_GAP = 68;
+    
+    // Service box dimensions
+    const SERVICE_BOX_HEIGHT = 64;
+    const SERVICE_BOX_PADDING = 12;
+    const SERVICE_BOX_GAP = 10;
+    
+    // Availability box dimensions
+    const AVAILABILITY_BOX_HEIGHT = 64;
+    
+    // Button dimensions
+    const BUTTON_WIDTH = 280;
+    const BUTTON_HEIGHT = 40;
+    
     const elements: any[] = [];
-    let cardHeight = 0;
-
-    // Background rectangle
+    
+    // Main card background - using simple rectangle (Canva doesn't support Q commands for rounded corners)
+    // Note: For rounded corners, we'll use a simple rectangle. Canva will handle the visual appearance.
+    const bgPath = `M 0 0 H ${CARD_WIDTH} V ${CARD_HEIGHT} H 0 L 0 0 Z`;
+    
     elements.push({
       type: "shape",
       paths: [{
-        d: `M 0 0 H ${CARD_WIDTH} V 1000 H 0 Z`,
-        fill: { color: "#FFFFFF" }
+        d: bgPath,
+        fill: { color: "#FFFFFF", dropTarget: false }
       }],
-      viewBox: { width: CARD_WIDTH, height: 1000, top: 0, left: 0 },
+      viewBox: { width: CARD_WIDTH, height: CARD_HEIGHT, top: 0, left: 0 },
       width: CARD_WIDTH,
-      height: 1000,
+      height: CARD_HEIGHT,
       top: 0,
       left: 0
     });
-
-    // Accent bar at top
+    
+    // Left section - starting position
+    const leftSectionTop = CARD_PADDING_TOP;
+    const leftSectionLeft = CARD_PADDING_LEFT;
+    let leftCurrentY = leftSectionTop;
+    
+    // Logo placeholder (52x52 square - Canva doesn't support A commands for circles easily)
+    // Using a simple square shape
+    const logoPath = `M 0 0 H ${LOGO_SIZE} V ${LOGO_SIZE} H 0 L 0 0 Z`;
     elements.push({
       type: "shape",
       paths: [{
-        d: `M 0 0 H ${CARD_WIDTH} V 6 H 0 Z`,
-        fill: { color: branding.primary }
+        d: logoPath,
+        fill: { color: "#F0F0F0", dropTarget: false }
       }],
-      viewBox: { width: CARD_WIDTH, height: 6, top: 0, left: 0 },
-      width: CARD_WIDTH,
-      height: 6,
-      top: 0,
-      left: 0
+      viewBox: { width: LOGO_SIZE, height: LOGO_SIZE, top: 0, left: 0 },
+      width: LOGO_SIZE,
+      height: LOGO_SIZE,
+      top: leftCurrentY,
+      left: leftSectionLeft
     });
-
-    currentY += 24;
-
-    // Business name
+    
+    leftCurrentY += LOGO_SIZE + LEFT_SECTION_GAP;
+    
+    // Business Name
     elements.push({
       type: "text",
       children: [businessName],
-      color: branding.accent,
-      fontWeight: "bold",
-      fontSize: 28,
-      width: CARD_WIDTH - (PADDING * 2),
-      top: currentY,
-      left: PADDING
+      color: textColor,
+      fontWeight: "semibold",
+      fontSize: 20,
+      width: LEFT_SECTION_WIDTH,
+      height: 20,
+      top: leftCurrentY,
+      left: leftSectionLeft
     });
-
-    currentY += 48;
-
+    
+    leftCurrentY += 20 + 10;
+    
+    // "Book an appointment" text
+    elements.push({
+      type: "text",
+      children: ["Book an appointment"],
+      color: secondaryColor,
+      fontWeight: "medium",
+      fontSize: 14,
+      width: LEFT_SECTION_WIDTH,
+      height: 20,
+      top: leftCurrentY,
+      left: leftSectionLeft
+    });
+    
+    // Vertical divider line
+    const dividerLeft = leftSectionLeft + LEFT_SECTION_WIDTH + DIVIDER_GAP;
+    const dividerTop = CARD_PADDING_TOP;
+    elements.push({
+      type: "shape",
+      paths: [{
+        d: `M 0 0 H ${DIVIDER_WIDTH} V ${DIVIDER_HEIGHT} H 0 Z`,
+        fill: { color: getLightBorder(secondaryColor), dropTarget: false }
+      }],
+      viewBox: { width: DIVIDER_WIDTH, height: DIVIDER_HEIGHT, top: 0, left: 0 },
+      width: DIVIDER_WIDTH,
+      height: DIVIDER_HEIGHT,
+      top: dividerTop,
+      left: dividerLeft
+    });
+    
+    // Right section - starting position
+    const rightSectionTop = CARD_PADDING_TOP;
+    const rightSectionLeft = dividerLeft + DIVIDER_WIDTH + DIVIDER_GAP;
+    let rightCurrentY = rightSectionTop;
+    
+    // Services section
+    const servicesToShow = services.slice(0, 2); // Show max 2 services in Figma design
+    
     // Services header
     elements.push({
       type: "text",
       children: ["Services"],
-      color: branding.primary,
+      color: textColor,
       fontWeight: "semibold",
-      fontSize: 20,
-      width: CARD_WIDTH - (PADDING * 2),
-      top: currentY,
-      left: PADDING
+      fontSize: 14,
+      width: RIGHT_SECTION_WIDTH,
+      height: 20,
+      top: rightCurrentY,
+      left: rightSectionLeft
     });
-
-    currentY += 36;
-
-    // Services list (show max 5)
-    const servicesToShow = services.slice(0, 5);
-
+    
+    rightCurrentY += 20 + SERVICE_BOX_GAP;
+    
+    // Service boxes
     if (servicesToShow.length === 0) {
+      // Empty state service box
+      const serviceBoxTop = rightCurrentY;
+      const serviceBoxPath = `M 0 0 H ${RIGHT_SECTION_WIDTH} V ${SERVICE_BOX_HEIGHT} H 0 Z`;
+      elements.push({
+        type: "shape",
+        paths: [{
+          d: serviceBoxPath,
+          fill: { color: getLightTint(primaryColor), dropTarget: false }
+        }],
+        viewBox: { width: RIGHT_SECTION_WIDTH, height: SERVICE_BOX_HEIGHT, top: 0, left: 0 },
+        width: RIGHT_SECTION_WIDTH,
+        height: SERVICE_BOX_HEIGHT,
+        top: serviceBoxTop,
+        left: rightSectionLeft
+      });
+      
       elements.push({
         type: "text",
-        children: ["No services configured yet"],
-        color: branding.secondary,
+        children: ["No services configured"],
+        color: secondaryColor,
+        fontWeight: "medium",
         fontSize: 14,
-        fontStyle: "italic",
-        width: CARD_WIDTH - (PADDING * 2),
-        top: currentY,
-        left: PADDING
+        width: RIGHT_SECTION_WIDTH - (SERVICE_BOX_PADDING * 2),
+        height: 20,
+        top: serviceBoxTop + SERVICE_BOX_PADDING,
+        left: rightSectionLeft + SERVICE_BOX_PADDING
       });
-      currentY += 32;
+      
+      rightCurrentY += SERVICE_BOX_HEIGHT + SERVICE_BOX_GAP;
     } else {
-      servicesToShow.forEach((service) => {
-        // Truncate long names
-        const serviceName = service.name.length > 40
-          ? service.name.substring(0, 37) + '...'
-          : service.name;
-
+      servicesToShow.forEach((service, index) => {
+        const serviceBoxTop = rightCurrentY;
+        const serviceBoxPath = `M 0 0 H ${RIGHT_SECTION_WIDTH} V ${SERVICE_BOX_HEIGHT} H 0 Z`;
+        
+        // Service box background
+        elements.push({
+          type: "shape",
+          paths: [{
+            d: serviceBoxPath,
+            fill: { color: getLightTint(primaryColor), dropTarget: false }
+          }],
+          viewBox: { width: RIGHT_SECTION_WIDTH, height: SERVICE_BOX_HEIGHT, top: 0, left: 0 },
+          width: RIGHT_SECTION_WIDTH,
+          height: SERVICE_BOX_HEIGHT,
+          top: serviceBoxTop,
+          left: rightSectionLeft
+        });
+        
+        // Service name
+        const serviceName = service.name.length > 20 ? service.name.substring(0, 17) + '...' : service.name;
         elements.push({
           type: "text",
           children: [serviceName],
-          color: branding.accent,
-          fontWeight: "medium",
-          fontSize: 16,
-          width: CARD_WIDTH - (PADDING * 3) - 120,
-          top: currentY,
-          left: PADDING
+          color: secondaryColor,
+          fontWeight: "semibold",
+          fontSize: 14,
+          width: 87,
+          height: 20,
+          top: serviceBoxTop + SERVICE_BOX_PADDING,
+          left: rightSectionLeft + SERVICE_BOX_PADDING
         });
-
+        
+        // Service duration
+        elements.push({
+          type: "text",
+          children: [`${service.duration} min`],
+          color: secondaryColor,
+          fontWeight: "normal",
+          fontSize: 12,
+          width: 87,
+          height: 15,
+          top: serviceBoxTop + SERVICE_BOX_PADDING + 20 + 5,
+          left: rightSectionLeft + SERVICE_BOX_PADDING
+        });
+        
+        // Service price (right aligned)
         const priceText = service.price > 0 ? `$${service.price}` : 'Free';
         elements.push({
           type: "text",
-          children: [`${service.duration}min · ${priceText}`],
-          color: branding.secondary,
+          children: [priceText],
+          color: secondaryColor,
+          fontWeight: "semibold",
           fontSize: 14,
           textAlign: "end",
-          width: 120,
-          top: currentY + 2,
-          left: CARD_WIDTH - PADDING - 120
+          width: 28,
+          height: 20,
+          top: serviceBoxTop + SERVICE_BOX_PADDING,
+          left: rightSectionLeft + RIGHT_SECTION_WIDTH - SERVICE_BOX_PADDING - 28
         });
-
-        currentY += 32;
+        
+        rightCurrentY += SERVICE_BOX_HEIGHT + SERVICE_BOX_GAP;
       });
-
-      if (services.length > 5) {
-        elements.push({
-          type: "text",
-          children: [`and ${services.length - 5} more...`],
-          color: branding.secondary,
-          fontSize: 14,
-          fontStyle: "italic",
-          width: CARD_WIDTH - (PADDING * 2),
-          top: currentY,
-          left: PADDING
-        });
-        currentY += 28;
-      }
     }
-
-    currentY += 24;
-
+    
+    rightCurrentY += RIGHT_SECTION_GAP - SERVICE_BOX_GAP;
+    
+    // Availability section
     // Availability header
     elements.push({
       type: "text",
       children: ["Availability"],
-      color: branding.primary,
+      color: textColor,
       fontWeight: "semibold",
-      fontSize: 20,
-      width: CARD_WIDTH - (PADDING * 2),
-      top: currentY,
-      left: PADDING
+      fontSize: 14,
+      width: RIGHT_SECTION_WIDTH,
+      height: 20,
+      top: rightCurrentY,
+      left: rightSectionLeft
     });
-
-    currentY += 36;
-
-    // Availability list
+    
+    rightCurrentY += 20 + SERVICE_BOX_GAP;
+    
+    // Helper function to format availability day range
+    // Groups consecutive days with the same times into ranges like "Mon - Fri"
+    const formatAvailabilityDayRange = (availability: Array<{ day: string; times: string }>): string => {
+      if (availability.length === 0) return "";
+      
+      // Group by times
+      const timesMap = new Map<string, string[]>();
+      availability.forEach(avail => {
+        if (!timesMap.has(avail.times)) {
+          timesMap.set(avail.times, []);
+        }
+        const daysArray = timesMap.get(avail.times);
+        if (daysArray) {
+          daysArray.push(avail.day);
+        }
+      });
+      
+      // Day order for sorting
+      const dayOrder: Record<string, number> = {
+        'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6, 'Sun': 7
+      };
+      
+      // Get the first group (most common or first in array)
+      const firstTimes = availability[0]?.times;
+      if (!firstTimes) return "";
+      
+      const days = timesMap.get(firstTimes) || [];
+      
+      // Sort days
+      const sortedDays = days.sort((a, b) => {
+        const aOrder = dayOrder[a] ?? 999;
+        const bOrder = dayOrder[b] ?? 999;
+        return aOrder - bOrder;
+      });
+      
+      if (sortedDays.length === 0) return "";
+      
+      // If single day, return as is
+      if (sortedDays.length === 1) {
+        return sortedDays[0] || "";
+      }
+      
+      // Check if days are consecutive
+      let isConsecutive = true;
+      for (let i = 1; i < sortedDays.length; i++) {
+        const prevDay = sortedDays[i - 1];
+        const currDay = sortedDays[i];
+        if (!prevDay || !currDay) {
+          isConsecutive = false;
+          break;
+        }
+        const prevOrder = dayOrder[prevDay] ?? 0;
+        const currOrder = dayOrder[currDay] ?? 0;
+        if (currOrder !== prevOrder + 1) {
+          isConsecutive = false;
+          break;
+        }
+      }
+      
+      // If consecutive, format as range
+      if (isConsecutive) {
+        const firstDay = sortedDays[0] || "";
+        const lastDay = sortedDays[sortedDays.length - 1] || "";
+        return `${firstDay} - ${lastDay}`;
+      }
+      
+      // If not consecutive, show first and last
+      const firstDay = sortedDays[0] || "";
+      const lastDay = sortedDays[sortedDays.length - 1] || "";
+      return `${firstDay} - ${lastDay}`;
+    };
+    
+    // Availability box
     if (availability.length === 0) {
+      const availBoxTop = rightCurrentY;
+      const availBoxPath = `M 0 0 H ${RIGHT_SECTION_WIDTH} V ${AVAILABILITY_BOX_HEIGHT} H 0 Z`;
+      
+      elements.push({
+        type: "shape",
+        paths: [{
+          d: availBoxPath,
+          fill: { color: getLightTint(primaryColor), dropTarget: false }
+        }],
+        viewBox: { width: RIGHT_SECTION_WIDTH, height: AVAILABILITY_BOX_HEIGHT, top: 0, left: 0 },
+        width: RIGHT_SECTION_WIDTH,
+        height: AVAILABILITY_BOX_HEIGHT,
+        top: availBoxTop,
+        left: rightSectionLeft
+      });
+      
       elements.push({
         type: "text",
         children: ["No availability set"],
-        color: branding.secondary,
+        color: secondaryColor,
+        fontWeight: "medium",
         fontSize: 14,
-        fontStyle: "italic",
-        width: CARD_WIDTH - (PADDING * 2),
-        top: currentY,
-        left: PADDING
+        width: RIGHT_SECTION_WIDTH - (SERVICE_BOX_PADDING * 2),
+        height: 20,
+        top: availBoxTop + SERVICE_BOX_PADDING,
+        left: rightSectionLeft + SERVICE_BOX_PADDING
       });
-      currentY += 28;
     } else {
-      availability.forEach((avail) => {
+      // Format day range from all availability entries
+      const dayRange = formatAvailabilityDayRange(availability);
+      const times = availability[0]?.times || "";
+      
+      if (!dayRange || !times) {
+        // Fallback if somehow data is invalid
+        const availBoxTop = rightCurrentY;
+        const availBoxPath = `M 0 0 H ${RIGHT_SECTION_WIDTH} V ${AVAILABILITY_BOX_HEIGHT} H 0 Z`;
+        
+        elements.push({
+          type: "shape",
+          paths: [{
+            d: availBoxPath,
+            fill: { color: getLightTint(primaryColor), dropTarget: false }
+          }],
+          viewBox: { width: RIGHT_SECTION_WIDTH, height: AVAILABILITY_BOX_HEIGHT, top: 0, left: 0 },
+          width: RIGHT_SECTION_WIDTH,
+          height: AVAILABILITY_BOX_HEIGHT,
+          top: availBoxTop,
+          left: rightSectionLeft
+        });
+      } else {
+        const availBoxTop = rightCurrentY;
+        const availBoxPath = `M 0 0 H ${RIGHT_SECTION_WIDTH} V ${AVAILABILITY_BOX_HEIGHT} H 0 Z`;
+        
+        elements.push({
+          type: "shape",
+          paths: [{
+            d: availBoxPath,
+            fill: { color: getLightTint(primaryColor), dropTarget: false }
+          }],
+          viewBox: { width: RIGHT_SECTION_WIDTH, height: AVAILABILITY_BOX_HEIGHT, top: 0, left: 0 },
+          width: RIGHT_SECTION_WIDTH,
+          height: AVAILABILITY_BOX_HEIGHT,
+          top: availBoxTop,
+          left: rightSectionLeft
+        });
+        
+        // Day range (e.g., "Mon - Fri")
         elements.push({
           type: "text",
-          children: [`${avail.day}  ${avail.times}`],
-          color: branding.accent,
-          fontSize: 15,
-          width: CARD_WIDTH - (PADDING * 2),
-          top: currentY,
-          left: PADDING
+          children: [dayRange],
+          color: secondaryColor,
+          fontWeight: "semibold",
+          fontSize: 14,
+          width: 180,
+          height: 20,
+          top: availBoxTop + SERVICE_BOX_PADDING,
+          left: rightSectionLeft + SERVICE_BOX_PADDING
         });
-        currentY += 28;
-      });
+        
+        // Time range
+        elements.push({
+          type: "text",
+          children: [times],
+          color: secondaryColor,
+          fontWeight: "normal",
+          fontSize: 12,
+          width: 180,
+          height: 15,
+          top: availBoxTop + SERVICE_BOX_PADDING + 20 + 5,
+          left: rightSectionLeft + SERVICE_BOX_PADDING
+        });
+      }
     }
-
-    currentY += 32;
-
-    // Footer separator
+    
+    rightCurrentY += AVAILABILITY_BOX_HEIGHT + RIGHT_SECTION_GAP;
+    
+    // Book Now button - using simple rectangle (Canva doesn't support Q commands)
+    // For a fully rounded button, we'll use a simple rectangle shape
+    const buttonTop = rightCurrentY;
+    const buttonLeft = rightSectionLeft;
+    const buttonPath = `M 0 0 H ${BUTTON_WIDTH} V ${BUTTON_HEIGHT} H 0 L 0 0 Z`;
+    
     elements.push({
       type: "shape",
       paths: [{
-        d: `M 0 0 H ${CARD_WIDTH - (PADDING * 2)} V 1 H 0 Z`,
-        fill: { color: branding.secondary }
-      }],
-      viewBox: { width: CARD_WIDTH - (PADDING * 2), height: 1, top: 0, left: 0 },
-      width: CARD_WIDTH - (PADDING * 2),
-      height: 1,
-      top: currentY,
-      left: PADDING
-    });
-
-    currentY += 24;
-
-    // Book Now button background
-    const buttonTop = currentY;
-    const buttonLeft = (CARD_WIDTH - BUTTON_WIDTH) / 2;
-
-    elements.push({
-      type: "shape",
-      paths: [{
-        d: `M 0 0 H ${BUTTON_WIDTH} V ${BUTTON_HEIGHT} H 0 Z`,
-        fill: { color: branding.primary }
+        d: buttonPath,
+        fill: { color: primaryColor, dropTarget: false }
       }],
       viewBox: { width: BUTTON_WIDTH, height: BUTTON_HEIGHT, top: 0, left: 0 },
       width: BUTTON_WIDTH,
@@ -834,23 +1087,29 @@ export const App = () => {
       top: buttonTop,
       left: buttonLeft
     });
-
-    // Book Now button text (visual only)
+    
+    // Book Now button text
     elements.push({
       type: "text",
       children: ["Book Now"],
       color: "#FFFFFF",
-      fontWeight: "bold",
-      fontSize: 18,
+      fontWeight: "medium",
+      fontSize: 14,
       textAlign: "center",
       width: BUTTON_WIDTH,
-      top: buttonTop + 13,
+      height: 20,
+      top: buttonTop + (BUTTON_HEIGHT - 20) / 2,
       left: buttonLeft
     });
 
-    cardHeight = currentY + BUTTON_HEIGHT + PADDING;
-
-    return { elements, buttonTop, buttonLeft, cardWidth: CARD_WIDTH, buttonWidth: BUTTON_WIDTH, cardHeight };
+    return { 
+      elements, 
+      buttonTop, 
+      buttonLeft, 
+      cardWidth: CARD_WIDTH, 
+      buttonWidth: BUTTON_WIDTH, 
+      cardHeight: CARD_HEIGHT 
+    };
   };
 
   const handleBack = () => {

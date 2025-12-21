@@ -893,6 +893,7 @@
 
 .addAppointmentModal .input-wrap.comments-wrap h5 {
   align-items: flex-start;
+  align-self: flex-start;
   height: auto;
   padding-top: 14px;
 }
@@ -1643,6 +1644,10 @@
     flex-direction: row;
     align-items: center;
     gap: 20px;
+  }
+
+  .addAppointmentModal .input-wrap.comments-wrap.view-wrap {
+    align-items: flex-start;
   }
 
   .addAppointmentModal .input-wrap.view-wrap h5 {

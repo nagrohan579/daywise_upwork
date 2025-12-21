@@ -192,7 +192,7 @@ export async function sendCustomerConfirmation(data: BookingEmailData): Promise<
   console.log('Sending email TO:', data.customerEmail);
 
   return await handleEmailSend('Customer Confirmation', {
-    from: FROM_EMAIL!,
+    from: `Daywise Booking <${FROM_EMAIL}>`,
     to: data.customerEmail,
     subject: `Appointment Confirmed - ${data.businessName}`,
     html: emailHtml,
@@ -210,7 +210,7 @@ export async function sendBusinessNotification(data: BookingEmailData): Promise<
     </div>` : '';
 
   return await handleEmailSend('Business Notification', {
-    from: FROM_EMAIL!,
+    from: `Daywise Booking <${FROM_EMAIL}>`,
     to: data.businessEmail,
     subject: `New ${data.appointmentType} Booked - ${data.customerName}`,
     html: `
@@ -276,7 +276,7 @@ export async function sendAppointmentReminder(data: BookingEmailData): Promise<b
     </div>` : '';
 
   return await handleEmailSend('Appointment Reminder', {
-    from: FROM_EMAIL!,
+    from: `Daywise Booking <${FROM_EMAIL}>`,
     to: data.customerEmail,
     subject: `Reminder: Your ${data.appointmentType} appointment tomorrow`,
     html: `
@@ -338,7 +338,7 @@ export async function sendRescheduleConfirmation(data: BookingEmailData & {
     </div>` : '';
 
   return await handleEmailSend('Reschedule Confirmation', {
-    from: FROM_EMAIL!,
+    from: `Daywise Booking <${FROM_EMAIL}>`,
     to: data.customerEmail,
     subject: `Appointment Rescheduled - ${data.businessName}`,
     html: `
@@ -405,7 +405,7 @@ export async function sendRescheduleBusinessNotification(data: BookingEmailData 
     </div>` : '';
 
   return await handleEmailSend('Reschedule Business Notification', {
-    from: FROM_EMAIL!,
+    from: `Daywise Booking <${FROM_EMAIL}>`,
     to: data.businessEmail,
     subject: `Booking Rescheduled - ${data.customerName}`,
     html: `
@@ -466,7 +466,7 @@ export async function sendCancellationConfirmation(data: BookingEmailData): Prom
     </div>` : '';
 
   return await handleEmailSend('Cancellation Confirmation', {
-    from: FROM_EMAIL!,
+    from: `Daywise Booking <${FROM_EMAIL}>`,
     to: data.customerEmail,
     subject: `Appointment Cancelled - ${data.businessName}`,
     html: `
@@ -520,7 +520,7 @@ export async function sendCancellationBusinessNotification(data: BookingEmailDat
     </div>` : '';
 
   return await handleEmailSend('Cancellation Business Notification', {
-    from: FROM_EMAIL!,
+    from: `Daywise Booking <${FROM_EMAIL}>`,
     to: data.businessEmail,
     subject: `Booking Cancelled - ${data.customerName}`,
     html: `
@@ -569,7 +569,7 @@ export async function sendBusinessCancellationConfirmation(data: BookingEmailDat
     </div>` : '';
 
   return await handleEmailSend('Business Cancellation Confirmation', {
-    from: FROM_EMAIL!,
+    from: `Daywise Booking <${FROM_EMAIL}>`,
     to: data.customerEmail,
     subject: `Appointment Cancelled - ${data.businessName}`,
     html: `
@@ -608,7 +608,7 @@ export async function sendBusinessCancellationConfirmation(data: BookingEmailDat
 // Send verification emails
 export async function sendVerificationEmail(email: string, name: string, verificationUrl: string): Promise<boolean> {
   return await handleEmailSend('Email Verification', {
-    from: FROM_EMAIL!,
+    from: `Daywise Booking <${FROM_EMAIL}>`,
     to: email,
     subject: 'Verify your email address',
     html: `
@@ -670,7 +670,7 @@ export async function sendVerificationEmail(email: string, name: string, verific
 
 export async function sendPasswordResetEmail(email: string, name: string, resetUrl: string): Promise<boolean> {
   return await handleEmailSend('Password Reset', {
-    from: FROM_EMAIL!,
+    from: `Daywise Booking <${FROM_EMAIL}>`,
     to: email,
     subject: 'Reset your password - Daywise',
     html: `
@@ -732,7 +732,7 @@ export async function sendPasswordResetEmail(email: string, name: string, resetU
 
 export async function sendCustomerReminder(data: BookingEmailData): Promise<boolean> {
   return await handleEmailSend("Customer Reminder", {
-    from: FROM_EMAIL!,
+    from: `Daywise Booking <${FROM_EMAIL}>`,
     to: data.customerEmail,
     subject: `Reminder: Your appointment is tomorrow with ${data.businessName}`,
     html: `<p>Hi ${data.customerName}, this is a reminder for your ${data.appointmentType} tomorrow at ${data.appointmentTime}.</p>`
@@ -741,7 +741,7 @@ export async function sendCustomerReminder(data: BookingEmailData): Promise<bool
 
 export async function sendBusinessReminder(data: BookingEmailData): Promise<boolean> {
   return await handleEmailSend("Business Reminder", {
-    from: FROM_EMAIL!,
+    from: `Daywise Booking <${FROM_EMAIL}>`,
     to: data.businessEmail,
     subject: `Reminder: You have an appointment tomorrow (${data.appointmentType})`,
     html: `<p>${data.businessName}, reminder: ${data.customerName} has an appointment tomorrow at ${data.appointmentTime}.</p>`
@@ -756,7 +756,7 @@ interface FeedbackEmailData {
 
 export async function sendFeedbackEmail(data: FeedbackEmailData): Promise<boolean> {
   return await handleEmailSend('Feedback Submission', {
-    from: FROM_EMAIL!, // Must use verified sender email
+    from: `Daywise Booking <${FROM_EMAIL}>`, // Must use verified sender email
     to: FROM_EMAIL!, // Send to SENDGRID_FROM_EMAIL
     replyTo: data.email, // Set reply-to as user's email so you can reply directly
     subject: `Feedback from ${data.name}`,
@@ -811,7 +811,7 @@ export async function sendFeedbackEmail(data: FeedbackEmailData): Promise<boolea
 
 export async function sendEmailChangeOtp(email: string, otp: string): Promise<boolean> {
   return await handleEmailSend('Email Change OTP', {
-    from: FROM_EMAIL!,
+    from: `Daywise Booking <${FROM_EMAIL}>`,
     to: email,
     subject: 'Verify your new email address - Daywise',
     html: `
@@ -864,7 +864,7 @@ export async function sendEmailChangeOtp(email: string, otp: string): Promise<bo
 
 export async function sendPasswordChangeOtp(email: string, otp: string): Promise<boolean> {
   return await handleEmailSend('Password Change OTP', {
-    from: FROM_EMAIL!,
+    from: `Daywise Booking <${FROM_EMAIL}>`,
     to: email,
     subject: 'Verify your identity to change password - Daywise',
     html: `

@@ -17,8 +17,10 @@ import {
   BiilingIcon,
   PaymentIcon,
   LogoutIcon,
+  BoltIcon,
 } from "../SVGICONS/Svg";
 import NotificationsModal from "../ui/modals/NotificationsModal";
+import UpgradeModal from "../ui/modals/UpgradeModal";
 import InactiveAccountBanner from "../InactiveAccountBanner";
 import useAccountStatus from "../../hooks/useAccountStatus";
 import { formatDateTime, formatTimestamp } from "../../utils/dateFormatting";
@@ -55,11 +57,13 @@ const Sidebar = ({ isOpen, toggleSidebar, accountStatus }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [userTimezone, setUserTimezone] = useState('Etc/UTC'); // Default to UTC
+  const [isFreePlan, setIsFreePlan] = useState(null); // null = loading, true = free, false = pro
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const isInactive = accountStatus === 'inactive';
   const sidebarContainerRef = useRef(null);
   const logoutContainerRef = useRef(null);
 
-  // Fetch user timezone on mount
+  // Fetch user timezone and subscription status on mount
   useEffect(() => {
     const fetchUserTimezone = async () => {
       try {
@@ -78,7 +82,29 @@ const Sidebar = ({ isOpen, toggleSidebar, accountStatus }) => {
       }
     };
 
+    const fetchSubscription = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const response = await fetch(`${apiUrl}/api/user-subscriptions/me`, {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const planId = data.subscription?.planId || "free";
+          setIsFreePlan(planId === "free");
+        } else {
+          // On error, default to free (show button)
+          setIsFreePlan(true);
+        }
+      } catch (error) {
+        console.error('Error fetching subscription:', error);
+        // On error, default to free (show button)
+        setIsFreePlan(true);
+      }
+    };
+
     fetchUserTimezone();
+    fetchSubscription();
     fetchNotifications();
   }, []);
 
@@ -336,6 +362,22 @@ const Sidebar = ({ isOpen, toggleSidebar, accountStatus }) => {
         </nav>
 
         <div ref={logoutContainerRef} className="logout-container">
+          {isFreePlan === true && (
+            <button
+              className="upgrade-to-pro-button"
+              onClick={(e) => {
+                e.preventDefault();
+                if (isInactive) {
+                  return;
+                }
+                setShowUpgradeModal(true);
+                toggleSidebar();
+              }}
+            >
+              <BoltIcon />
+              <span>Upgrade to Pro</span>
+            </button>
+          )}
           <Link
             to="/feedback"
             className={`leave-feedback-button ${isInactive ? "disabled" : ""}`}
@@ -384,6 +426,12 @@ const Sidebar = ({ isOpen, toggleSidebar, accountStatus }) => {
         notifications={notifications}
         onDelete={handleNotificationDelete}
         onShowInCalendar={handleShowInCalendar}
+      />
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        show={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
       />
     </>
   );

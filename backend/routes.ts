@@ -1127,6 +1127,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // END CANVA APP ROUTES
   // ============================================
 
+  // ============================================
+  // oEmbed Endpoint for Iframely/Canva Embed Support
+  // ============================================
+
+  app.get("/api/oembed", async (req, res) => {
+    try {
+      const { url, maxwidth, maxheight, format } = req.query;
+
+      if (!url || typeof url !== "string") {
+        return res.status(400).json({ error: "url parameter is required" });
+      }
+
+      // Extract slug from URL (e.g., https://app.daywisebooking.com/business-slug)
+      const urlObj = new URL(url);
+      const slug = urlObj.pathname.replace(/^\//, "").split("/")[0];
+
+      if (!slug) {
+        return res.status(400).json({ error: "Invalid booking page URL" });
+      }
+
+      // Verify slug exists
+      const user = await storage.getUserBySlug(slug);
+      if (!user) {
+        return res.status(404).json({ error: "Booking page not found" });
+      }
+
+      // Determine iframe dimensions (Canva typically requests specific sizes)
+      const width = maxwidth ? parseInt(maxwidth as string) : 800;
+      const height = maxheight ? parseInt(maxheight as string) : 1200;
+
+      // Construct iframe embed HTML
+      const iframeHtml = `<iframe src="${url}" width="${width}" height="${height}" frameborder="0" scrolling="yes" allowfullscreen allowtransparency="true" style="border: none; border-radius: 4px; background: transparent;"></iframe>`;
+
+      // Return oEmbed JSON response
+      const oembedResponse = {
+        version: "1.0",
+        type: "rich", // "rich" allows interactive HTML content
+        provider_name: "DayWise Booking",
+        provider_url: "https://daywisebooking.com",
+        title: `${user.businessName || user.name} - Book an Appointment`,
+        author_name: user.businessName || user.name,
+        author_url: url,
+        html: iframeHtml,
+        width: width,
+        height: height,
+        thumbnail_url: user.logoUrl || "https://daywisebookingsspace.tor1.cdn.digitaloceanspaces.com/brand_assets/logo.svg",
+        thumbnail_width: 400,
+        thumbnail_height: 300,
+      };
+
+      // CORS headers for Iframely and Canva access
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+      res.setHeader("Cache-Control", "public, max-age=300"); // Cache for 5 minutes
+
+      // Support both JSON and XML format (XML is oEmbed standard)
+      if (format === "xml") {
+        res.setHeader("Content-Type", "application/xml+oembed");
+        const xml = `<?xml version="1.0" encoding="utf-8"?>
+<oembed>
+  <version>1.0</version>
+  <type>rich</type>
+  <provider_name>DayWise Booking</provider_name>
+  <provider_url>https://daywisebooking.com</provider_url>
+  <title>${user.businessName || user.name} - Book an Appointment</title>
+  <author_name>${user.businessName || user.name}</author_name>
+  <author_url>${url}</author_url>
+  <html>${iframeHtml.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</html>
+  <width>${width}</width>
+  <height>${height}</height>
+  <thumbnail_url>${user.logoUrl || "https://daywisebookingsspace.tor1.cdn.digitaloceanspaces.com/brand_assets/logo.svg"}</thumbnail_url>
+  <thumbnail_width>400</thumbnail_width>
+  <thumbnail_height>300</thumbnail_height>
+</oembed>`;
+        return res.send(xml);
+      }
+
+      res.setHeader("Content-Type", "application/json+oembed");
+      res.json(oembedResponse);
+    } catch (error) {
+      console.error("oEmbed endpoint error:", error);
+      res.status(500).json({ error: "Failed to generate oEmbed response" });
+    }
+  });
+
+  // Handle CORS preflight
+  app.options("/api/oembed", (req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.status(200).end();
+  });
+
   // Google OAuth start endpoint (redirect-based flow) - COMMENTED OUT
   app.get("/api/auth/google", (req, res) => {
     const googleClientId = process.env.GOOGLE_CLIENT_ID;
@@ -7931,7 +8025,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create Stripe checkout session on behalf of connected account
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-      const successUrl = `${frontendUrl}/${user.slug || userId}?payment=success&session_id={CHECKOUT_SESSION_ID}`;
+      // Encode booking data in URL for cross-domain iframe compatibility (sessionStorage doesn't work in cross-domain iframes)
+      const encodedBookingData = encodeURIComponent(JSON.stringify(bookingData));
+      const successUrl = `${frontendUrl}/${user.slug || userId}?payment=success&session_id={CHECKOUT_SESSION_ID}&booking_data=${encodedBookingData}`;
       const cancelUrl = `${frontendUrl}/${user.slug || userId}?payment=canceled`;
 
       // Use PLATFORM Stripe instance with connected account ID

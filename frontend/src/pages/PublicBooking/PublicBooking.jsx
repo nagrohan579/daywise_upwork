@@ -56,6 +56,12 @@ const PublicBooking = () => {
   const [weeklyAvailability, setWeeklyAvailability] = useState([]);
   const [availabilityExceptions, setAvailabilityExceptions] = useState([]);
   const [blockedDates, setBlockedDates] = useState([]);
+  const [isInIframe, setIsInIframe] = useState(false);
+
+  // Detect if running in iframe (for Canva embed compatibility)
+  useEffect(() => {
+    setIsInIframe(window.self !== window.top);
+  }, []);
 
   // Get timezone options from utility (limited to 20 supported timezones)
   const timezoneOptions = useMemo(() => {
@@ -178,8 +184,11 @@ const PublicBooking = () => {
       // Payment successful, complete the booking
       const handlePaymentSuccess = async () => {
         try {
-          const pendingBooking = sessionStorage.getItem('pendingBooking');
-          const storedSessionId = sessionStorage.getItem('checkoutSessionId');
+          // Read from URL parameters instead of sessionStorage (for cross-domain iframe compatibility)
+          const urlParams = new URLSearchParams(window.location.search);
+          const storedSessionId = urlParams.get('session_id');
+          const bookingDataParam = urlParams.get('booking_data');
+          const pendingBooking = bookingDataParam ? decodeURIComponent(bookingDataParam) : null;
 
           if (!pendingBooking || !storedSessionId) {
             toast.error("Booking data not found. Please try again.");
@@ -209,10 +218,6 @@ const PublicBooking = () => {
 
           const result = await response.json();
           console.log("PublicBooking - Booking completed after payment:", result);
-
-          // Clean up sessionStorage
-          sessionStorage.removeItem('pendingBooking');
-          sessionStorage.removeItem('checkoutSessionId');
 
           // Store the event URL for the "View Details" button
           if (result.booking && result.booking.bookingToken) {
@@ -248,9 +253,7 @@ const PublicBooking = () => {
         } catch (error) {
           console.error("PublicBooking - Error completing booking after payment:", error);
           toast.error(error.message || "Failed to complete booking after payment");
-          // Clean up and refresh
-          sessionStorage.removeItem('pendingBooking');
-          sessionStorage.removeItem('checkoutSessionId');
+          // Refresh to clean URL
           window.location.href = `/${slug}`;
         }
       };
@@ -259,9 +262,6 @@ const PublicBooking = () => {
     } else if (paymentStatus === 'canceled') {
       // Payment canceled
       toast.error("Payment was canceled. Please try again.");
-      // Clean up sessionStorage
-      sessionStorage.removeItem('pendingBooking');
-      sessionStorage.removeItem('checkoutSessionId');
       // Clean URL and refresh
       window.location.href = `/${slug}`;
     }
@@ -275,6 +275,69 @@ const PublicBooking = () => {
     }
     fetchUserData();
   }, [slug]);
+
+  // Add oEmbed discovery meta tags for Iframely
+  useEffect(() => {
+    if (!userData || !slug) return;
+
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    const frontendUrl = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
+    const bookingPageUrl = `${frontendUrl}/${slug}`;
+
+    // Helper to create/update meta tags
+    const updateMetaTag = (property, content, isName = false) => {
+      const selector = isName ? `meta[name="${property}"]` : `meta[property="${property}"]`;
+      let meta = document.querySelector(selector);
+      if (!meta) {
+        meta = document.createElement('meta');
+        if (isName) {
+          meta.setAttribute('name', property);
+        } else {
+          meta.setAttribute('property', property);
+        }
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', content);
+    };
+
+    const updateLinkTag = (rel, type, href) => {
+      let link = document.querySelector(`link[rel="${rel}"][type="${type}"]`);
+      if (!link) {
+        link = document.createElement('link');
+        link.setAttribute('rel', rel);
+        link.setAttribute('type', type);
+        document.head.appendChild(link);
+      }
+      link.setAttribute('href', href);
+    };
+
+    // Open Graph meta tags (required by Iframely)
+    updateMetaTag('og:type', 'website');
+    updateMetaTag('og:url', bookingPageUrl);
+    updateMetaTag('og:title', `${userData.businessName || userData.name} - Book an Appointment`);
+    updateMetaTag('og:description', userData.welcomeMessage || 'Schedule your appointment with us');
+    updateMetaTag('og:site_name', 'DayWise Booking');
+
+    if (branding?.logoUrl) {
+      updateMetaTag('og:image', branding.logoUrl);
+      updateMetaTag('og:image:width', '400');
+      updateMetaTag('og:image:height', '300');
+    }
+
+    // Twitter Card meta tags (helps Iframely)
+    updateMetaTag('twitter:card', 'summary_large_image', true);
+    updateMetaTag('twitter:title', `${userData.businessName || userData.name} - Book an Appointment`, true);
+    updateMetaTag('twitter:description', userData.welcomeMessage || 'Schedule your appointment', true);
+
+    // oEmbed discovery link - tells Iframely where to find oEmbed data
+    const oembedUrl = `${apiUrl}/api/oembed?url=${encodeURIComponent(bookingPageUrl)}&format=json`;
+    updateLinkTag('alternate', 'application/json+oembed', oembedUrl);
+
+    // Also add XML format discovery
+    const oembedXmlUrl = `${apiUrl}/api/oembed?url=${encodeURIComponent(bookingPageUrl)}&format=xml`;
+    updateLinkTag('alternate', 'application/xml+oembed', oembedXmlUrl);
+
+  }, [userData, slug, branding]);
 
   const fetchUserData = async () => {
     try {
@@ -690,11 +753,8 @@ const PublicBooking = () => {
 
         const checkoutData = await checkoutResponse.json();
 
-        // Store booking data in sessionStorage for after payment
-        sessionStorage.setItem('pendingBooking', JSON.stringify(bookingPayload));
-        sessionStorage.setItem('checkoutSessionId', checkoutData.sessionId);
-
         // Redirect to Stripe checkout
+        // Booking data is encoded in the return URL by the backend (cross-domain iframe compatible)
         window.location.href = checkoutData.url;
         return; // Don't continue with normal booking flow
       }
@@ -818,10 +878,11 @@ const PublicBooking = () => {
   }, [intakeForm, step, isMobile]);
 
   // Lock body and html scroll on mobile step 2 to ensure fixed top section
+  // Skip scroll locking when in iframe (for Canva embed compatibility)
   useEffect(() => {
     let scrollHandler, touchHandler, wheelHandler;
 
-    if (isMobile && step === 2) {
+    if (!isInIframe && isMobile && step === 2) {
       // Store current scroll position
       const scrollY = window.scrollY;
 
@@ -1078,7 +1139,7 @@ const PublicBooking = () => {
         bottomSection.style.removeProperty('padding-top');
       }
     };
-  }, [isMobile, step]);
+  }, [isInIframe, isMobile, step]);
 
   if (loading) {
     return (

@@ -552,14 +552,14 @@ export const App = () => {
     </Rows>
   );
 
-  const handleAddBookingCard = async () => {
+  const handleAddEmbedToPage = async () => {
     try {
       setError('');
       const token = await auth.getCanvaUserToken();
       const backendHost = BACKEND_HOST || 'http://localhost:3000';
 
-      // Fetch booking card data
-      const response = await fetch(`${backendHost}/api/canva/booking-card-data`, {
+      // Fetch user slug
+      const response = await fetch(`${backendHost}/api/canva/user-slug`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -568,50 +568,40 @@ export const App = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch booking card data');
+        throw new Error(errorData.message || 'Failed to get user slug');
       }
 
-      const cardData = await response.json();
+      const userData = await response.json();
+      const slug = userData.slug;
 
-      // Store version for change detection
-      localStorage.setItem('daywise_card_version', cardData.dataVersion);
-
-      // Build card elements
-      const cardInfo = buildBookingCardElements(cardData);
+      if (!slug) {
+        throw new Error('User does not have a booking page. Please complete your profile setup.');
+      }
 
       // Construct booking page URL
       const frontendUrl = WEBAPP_FRONTEND_URL || 'https://app.daywisebooking.com';
-      const bookingPageUrl = `${frontendUrl}/${cardData.slug}`;
+      const bookingPageUrl = `${frontendUrl}/${slug}`;
 
-      // Add group element to design
+      console.log('Adding embed to design:', bookingPageUrl);
+
+      // Add embed element to design
       const { addElementAtPoint } = await import('@canva/design');
 
-      const cardTop = 100;
-      const cardLeft = 100;
-
-      // Add the visual card as a group
       await addElementAtPoint({
-        type: 'group',
-        children: cardInfo.elements,
-        top: cardTop,
-        left: cardLeft,
-        width: cardInfo.cardWidth,
-        height: cardInfo.cardHeight
+        type: 'embed',
+        url: bookingPageUrl,
+        top: 100,
+        left: 100,
+        width: 800,
+        height: 1200,
       });
 
-      // Note: Canva SDK doesn't support programmatically locking elements after creation
-      // The group will be editable by default. Users can manually lock it in Canva if needed.
-      // To make it uneditable but resizable, users would need to:
-      // 1. Right-click the group in Canva
-      // 2. Select "Lock" from the context menu
-      // This prevents ungrouping and editing individual elements while allowing resize/move
-
-      console.log('✅ Booking card successfully added to design!');
-      console.log('🔗 Booking URL:', bookingPageUrl);
+      console.log('✅ Booking page embed successfully added to design!');
+      console.log('🔗 When published as Canva Website, this will show:', bookingPageUrl);
 
     } catch (err: any) {
-      console.error('Error adding booking card:', err);
-      setError(err.message || 'Failed to add booking card');
+      console.error('Error adding embed to page:', err);
+      setError(err.message || 'Failed to add booking page embed');
     }
   };
 
@@ -1447,12 +1437,12 @@ export const App = () => {
           <Button
             variant="primary"
             onClick={async () => {
-              await handleAddBookingCard();
+              await handleAddEmbedToPage();
               setHasDataChanges(false);
             }}
             stretch
           >
-            Refresh booking section
+            Add Updated Booking Page
           </Button>
         </Rows>
       </Box>
@@ -1477,8 +1467,8 @@ export const App = () => {
               {renderRefreshBanner()}
 
               <Box paddingTop="2u" width="full">
-                <Button variant="primary" onClick={handleAddBookingCard} stretch>
-                  Add Design to Page
+                <Button variant="primary" onClick={handleAddEmbedToPage} stretch>
+                  Add Booking Page to Design
                 </Button>
               </Box>
 

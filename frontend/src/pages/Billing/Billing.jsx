@@ -2,48 +2,16 @@ import { useState, useEffect } from "react";
 import { AppLayout, Button, PricingTable } from "../../components";
 import { VisaIcon } from "../../components/SVGICONS/Svg";
 import { toast } from "sonner";
+import { useSubscription } from "../../providers/SubscriptionProvider";
 import "./Billing.css";
 
 const Billing = () => {
-  const [currentPlan, setCurrentPlan] = useState(null); // null = not yet loaded, "free", "pro"
-  const [isAnnual, setIsAnnual] = useState(false); // Is current plan annual
-  const [isFetchingPlan, setIsFetchingPlan] = useState(true);
+  const { planId: currentPlan, isLoading: isFetchingPlan, subscription: subscriptionData, refreshSubscription } = useSubscription();
+  const isAnnual = subscriptionData?.isAnnual || false;
   const [plans, setPlans] = useState([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState(null);
   const [selectingPlan, setSelectingPlan] = useState(null); // Track which plan is being selected (e.g., "pro-month", "pro-year")
-  const [subscriptionData, setSubscriptionData] = useState(null); // Full subscription details
-
-  // Fetch current subscription
-  useEffect(() => {
-    const fetchSubscription = async () => {
-      setIsFetchingPlan(true);
-      try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        const response = await fetch(`${apiUrl}/api/user-subscriptions/me`, {
-          credentials: 'include',
-        });
-        if (response.ok) {
-          const data = await response.json();
-          const planId = data.subscription?.planId || "free";
-          const annual = data.subscription?.isAnnual || false;
-          setCurrentPlan(planId);
-          setIsAnnual(annual);
-          setSubscriptionData(data.subscription || null);
-          console.log('Fetched subscription:', planId, annual ? '(Annual)' : '(Monthly)');
-        } else {
-          console.error('Failed to fetch subscription, defaulting to free');
-          setCurrentPlan("free");
-        }
-      } catch (error) {
-        console.error('Error fetching subscription:', error);
-        setCurrentPlan("free");
-      } finally {
-        setIsFetchingPlan(false);
-      }
-    };
-    fetchSubscription();
-  }, []);
 
   // Fetch subscription plans
   useEffect(() => {
@@ -109,8 +77,10 @@ const Billing = () => {
       window.history.replaceState({}, '', '/billing');
       // Clear checkout flag
       sessionStorage.removeItem('selectingPlan');
-      // Refetch subscription to update UI - increased delay to allow webhook processing
-      setTimeout(() => window.location.reload(), 3000);
+      // Refresh subscription to update UI - increased delay to allow webhook processing
+      setTimeout(() => {
+        refreshSubscription();
+      }, 3000);
     } else if (canceled === '1') {
       toast.info('Checkout canceled. You can try again anytime.');
       // Clean URL

@@ -168,12 +168,6 @@ const SignupPage = () => {
   };
 
   const handleGoogleSignup = () => {
-    // Check if terms are accepted
-    if (!acceptedTerms) {
-      toast.error('Please accept the Terms of Service and Privacy Policy by checking the box');
-      return;
-    }
-
     // Detect user's timezone and country automatically
     const location = detectUserLocation();
 

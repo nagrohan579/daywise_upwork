@@ -2978,8 +2978,7 @@
   isolation: isolate;
   width: 1100px;
   max-width: 90vw;
-  min-height: 90vh;
-  max-height: 92vh;
+  height: 700px;
   overflow-y: visible;
   animation: slideUp 0.3s ease;
 }

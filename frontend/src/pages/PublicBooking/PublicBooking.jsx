@@ -1804,8 +1804,8 @@ const PublicBooking = () => {
                 />
                 <p className="terms-con-desc">
                   By continuing, you confirm that you have read and agree
-                  to Daywise's <Link to="/terms">Terms of Use</Link> and{" "}
-                  <Link to="/privacy-policy">Privacy Notice</Link>.
+                  to Daywise's <a href="https://www.daywisebooking.com/terms-of-service" target="_blank" rel="noopener noreferrer">Terms of Use</a> and{" "}
+                  <a href="https://www.daywisebooking.com/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Notice</a>.
                 </p>
                 <Button
                   text={

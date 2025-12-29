@@ -1253,7 +1253,7 @@ const Branding = () => {
                       }, 500);
                     }}
                   />
-                  <h4>Main color</h4>
+                  <h4>Main Color</h4>
                 </div>
                 <div className="color-box">
                   <ColorPicker

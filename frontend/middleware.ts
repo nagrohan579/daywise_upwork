@@ -1,22 +1,34 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+export const config = {
+  matcher: [
+    /*
+     * Match all paths except:
+     * - /assets/* (static files)
+     * - /api/* (API routes if any)
+     * - Files with extensions (*.js, *.css, etc.)
+     */
+    '/((?!assets|api).*)',
+  ],
+};
 
-export function middleware(request: NextRequest) {
-  const url = request.nextUrl;
+export default function middleware(request: Request) {
+  const url = new URL(request.url);
   const pathname = url.pathname;
 
   // Only add headers for booking page routes (/{slug})
-  // Skip static assets, API routes, etc.
+  // Skip static assets, files with extensions
   const isBookingPage = pathname.match(/^\/[a-zA-Z0-9_-]+$/) &&
-                       !pathname.startsWith('/_next') &&
+                       !pathname.startsWith('/assets') &&
                        !pathname.startsWith('/api') &&
                        !pathname.includes('.');
 
   if (!isBookingPage) {
-    return NextResponse.next();
+    return new Response(null, {
+      status: 200,
+      headers: {
+        'x-middleware-next': '1',
+      },
+    });
   }
-
-  const response = NextResponse.next();
 
   // Construct the full booking page URL
   const bookingPageUrl = `https://app.daywisebooking.com${pathname}`;
@@ -25,24 +37,16 @@ export function middleware(request: NextRequest) {
   const oembedJsonUrl = `https://api.daywisebooking.com/api/oembed?url=${encodeURIComponent(bookingPageUrl)}&format=json`;
   const oembedXmlUrl = `https://api.daywisebooking.com/api/oembed?url=${encodeURIComponent(bookingPageUrl)}&format=xml`;
 
-  // Add Link headers for oEmbed discovery (Iframely reads these!)
+  // Return response with Link headers for oEmbed discovery (Iframely reads these!)
   // Format: Link: <URL>; rel="alternate"; type="application/json+oembed"
-  response.headers.append(
-    'Link',
-    `<${oembedJsonUrl}>; rel="alternate"; type="application/json+oembed"`
-  );
-
-  response.headers.append(
-    'Link',
-    `<${oembedXmlUrl}>; rel="alternate"; type="application/xml+oembed"`
-  );
-
-  return response;
+  return new Response(null, {
+    status: 200,
+    headers: {
+      'x-middleware-next': '1',
+      'Link': [
+        `<${oembedJsonUrl}>; rel="alternate"; type="application/json+oembed"`,
+        `<${oembedXmlUrl}>; rel="alternate"; type="application/xml+oembed"`,
+      ].join(', '),
+    },
+  });
 }
-
-export const config = {
-  // Match all paths except static files and API routes
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|api).*)',
-  ],
-};

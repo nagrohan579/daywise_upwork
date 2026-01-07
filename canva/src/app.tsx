@@ -1,7 +1,6 @@
 import { Button, Rows, Text, Title, Box, Link, FormField, TextInput, Select, Columns, Column, Switch, OpenInNewIcon, TrashIcon, FileInput } from "@canva/app-ui-kit";
 import { auth, type AccessTokenResponse } from "@canva/user";
 import { requestOpenExternalUrl } from "@canva/platform";
-import { initAppElement } from "@canva/design";
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import * as styles from "styles/components.css";
 
@@ -18,23 +17,6 @@ const BACKEND_URL = `${BACKEND_HOST || 'http://localhost:3000'}/api/canva`;
 const UPGRADE_FALLBACK_URL = "https://app.daywisebooking.com/pricing";
 
 type AuthState = 'preview' | 'checking' | 'connect' | 'authenticating' | 'authenticated';
-
-// App element data structure for embed elements
-type EmbedAppElementData = {
-  url: string;
-  width: number;
-  height: number;
-};
-
-// Initialize the app element client for embed elements
-// This allows the embed to be resizable and re-editable
-const embedAppElementClient = initAppElement<EmbedAppElementData>({
-  render: (data) => {
-    // Return an embed element with the app element data
-    // The top/left positioning is handled by Canva when the user places the element
-    return [{ type: "embed", ...data, top: 0, left: 0 }];
-  },
-});
 
 interface BookingCardData {
   services: Array<{
@@ -596,29 +578,22 @@ export const App = () => {
         throw new Error('User does not have a booking page. Please complete your profile setup.');
       }
 
-      // Construct booking page URL with embed parameters for Iframely/oEmbed
-      // Iframely will fetch oEmbed data and use maxwidth/maxheight parameters
+      // Construct booking page URL
       const frontendUrl = WEBAPP_FRONTEND_URL || 'https://app.daywisebooking.com';
       const bookingPageUrl = `${frontendUrl}/${slug}`;
-      
-      // Add URL parameters that will be passed to oEmbed endpoint via Iframely
-      // These ensure the oEmbed response returns the correct dimensions
-      const embedUrl = new URL(bookingPageUrl);
-      embedUrl.searchParams.set('embed', 'true');
-      embedUrl.searchParams.set('maxwidth', '800');
-      embedUrl.searchParams.set('maxheight', '600');
 
-      console.log('Adding embed to design:', embedUrl.toString());
+      console.log('Adding embed to design:', bookingPageUrl);
 
-      // Add embed element using app element for resizable functionality
-      // App elements allow users to resize the embed element in Canva
-      // The dimensions here set the initial size, and users can resize in Canva
-      await embedAppElementClient.addElement({
-        data: {
-          url: embedUrl.toString(),
-          width: 800,
-          height: 600,
-        },
+      // Add embed element to design
+      const { addElementAtPoint } = await import('@canva/design');
+
+      await addElementAtPoint({
+        type: 'embed',
+        url: bookingPageUrl,
+        top: 100,
+        left: 100,
+        width: 800,
+        height: 1200,
       });
 
       console.log('✅ Booking page embed successfully added to design!');

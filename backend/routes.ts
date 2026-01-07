@@ -1157,8 +1157,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const width = maxwidth ? parseInt(maxwidth as string) : 800;
       const height = maxheight ? parseInt(maxheight as string) : 600;
 
-      // Construct iframe embed HTML
-      const iframeHtml = `<iframe src="${url}" width="${width}" height="${height}" frameborder="0" scrolling="yes" allowfullscreen allowtransparency="true" style="border: none; border-radius: 4px; background: transparent;"></iframe>`;
+      // Construct iframe embed HTML with fixed-size wrapper to prevent Iframely's responsive container
+      // The wrapper signals to Iframely that this embed is already properly formatted and shouldn't be wrapped
+      const iframeHtml = `<div style="position: relative; width: ${width}px; height: ${height}px; max-width: ${width}px; max-height: ${height}px; overflow: hidden; display: inline-block;"><iframe src="${url}" width="100%" height="100%" frameborder="0" scrolling="yes" allowfullscreen allowtransparency="true" style="border: 0; display: block;"></iframe></div>`;
 
       // Return oEmbed JSON response
       const oembedResponse = {

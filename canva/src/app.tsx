@@ -593,7 +593,7 @@ export const App = () => {
         top: 100,
         left: 100,
         width: 800,
-        height: 1200,
+        height: 600,
       });
 
       console.log('✅ Booking page embed successfully added to design!');

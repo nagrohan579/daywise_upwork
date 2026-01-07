@@ -1155,7 +1155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Determine iframe dimensions (Canva typically requests specific sizes)
       const width = maxwidth ? parseInt(maxwidth as string) : 800;
-      const height = maxheight ? parseInt(maxheight as string) : 1200;
+      const height = maxheight ? parseInt(maxheight as string) : 600;
 
       // Construct iframe embed HTML
       const iframeHtml = `<iframe src="${url}" width="${width}" height="${height}" frameborder="0" scrolling="yes" allowfullscreen allowtransparency="true" style="border: none; border-radius: 4px; background: transparent;"></iframe>`;

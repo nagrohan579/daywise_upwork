@@ -58,9 +58,196 @@ const PublicBooking = () => {
   const [blockedDates, setBlockedDates] = useState([]);
   const [isInIframe, setIsInIframe] = useState(false);
 
-  // Detect if running in iframe (for Canva embed compatibility)
+  // Detect if running in iframe and get embed dimensions from URL parameters
   useEffect(() => {
-    setIsInIframe(window.self !== window.top);
+    const inIframe = window.self !== window.top;
+    setIsInIframe(inIframe);
+    
+    // Check for embed parameters in URL (set by oEmbed iframe)
+    const urlParams = new URLSearchParams(window.location.search);
+    const embedParam = urlParams.get('embed');
+    const embedWidth = urlParams.get('embedWidth');
+    const embedHeight = urlParams.get('embedHeight');
+    
+    if (inIframe || embedParam === 'true') {
+      // Use dimensions from URL parameters, or default to 800x600
+      const width = embedWidth ? parseInt(embedWidth, 10) : 800;
+      const height = embedHeight ? parseInt(embedHeight, 10) : 600;
+      
+      // Apply strict constraints to prevent any expansion
+      const container = document.querySelector('.booking-steps-container');
+      const mainWrapper = document.querySelector('.main-wrapper');
+      
+      if (container) {
+        container.style.setProperty('max-width', `${width}px`, 'important');
+        container.style.setProperty('max-height', `${height}px`, 'important');
+        container.style.setProperty('width', `${width}px`, 'important');
+        container.style.setProperty('height', `${height}px`, 'important');
+        container.style.setProperty('overflow', 'hidden', 'important');
+        container.style.setProperty('position', 'relative', 'important');
+      }
+      
+      if (mainWrapper) {
+        mainWrapper.style.setProperty('max-width', `${width}px`, 'important');
+        mainWrapper.style.setProperty('max-height', `${height}px`, 'important');
+        mainWrapper.style.setProperty('width', '100%', 'important');
+        mainWrapper.style.setProperty('height', '100%', 'important');
+        mainWrapper.style.setProperty('overflow', 'auto', 'important');
+        mainWrapper.style.setProperty('box-sizing', 'border-box', 'important');
+      }
+
+      // Constrain body and html to prevent expansion
+      document.body.style.setProperty('max-width', `${width}px`, 'important');
+      document.body.style.setProperty('max-height', `${height}px', 'important');
+      document.body.style.setProperty('width', `${width}px`, 'important');
+      document.body.style.setProperty('height', `${height}px`, 'important');
+      document.body.style.setProperty('overflow', 'hidden', 'important');
+      document.body.style.setProperty('margin', '0', 'important');
+      document.body.style.setProperty('padding', '0', 'important');
+      
+      document.documentElement.style.setProperty('max-width', `${width}px`, 'important');
+      document.documentElement.style.setProperty('max-height', `${height}px`, 'important');
+      document.documentElement.style.setProperty('width', `${width}px`, 'important');
+      document.documentElement.style.setProperty('height', `${height}px`, 'important');
+      document.documentElement.style.setProperty('overflow', 'hidden', 'important');
+      document.documentElement.style.setProperty('margin', '0', 'important');
+      document.documentElement.style.setProperty('padding', '0', 'important');
+
+      // INJECT STYLE TAG to override ALL CSS with !important
+      const styleId = 'embed-fixed-dimensions-style';
+      let styleEl = document.getElementById(styleId) as HTMLStyleElement;
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
+      }
+      
+      styleEl.textContent = `
+        html[data-embedded="true"],
+        html[data-embedded="true"] body,
+        html[data-embedded="true"] #root,
+        html[data-embedded="true"] .booking-steps-container,
+        html[data-embedded="true"] .booking-steps-container * {
+          max-width: ${width}px !important;
+          max-height: ${height}px !important;
+          width: ${width}px !important;
+          height: ${height}px !important;
+          min-height: ${height}px !important;
+          min-width: ${width}px !important;
+        }
+        html[data-embedded="true"] .booking-steps-container {
+          overflow: hidden !important;
+          position: relative !important;
+          padding: 0 !important;
+          margin: 0 !important;
+        }
+        html[data-embedded="true"] .main-wrapper {
+          max-width: ${width}px !important;
+          max-height: ${height}px !important;
+          width: ${width}px !important;
+          height: ${height}px !important;
+          overflow: auto !important;
+          box-sizing: border-box !important;
+        }
+      `;
+      
+      document.documentElement.setAttribute('data-embedded', 'true');
+      
+      // Apply constraints multiple times to catch late-rendering
+      const applyConstraints = () => {
+        const root = document.getElementById('root');
+        if (root) {
+          root.style.setProperty('max-width', `${width}px`, 'important');
+          root.style.setProperty('max-height', `${height}px`, 'important');
+          root.style.setProperty('width', `${width}px`, 'important');
+          root.style.setProperty('height', `${height}px`, 'important');
+        }
+        if (container) {
+          container.style.setProperty('min-height', `${height}px`, 'important');
+          container.style.setProperty('min-width', `${width}px`, 'important');
+        }
+        if (mainWrapper) {
+          mainWrapper.style.setProperty('min-height', `${height}px`, 'important');
+          mainWrapper.style.setProperty('min-width', `${width}px`, 'important');
+        }
+        document.body.style.setProperty('min-height', `${height}px`, 'important');
+        document.body.style.setProperty('min-width', `${width}px`, 'important');
+        document.documentElement.style.setProperty('min-height', `${height}px`, 'important');
+        document.documentElement.style.setProperty('min-width', `${width}px`, 'important');
+      };
+      
+      applyConstraints();
+      setTimeout(applyConstraints, 0);
+      setTimeout(applyConstraints, 100);
+      setTimeout(applyConstraints, 500);
+      
+      // MutationObserver to catch DOM changes
+      const mutationObserver = new MutationObserver(applyConstraints);
+      mutationObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+      });
+      
+      // ResizeObserver to prevent expansion
+      const resizeObserver = new ResizeObserver((entries) => {
+        entries.forEach((entry) => {
+          const target = entry.target as HTMLElement;
+          if (target.scrollHeight > height || target.scrollWidth > width || 
+              target.offsetHeight > height || target.offsetWidth > width) {
+            target.style.setProperty('max-height', `${height}px`, 'important');
+            target.style.setProperty('max-width', `${width}px`, 'important');
+            target.style.setProperty('height', `${height}px`, 'important');
+            target.style.setProperty('width', `${width}px`, 'important');
+          }
+        });
+        applyConstraints();
+      });
+      
+      resizeObserver.observe(document.body);
+      resizeObserver.observe(document.documentElement);
+      if (container) resizeObserver.observe(container);
+      if (mainWrapper) resizeObserver.observe(mainWrapper);
+
+      return () => {
+        // Cleanup
+        mutationObserver.disconnect();
+        resizeObserver.disconnect();
+        if (styleEl) styleEl.remove();
+        document.documentElement.removeAttribute('data-embedded');
+        if (container) {
+          container.style.removeProperty('max-width');
+          container.style.removeProperty('max-height');
+          container.style.removeProperty('width');
+          container.style.removeProperty('height');
+          container.style.removeProperty('overflow');
+          container.style.removeProperty('position');
+        }
+        if (mainWrapper) {
+          mainWrapper.style.removeProperty('max-width');
+          mainWrapper.style.removeProperty('max-height');
+          mainWrapper.style.removeProperty('width');
+          mainWrapper.style.removeProperty('height');
+          mainWrapper.style.removeProperty('overflow');
+          mainWrapper.style.removeProperty('box-sizing');
+        }
+        document.body.style.removeProperty('max-width');
+        document.body.style.removeProperty('max-height');
+        document.body.style.removeProperty('width');
+        document.body.style.removeProperty('height');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('margin');
+        document.body.style.removeProperty('padding');
+        document.documentElement.style.removeProperty('max-width');
+        document.documentElement.style.removeProperty('max-height');
+        document.documentElement.style.removeProperty('width');
+        document.documentElement.style.removeProperty('height');
+        document.documentElement.style.removeProperty('overflow');
+        document.documentElement.style.removeProperty('margin');
+        document.documentElement.style.removeProperty('padding');
+      };
+    }
   }, []);
 
   // Get timezone options from utility (limited to 20 supported timezones)

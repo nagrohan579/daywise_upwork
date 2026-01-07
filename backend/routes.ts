@@ -1133,7 +1133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/oembed", async (req, res) => {
     try {
-      const { url, maxwidth, maxheight, format } = req.query;
+      const { url, maxwidth, maxheight, format, omit_css } = req.query;
 
       if (!url || typeof url !== "string") {
         return res.status(400).json({ error: "url parameter is required" });
@@ -1153,12 +1153,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Booking page not found" });
       }
 
-      // Determine iframe dimensions (Canva typically requests specific sizes)
+      // Determine iframe dimensions (default to 800x600 for Canva embeds)
+      // Iframely/Canva will pass maxwidth and maxheight parameters
       const width = maxwidth ? parseInt(maxwidth as string) : 800;
-      const height = maxheight ? parseInt(maxheight as string) : 1200;
+      const height = maxheight ? parseInt(maxheight as string) : 600;
 
-      // Construct iframe embed HTML
-      const iframeHtml = `<iframe src="${url}" width="${width}" height="${height}" frameborder="0" scrolling="yes" allowfullscreen allowtransparency="true" style="border: none; border-radius: 4px; background: transparent;"></iframe>`;
+      // Add fixed dimensions parameter to URL to prevent auto-expansion
+      const embedUrl = new URL(url);
+      embedUrl.searchParams.set('embed', 'true');
+      embedUrl.searchParams.set('embedWidth', width.toString());
+      embedUrl.searchParams.set('embedHeight', height.toString());
+
+      // Construct iframe embed HTML with FIXED dimensions - NO auto-resize
+      // Use scrolling="no" to prevent any internal scrolling that might trigger resize
+      // The iframe MUST maintain exact dimensions
+      const iframeStyle = `border: none; border-radius: 4px; background: transparent; overflow: hidden !important; max-width: ${width}px !important; max-height: ${height}px !important; width: ${width}px !important; height: ${height}px !important; min-width: ${width}px !important; min-height: ${height}px !important; display: block !important; position: relative !important;`;
+      const iframeHtml = `<div style="width: ${width}px; height: ${height}px; max-width: ${width}px; max-height: ${height}px; overflow: hidden; position: relative;"><iframe src="${embedUrl.toString()}" width="${width}" height="${height}" frameborder="0" scrolling="no" allowfullscreen allowtransparency="true" style="${iframeStyle}" sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe></div>`;
 
       // Return oEmbed JSON response
       const oembedResponse = {

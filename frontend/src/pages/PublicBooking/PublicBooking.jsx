@@ -57,9 +57,12 @@ const PublicBooking = () => {
   const [availabilityExceptions, setAvailabilityExceptions] = useState([]);
   const [blockedDates, setBlockedDates] = useState([]);
   const [isInIframe, setIsInIframe] = useState(false);
+  const [isEmbedMode, setIsEmbedMode] = useState(false);
 
-  // Detect if running in iframe (for Canva embed compatibility)
+  // Detect if running in iframe and embed mode (for Canva embed compatibility)
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    setIsEmbedMode(searchParams.get('embed') === 'true');
     setIsInIframe(window.self !== window.top);
   }, []);
 
@@ -1143,7 +1146,7 @@ const PublicBooking = () => {
 
   if (loading) {
     return (
-      <div className="booking-steps-container">
+      <div className={`booking-steps-container ${isEmbedMode ? 'embed-mode' : ''}`}>
         <div className="loading-container">
           <div className="spinner"></div>
           <p>Loading booking page...</p>
@@ -1154,7 +1157,7 @@ const PublicBooking = () => {
 
   if (!userData) {
     return (
-      <div className="booking-steps-container">
+      <div className={`booking-steps-container ${isEmbedMode ? 'embed-mode' : ''}`}>
         <div className="error-container">
           <h2>Booking Page Not Found</h2>
           <p>The booking page you're looking for doesn't exist.</p>
@@ -1164,7 +1167,7 @@ const PublicBooking = () => {
   }
 
   return (
-    <div className="booking-steps-container">
+    <div className={`booking-steps-container ${isEmbedMode ? 'embed-mode' : ''}`}>
       <div className={`main-wrapper ${(isMobile && step === 2) || step === 4 ? "border-hide" : ""}`}>
         {step === 1 && (
           <div className="steps-one">

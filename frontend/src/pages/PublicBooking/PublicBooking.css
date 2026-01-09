@@ -10,6 +10,63 @@
   box-sizing: border-box;
 }
 
+/* Embed mode - fixed dimensions for iframe embedding */
+.booking-steps-container.embed-mode {
+  min-height: 600px !important;
+  height: 600px !important;
+  max-height: 600px !important;
+  width: 800px !important;
+  max-width: 800px !important;
+  margin: 0 !important;
+  padding: 10px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  position: relative !important;
+}
+
+.booking-steps-container.embed-mode .main-wrapper {
+  max-width: 100% !important;
+  max-height: none !important;
+  margin: 0 !important;
+}
+
+/* Disable viewport-based heights in embed mode */
+.booking-steps-container.embed-mode .main-wrapper .steps-one {
+  max-height: none !important;
+}
+
+.booking-steps-container.embed-mode .main-wrapper .steps-one .left,
+.booking-steps-container.embed-mode .main-wrapper .steps-one .right {
+  max-height: none !important;
+  overflow-y: visible !important;
+}
+
+/* Scale down content slightly to fit in embed mode */
+.booking-steps-container.embed-mode .main-wrapper {
+  transform: scale(0.95);
+  transform-origin: top left;
+}
+
+/* Disable mobile responsive styles in embed mode */
+@media (max-width: 999px) {
+  .booking-steps-container.embed-mode {
+    min-height: 600px !important;
+    height: 600px !important;
+    padding: 10px !important;
+  }
+
+  .booking-steps-container.embed-mode .main-wrapper .steps-one {
+    flex-direction: row !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .booking-steps-container.embed-mode {
+    min-height: 600px !important;
+    height: 600px !important;
+  }
+}
+
 /* Prevent scrolling on booking-steps-container when step-two-mobile is active */
 .booking-steps-container:has(.step-two-mobile) {
   overflow: hidden !important;

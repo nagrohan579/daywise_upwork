@@ -63,6 +63,29 @@ const PublicBooking = () => {
     setIsInIframe(window.self !== window.top);
   }, []);
 
+  // Apply critical inline styles to html/body when in iframe to prevent Iframely height detection
+  useEffect(() => {
+    if (isInIframe) {
+      // Add inline styles directly to html and body elements
+      const htmlElement = document.documentElement;
+      const bodyElement = document.body;
+
+      // Store original styles to restore later if needed
+      const originalHtmlStyle = htmlElement.getAttribute('style') || '';
+      const originalBodyStyle = bodyElement.getAttribute('style') || '';
+
+      // Apply fixed height styles
+      htmlElement.setAttribute('style', `${originalHtmlStyle} min-height: 700px !important; height: 700px !important; max-height: 700px !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important;`);
+      bodyElement.setAttribute('style', `${originalBodyStyle} min-height: 700px !important; height: 700px !important; max-height: 700px !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important;`);
+
+      // Cleanup function to restore original styles when component unmounts
+      return () => {
+        htmlElement.setAttribute('style', originalHtmlStyle);
+        bodyElement.setAttribute('style', originalBodyStyle);
+      };
+    }
+  }, [isInIframe]);
+
   // Get timezone options from utility (limited to 20 supported timezones)
   const timezoneOptions = useMemo(() => {
     const options = getTimezoneOptions();
@@ -1141,9 +1164,28 @@ const PublicBooking = () => {
     };
   }, [isInIframe, isMobile, step]);
 
+  // Inline styles for iframe mode - applied immediately to prevent Iframely height detection issues
+  const iframeContainerStyle = isInIframe ? {
+    minHeight: '700px',
+    height: '700px',
+    maxHeight: '700px',
+    width: '100%',
+    overflowY: 'auto',
+    overflowX: 'hidden',
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: '15px',
+  } : {};
+
   if (loading) {
     return (
-      <div className={`booking-steps-container ${isInIframe ? 'iframe-embed' : ''}`}>
+      <div
+        className={`booking-steps-container ${isInIframe ? 'iframe-embed' : ''}`}
+        style={iframeContainerStyle}
+      >
         <div className="loading-container">
           <div className="spinner"></div>
           <p>Loading booking page...</p>
@@ -1154,7 +1196,10 @@ const PublicBooking = () => {
 
   if (!userData) {
     return (
-      <div className={`booking-steps-container ${isInIframe ? 'iframe-embed' : ''}`}>
+      <div
+        className={`booking-steps-container ${isInIframe ? 'iframe-embed' : ''}`}
+        style={iframeContainerStyle}
+      >
         <div className="error-container">
           <h2>Booking Page Not Found</h2>
           <p>The booking page you're looking for doesn't exist.</p>
@@ -1164,7 +1209,10 @@ const PublicBooking = () => {
   }
 
   return (
-    <div className={`booking-steps-container ${isInIframe ? 'iframe-embed' : ''}`}>
+    <div
+      className={`booking-steps-container ${isInIframe ? 'iframe-embed' : ''}`}
+      style={iframeContainerStyle}
+    >
       <div className={`main-wrapper ${(isMobile && step === 2) || step === 4 ? "border-hide" : ""}`}>
         {step === 1 && (
           <div className="steps-one">

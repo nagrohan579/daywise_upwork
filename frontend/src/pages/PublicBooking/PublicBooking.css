@@ -10,60 +10,89 @@
   box-sizing: border-box;
 }
 
-/* Embed mode - fixed dimensions for iframe embedding */
-.booking-steps-container.embed-mode {
-  min-height: 600px !important;
-  height: 600px !important;
-  max-height: 600px !important;
-  width: 800px !important;
-  max-width: 800px !important;
+/* Iframe embed mode - fixed dimensions to prevent Iframely auto-expansion */
+/* When in iframe, remove ALL viewport-based heights and use fixed dimensions */
+.booking-steps-container.iframe-embed {
+  min-height: 700px !important;
+  height: 700px !important;
+  max-height: 700px !important;
+  width: 100% !important;
+  max-width: 100% !important;
   margin: 0 !important;
-  padding: 10px !important;
+  padding: 15px !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
   position: relative !important;
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: flex-start !important;
 }
 
-.booking-steps-container.embed-mode .main-wrapper {
+.booking-steps-container.iframe-embed .main-wrapper {
   max-width: 100% !important;
+  width: 100% !important;
   max-height: none !important;
+  height: auto !important;
   margin: 0 !important;
+  overflow: visible !important;
 }
 
-/* Disable viewport-based heights in embed mode */
-.booking-steps-container.embed-mode .main-wrapper .steps-one {
+/* Remove viewport-based heights from step containers in iframe */
+.booking-steps-container.iframe-embed .main-wrapper .steps-one {
   max-height: none !important;
+  height: auto !important;
 }
 
-.booking-steps-container.embed-mode .main-wrapper .steps-one .left,
-.booking-steps-container.embed-mode .main-wrapper .steps-one .right {
-  max-height: none !important;
-  overflow-y: visible !important;
+.booking-steps-container.iframe-embed .main-wrapper .steps-one .left,
+.booking-steps-container.iframe-embed .main-wrapper .steps-one .right {
+  max-height: 650px !important;
+  height: auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
 
-/* Scale down content slightly to fit in embed mode */
-.booking-steps-container.embed-mode .main-wrapper {
-  transform: scale(0.95);
-  transform-origin: top left;
+/* Remove step-two viewport heights in iframe */
+.booking-steps-container.iframe-embed .step-two .left,
+.booking-steps-container.iframe-embed .step-two .right {
+  max-height: 650px !important;
+  height: auto !important;
+  overflow-y: auto !important;
 }
 
-/* Disable mobile responsive styles in embed mode */
+/* Scale content to fit better in iframe (optional) */
+.booking-steps-container.iframe-embed .main-wrapper {
+  transform: scale(0.92);
+  transform-origin: top center;
+}
+
+/* Disable ALL responsive breakpoints in iframe mode */
 @media (max-width: 999px) {
-  .booking-steps-container.embed-mode {
-    min-height: 600px !important;
-    height: 600px !important;
-    padding: 10px !important;
+  .booking-steps-container.iframe-embed {
+    min-height: 700px !important;
+    height: 700px !important;
+    max-height: 700px !important;
+    padding: 15px !important;
   }
 
-  .booking-steps-container.embed-mode .main-wrapper .steps-one {
+  .booking-steps-container.iframe-embed .main-wrapper .steps-one {
     flex-direction: row !important;
+  }
+
+  .booking-steps-container.iframe-embed .main-wrapper {
+    max-width: none !important;
+    margin: 0 !important;
   }
 }
 
 @media (max-width: 768px) {
-  .booking-steps-container.embed-mode {
-    min-height: 600px !important;
-    height: 600px !important;
+  .booking-steps-container.iframe-embed {
+    min-height: 700px !important;
+    height: 700px !important;
+    max-height: 700px !important;
+  }
+
+  .booking-steps-container.iframe-embed .step-two {
+    flex-direction: row !important;
   }
 }
 

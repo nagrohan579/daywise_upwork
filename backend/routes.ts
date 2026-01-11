@@ -1228,19 +1228,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update appointment types
       if (appointmentTypes && Array.isArray(appointmentTypes)) {
         for (const apt of appointmentTypes) {
-          if (apt.id) {
-            // Update existing
-            await storage.updateAppointmentType(apt.id, apt);
+          // Check if this is a real database ID (not a temp client ID like svc-*)
+          const isExistingService = apt.id && typeof apt.id === 'string' && !apt.id.startsWith('svc-');
+
+          if (isExistingService) {
+            // Update existing service
+            await storage.updateAppointmentType(apt.id, {
+              name: apt.name,
+              description: apt.description || '',
+              duration: apt.duration,
+              bufferTime: apt.bufferTime || 0,
+              price: apt.price || 0,
+              color: apt.color || '#F19B11',
+              isActive: apt.isActive !== undefined ? apt.isActive : true,
+            });
           } else {
-            // Create new
-            await storage.createAppointmentType({ ...apt, userId: user._id });
+            // Create new service
+            await storage.createAppointmentType({
+              userId: user._id,
+              name: apt.name,
+              description: apt.description || '',
+              duration: apt.duration,
+              bufferTime: apt.bufferTime || 0,
+              price: apt.price || 0,
+              color: apt.color || '#F19B11',
+              isActive: apt.isActive !== undefined ? apt.isActive : true,
+            });
           }
         }
       }
 
       // Update weekly availability
       if (weeklyAvailability) {
-        await storage.updateWeeklyAvailability(user._id, weeklyAvailability);
+        // Convert Canva format to backend format
+        // Canva: { monday: { enabled: true, startTime: '09:00', endTime: '17:00' }, ... }
+        // Backend: { monday: [{ start: '09:00', end: '17:00' }], ... }
+
+        const backendFormat: Record<string, Array<{ start: string; end: string }>> = {
+          sunday: [],
+          monday: [],
+          tuesday: [],
+          wednesday: [],
+          thursday: [],
+          friday: [],
+          saturday: [],
+        };
+
+        for (const [day, availability] of Object.entries(weeklyAvailability)) {
+          const normalizedDay = day.toLowerCase();
+          if (availability && typeof availability === 'object') {
+            const avail = availability as any;
+            if (avail.enabled && avail.startTime && avail.endTime) {
+              backendFormat[normalizedDay] = [{
+                start: avail.startTime,
+                end: avail.endTime,
+              }];
+            }
+            // If not enabled, leave as empty array (already initialized above)
+          }
+        }
+
+        await storage.updateWeeklyAvailability(user._id, backendFormat);
       }
 
       // Update branding (colors)

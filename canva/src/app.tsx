@@ -365,11 +365,16 @@ export const App = () => {
       // Pre-populate form fields with loaded data
       setBusinessName(userData.businessName || '');
       setTimezone(userData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
-      // Convert appointment types, ensuring duration is a string for the input field
+      // Convert appointment types, mapping _id to id and ensuring proper field types
       const loadedServices = (appointments.appointmentTypes || []).map((apt: any) => ({
-        ...apt,
+        id: apt._id,  // Map _id from backend to id for frontend
+        name: apt.name,
+        description: apt.description || '',
         duration: apt.duration != null ? String(apt.duration) : '',
+        bufferTime: apt.bufferTime || 0,
         price: apt.price != null ? String(apt.price) : '',
+        color: apt.color || '#F19B11',
+        isActive: apt.isActive !== undefined ? apt.isActive : true,
       }));
       setServices(loadedServices.length > 0 ? loadedServices : [{ id: 'svc-1', name: '', duration: '', price: '' }]);
       setWeeklyAvailability(availability.weeklySchedule || defaultWeeklyAvailability);
@@ -1253,48 +1258,19 @@ export const App = () => {
     setServices(prev => (prev.length === 1 ? prev : prev.filter(s => s.id !== id)));
   };
 
-  const handleServicesNext = async () => {
-    try {
-      setError('');
-      const token = await auth.getCanvaUserToken();
-      const backendHost = BACKEND_HOST || 'http://localhost:3000';
+  const handleServicesNext = () => {
+    const validServices = services.filter(
+      (s) => s.name.trim() && s.duration.trim()
+    );
 
-      const validServices = services.filter(
-        (s) => s.name.trim() && s.duration.trim()
-      );
-
-      for (const svc of validServices) {
-        const durationNumber = parseInt(svc.duration, 10);
-        const priceNumber = svc.price ? Number(svc.price) : 0;
-
-        const serviceResponse = await fetch(`${backendHost}/api/canva/appointment-types`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            name: svc.name.trim(),
-            description: '',
-            duration: Number.isFinite(durationNumber) ? durationNumber : 0,
-            bufferTime: 0,
-            price: Number.isFinite(priceNumber) ? priceNumber : 0,
-            color: '#F19B11',
-            isActive: true,
-          })
-        });
-
-        if (!serviceResponse.ok) {
-          const errorData = await serviceResponse.json();
-          throw new Error(errorData.message || 'Failed to save appointment type');
-        }
-      }
-
-      setOnboardingStep('step3');
-    } catch (err: any) {
-      console.error('Error saving services:', err);
-      setError(err.message || 'Failed to save services');
+    if (validServices.length === 0) {
+      setError('Please add at least one service');
+      return;
     }
+
+    setError('');
+    setServices(validServices);
+    setOnboardingStep('step3');  // Just navigate, don't save
   };
 
   const handleLogoChange = (files: string[]) => {

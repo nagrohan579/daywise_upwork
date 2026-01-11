@@ -365,7 +365,13 @@ export const App = () => {
       // Pre-populate form fields with loaded data
       setBusinessName(userData.businessName || '');
       setTimezone(userData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
-      setServices(appointments.appointmentTypes || []);
+      // Convert appointment types, ensuring duration is a string for the input field
+      const loadedServices = (appointments.appointmentTypes || []).map((apt: any) => ({
+        ...apt,
+        duration: apt.duration != null ? String(apt.duration) : '',
+        price: apt.price != null ? String(apt.price) : '',
+      }));
+      setServices(loadedServices.length > 0 ? loadedServices : [{ id: 'svc-1', name: '', duration: '', price: '' }]);
       setWeeklyAvailability(availability.weeklySchedule || defaultWeeklyAvailability);
       setMainColor(branding.primary || '#0053F1');
       setSecondaryColor(branding.secondary || '#64748B');
@@ -1297,8 +1303,14 @@ export const App = () => {
   };
 
   const handleDesignNext = async () => {
-    // Currently just advances; integrate backend save if needed
-    setOnboardingStep('step4');
+    setError('');
+    const saveSuccess = await saveAllChanges();
+    if (saveSuccess) {
+      setOnboardingStep('step4');
+    } else {
+      // Error is already set by saveAllChanges
+      console.error('Failed to save changes before final step');
+    }
   };
 
   // Preview Screen - shown initially
@@ -1452,15 +1464,6 @@ export const App = () => {
   }
 
   // Authenticated state - onboarding steps
-  const durationOptions = [
-    { value: '15', label: '15 minutes' },
-    { value: '30', label: '30 minutes' },
-    { value: '45', label: '45 minutes' },
-    { value: '60', label: '1 hour' },
-    { value: '90', label: '1.5 hours' },
-    { value: '120', label: '2 hours' },
-  ];
-
   const timezoneOptions = [
     { value: 'America/Los_Angeles', label: 'Pacific Time (PT) (GMT-8)' },
     { value: 'America/Denver', label: 'Mountain Time (MT) (GMT-7)' },
@@ -1512,16 +1515,21 @@ export const App = () => {
 
       // 2. Appointment types (create, update, delete)
       if (JSON.stringify(services) !== JSON.stringify(loadedData.appointmentTypes)) {
-        updates.appointmentTypes = services.map(s => ({
-          id: s.id,
-          name: s.name,
-          description: s.description,
-          duration: s.duration,
-          bufferTime: s.bufferTime,
-          price: s.price,
-          color: s.color,
-          isActive: s.isActive,
-        }));
+        updates.appointmentTypes = services.map(s => {
+          // Convert duration and price from string to number for database
+          const durationNum = s.duration ? parseInt(s.duration, 10) : 0;
+          const priceNum = s.price ? Number(s.price) : 0;
+          return {
+            id: s.id,
+            name: s.name,
+            description: s.description || '',
+            duration: Number.isFinite(durationNum) ? durationNum : 0,
+            bufferTime: s.bufferTime || 0,
+            price: Number.isFinite(priceNum) ? priceNum : 0,
+            color: s.color || '#F19B11',
+            isActive: s.isActive !== undefined ? s.isActive : true,
+          };
+        });
       }
 
       // 3. Weekly availability
@@ -1843,11 +1851,9 @@ export const App = () => {
                           label="Duration (mins)"
                           value={svc.duration}
                           control={(props) => (
-                            <Select
+                            <TextInput
                               {...props}
                               placeholder="Duration (mins)"
-                              options={durationOptions}
-                              value={svc.duration}
                               onChange={(value) => handleServiceChange(svc.id, 'duration', value)}
                             />
                           )}

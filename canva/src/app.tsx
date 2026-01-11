@@ -82,9 +82,27 @@ export const App = () => {
   const textColorInputRef = useRef<HTMLInputElement | null>(null);
   const [isPro, setIsPro] = useState<boolean | null>(null);
   const planCheckedRef = useRef(false);
-  const [hasDataChanges, setHasDataChanges] = useState(false);
-  const [isCheckingChanges, setIsCheckingChanges] = useState(false);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Phase 2: Data loading state
+  const [loadedData, setLoadedData] = useState<{
+    businessName: string;
+    timezone: string;
+    appointmentTypes: any[];
+    weeklyAvailability: any;
+    branding: {
+      primary: string;
+      secondary: string;
+      accent: string;
+      logoUrl: string | null;
+    };
+  } | null>(null);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+
+  // Phase 3: Change tracking state
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Phase 4: Saving state
+  const [saving, setSaving] = useState(false);
 
   const renderColorSwatch = (
     label: string,
@@ -252,55 +270,6 @@ export const App = () => {
     }
   }, [authState, timezone]);
 
-  // Poll for data changes every 30 seconds
-  useEffect(() => {
-    if (authState === 'authenticated') {
-      checkForDataChanges();
-
-      pollingIntervalRef.current = setInterval(() => {
-        checkForDataChanges();
-      }, 30000);
-
-      return () => {
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current);
-        }
-      };
-    }
-  }, [authState]);
-
-  const checkForDataChanges = async () => {
-    try {
-      setIsCheckingChanges(true);
-      const currentVersion = localStorage.getItem('daywise_card_version');
-
-      if (!currentVersion) {
-        return;
-      }
-
-      const token = await auth.getCanvaUserToken();
-      const backendHost = BACKEND_HOST || 'http://localhost:3000';
-
-      const response = await fetch(`${backendHost}/api/canva/check-data-version`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ currentVersion })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setHasDataChanges(data.hasChanges);
-      }
-    } catch (error) {
-      console.error('Error checking for data changes:', error);
-    } finally {
-      setIsCheckingChanges(false);
-    }
-  };
-
   const handleOpenApp = () => {
     try {
       setAuthState('checking');
@@ -330,6 +299,10 @@ export const App = () => {
         fetchCanvaPlan().catch((err) =>
           console.error('Error fetching Canva plan after auth status:', err)
         );
+        // Phase 2: Load all user data after authentication
+        loadAllUserData().catch((err) =>
+          console.error('Error loading user data:', err)
+        );
         return true;
       } else {
         setAuthState('connect');
@@ -341,6 +314,103 @@ export const App = () => {
       return false;
     }
   };
+
+  // Phase 2: Load all user data after authentication
+  const loadAllUserData = async () => {
+    setIsLoadingData(true);
+    try {
+      const token = await auth.getCanvaUserToken();
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+
+      // Fetch all data in parallel
+      const [userRes, appointmentsRes, availabilityRes, brandingRes] = await Promise.all([
+        fetch(`${BACKEND_URL}/user-data`, { headers }),
+        fetch(`${BACKEND_URL}/appointment-types`, { headers }),
+        fetch(`${BACKEND_URL}/availability`, { headers }),
+        fetch(`${BACKEND_URL}/branding`, { headers }),
+      ]);
+
+      const userData = await userRes.json();
+      const appointments = await appointmentsRes.json();
+      const availability = await availabilityRes.json();
+      const branding = await brandingRes.json();
+
+      // Default weekly availability structure
+      const defaultWeeklyAvailability = {
+        monday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+        tuesday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+        wednesday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+        thursday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+        friday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+        saturday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+        sunday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+      };
+
+      setLoadedData({
+        businessName: userData.businessName || '',
+        timezone: userData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+        appointmentTypes: appointments.appointmentTypes || [],
+        weeklyAvailability: availability.weeklySchedule || defaultWeeklyAvailability,
+        branding: {
+          primary: branding.primary || '#0053F1',
+          secondary: branding.secondary || '#64748B',
+          accent: branding.accent || '#121212',
+          logoUrl: branding.logoUrl || null,
+        },
+      });
+
+      // Pre-populate form fields with loaded data
+      setBusinessName(userData.businessName || '');
+      setTimezone(userData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
+      setServices(appointments.appointmentTypes || []);
+      setWeeklyAvailability(availability.weeklySchedule || defaultWeeklyAvailability);
+      setMainColor(branding.primary || '#0053F1');
+      setSecondaryColor(branding.secondary || '#64748B');
+      setTextColor(branding.accent || '#121212');
+
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+      setError('Failed to load your data. Please try again.');
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
+  // Phase 3: Helper to detect changes
+  const detectChanges = () => {
+    if (!loadedData) return false;
+
+    const businessNameChanged = businessName !== loadedData.businessName;
+    const timezoneChanged = timezone !== loadedData.timezone;
+
+    // Deep compare services
+    const servicesChanged = JSON.stringify(services) !== JSON.stringify(loadedData.appointmentTypes);
+
+    // Deep compare availability
+    const availabilityChanged = JSON.stringify(weeklyAvailability) !== JSON.stringify(loadedData.weeklyAvailability);
+
+    const colorsChanged =
+      mainColor !== loadedData.branding.primary ||
+      secondaryColor !== loadedData.branding.secondary ||
+      textColor !== loadedData.branding.accent;
+
+    // Logo changed if logoName is set (new upload)
+    const logoChanged = !!logoName;
+
+    return businessNameChanged || timezoneChanged || servicesChanged ||
+           availabilityChanged || colorsChanged || logoChanged;
+  };
+
+  // Update hasChanges whenever form data changes
+  useEffect(() => {
+    if (loadedData) {
+      setHasChanges(detectChanges());
+    }
+  }, [businessName, timezone, services, weeklyAvailability, mainColor,
+      secondaryColor, textColor, logoName, loadedData]);
 
   const handleConnect = useCallback(async () => {
     setAuthState('authenticating');
@@ -1249,7 +1319,7 @@ export const App = () => {
           >
             <img
               src={appPreview}
-              alt="DayWise Booking Preview"
+              alt="Daywise Booking Preview"
               style={{
                 width: '100%',
                 maxWidth: '600px',
@@ -1321,11 +1391,11 @@ export const App = () => {
   }
 
   // Loading state
-  if (authState === 'checking') {
+  if (authState === 'checking' || isLoadingData) {
     return (
       <div className={styles.scrollContainer}>
         <Rows spacing="2u">
-          <Title>DayWise Booking</Title>
+          <Title>Daywise Booking</Title>
           <Text>Loading...</Text>
         </Rows>
       </div>
@@ -1350,7 +1420,7 @@ export const App = () => {
           >
             <img
               src={daywiseLogo}
-              alt="DayWise Logo"
+              alt="Daywise Logo"
               style={{
                 width: '140px',
                 height: '140px',
@@ -1414,39 +1484,99 @@ export const App = () => {
     { value: 'Etc/UTC', label: 'Coordinated Universal Time (UTC) (GMT+0)' },
   ];
 
-  const renderRefreshBanner = () => {
-    if (!hasDataChanges) return null;
+  // Phase 4: Batch save all changes function
+  const saveAllChanges = async () => {
+    if (!hasChanges) {
+      console.log('No changes detected, skipping save');
+      return true; // Success, nothing to save
+    }
 
-    return (
-      <Box
-        padding="2u"
-        borderRadius="standard"
-        style={{
-          backgroundColor: '#FFF4E5',
-          border: '1px solid #FFB020',
-          marginBottom: '16px'
-        }}
-      >
-        <Rows spacing="2u">
-          <Text size="small" weight="medium">
-            Your services or availability have changed
-          </Text>
-          <Text size="small">
-            Update your booking section to show the latest information
-          </Text>
-          <Button
-            variant="primary"
-            onClick={async () => {
-              await handleAddEmbedToPage();
-              setHasDataChanges(false);
-            }}
-            stretch
-          >
-            Add Updated Booking Page
-          </Button>
-        </Rows>
-      </Box>
-    );
+    setSaving(true);
+
+    try {
+      const token = await auth.getCanvaUserToken();
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+
+      const updates: any = {};
+
+      // 1. User profile (business name, timezone)
+      if (businessName !== loadedData.businessName || timezone !== loadedData.timezone) {
+        updates.profile = {
+          businessName,
+          timezone,
+        };
+      }
+
+      // 2. Appointment types (create, update, delete)
+      if (JSON.stringify(services) !== JSON.stringify(loadedData.appointmentTypes)) {
+        updates.appointmentTypes = services.map(s => ({
+          id: s.id,
+          name: s.name,
+          description: s.description,
+          duration: s.duration,
+          bufferTime: s.bufferTime,
+          price: s.price,
+          color: s.color,
+          isActive: s.isActive,
+        }));
+      }
+
+      // 3. Weekly availability
+      if (JSON.stringify(weeklyAvailability) !== JSON.stringify(loadedData.weeklyAvailability)) {
+        updates.weeklyAvailability = weeklyAvailability;
+      }
+
+      // 4. Branding (colors)
+      if (mainColor !== loadedData.branding.primary ||
+          secondaryColor !== loadedData.branding.secondary ||
+          textColor !== loadedData.branding.accent) {
+        updates.branding = {
+          primary: mainColor,
+          secondary: secondaryColor,
+          accent: textColor,
+        };
+      }
+
+      // TODO: Logo upload will be handled separately if needed
+
+      // Send batch update to backend
+      const response = await fetch(`${BACKEND_URL}/batch-update`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(updates),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save changes');
+      }
+
+      // Update loadedData to reflect saved state
+      setLoadedData({
+        businessName,
+        timezone,
+        appointmentTypes: services,
+        weeklyAvailability,
+        branding: {
+          primary: mainColor,
+          secondary: secondaryColor,
+          accent: textColor,
+          logoUrl: loadedData?.branding.logoUrl || null,
+        },
+      });
+
+      setHasChanges(false);
+      return true;
+
+    } catch (error) {
+      console.error('Save failed:', error);
+      setError('Failed to save your changes. Please try again.');
+      return false;
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Step 4: Completion Screen
@@ -1463,8 +1593,6 @@ export const App = () => {
                 Your booking section is ready. Add it to your page so clients can book appointments
                 through your Daywise booking page.
               </Text>
-
-              {renderRefreshBanner()}
 
               <Box paddingTop="2u" width="full">
                 <Button variant="primary" onClick={handleAddEmbedToPage} stretch>

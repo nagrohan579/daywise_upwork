@@ -1128,6 +1128,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================
 
   // ============================================
+  // Phase 2: New Canva Endpoints for Data Loading
+  // ============================================
+
+  // Get user profile data (business name, timezone)
+  app.get("/api/canva/user-data", canvaJwtMiddleware, async (req, res) => {
+    try {
+      const { userId: canvaUserId } = req.canva!;
+      const user = await storage.getUserByCanvaId(canvaUserId);
+
+      if (!user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      res.json({
+        businessName: user.businessName || '',
+        timezone: user.timezone || 'America/New_York',
+        welcomeMessage: user.welcomeMessage || '',
+      });
+    } catch (error: any) {
+      console.error('Get user data error:', error);
+      res.status(500).json({ error: 'Failed to fetch user data' });
+    }
+  });
+
+  // Get weekly availability
+  app.get("/api/canva/availability", canvaJwtMiddleware, async (req, res) => {
+    try {
+      const { userId: canvaUserId } = req.canva!;
+      const user = await storage.getUserByCanvaId(canvaUserId);
+
+      if (!user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const availability = await storage.getAvailability(user._id);
+
+      res.json({
+        weeklySchedule: availability?.weeklySchedule || {
+          monday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+          tuesday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+          wednesday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+          thursday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+          friday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+          saturday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+          sunday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+        },
+      });
+    } catch (error: any) {
+      console.error('Get availability error:', error);
+      res.status(500).json({ error: 'Failed to fetch availability' });
+    }
+  });
+
+  // Get branding (colors, logo)
+  app.get("/api/canva/branding", canvaJwtMiddleware, async (req, res) => {
+    try {
+      const { userId: canvaUserId } = req.canva!;
+      const user = await storage.getUserByCanvaId(canvaUserId);
+
+      if (!user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const branding = await storage.getBranding(user._id);
+
+      res.json({
+        primary: branding?.primary || '#0053F1',
+        secondary: branding?.secondary || '#64748B',
+        accent: branding?.accent || '#121212',
+        logoUrl: branding?.logoUrl || null,
+      });
+    } catch (error: any) {
+      console.error('Get branding error:', error);
+      res.status(500).json({ error: 'Failed to fetch branding' });
+    }
+  });
+
+  // Phase 4: Batch update all data
+  app.post("/api/canva/batch-update", canvaJwtMiddleware, async (req, res) => {
+    try {
+      const { userId: canvaUserId } = req.canva!;
+      const user = await storage.getUserByCanvaId(canvaUserId);
+
+      if (!user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { profile, appointmentTypes, weeklyAvailability, branding } = req.body;
+
+      // Update profile (business name, timezone)
+      if (profile) {
+        await storage.updateUser(user._id, {
+          businessName: profile.businessName,
+          timezone: profile.timezone,
+        });
+      }
+
+      // Update appointment types
+      if (appointmentTypes && Array.isArray(appointmentTypes)) {
+        for (const apt of appointmentTypes) {
+          if (apt.id) {
+            // Update existing
+            await storage.updateAppointmentType(apt.id, apt);
+          } else {
+            // Create new
+            await storage.createAppointmentType({ ...apt, userId: user._id });
+          }
+        }
+      }
+
+      // Update weekly availability
+      if (weeklyAvailability) {
+        await storage.updateWeeklyAvailability(user._id, weeklyAvailability);
+      }
+
+      // Update branding (colors)
+      if (branding) {
+        await storage.updateBranding(user._id, branding);
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Batch update error:', error);
+      res.status(500).json({ error: 'Failed to save changes' });
+    }
+  });
+
+  // ============================================
   // oEmbed Endpoint for Iframely/Canva Embed Support
   // ============================================
 

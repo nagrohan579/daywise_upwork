@@ -822,7 +822,7 @@ const PublicBooking = () => {
   };
 
   const formatDate = (date) => {
-    if (!date) return "";
+    if (!date || !(date instanceof Date) || isNaN(date.getTime())) return "";
     return date.toLocaleDateString("en-US", {
       month: "long",
       day: "numeric",

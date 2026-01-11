@@ -346,12 +346,14 @@ const SingleCalendar = ({
       <div className={`time-slot-wrapper ${notShowTime ? "hide" : ""}`} onClick={handleWrapperClick}>
         <div className="selected-date">
           <h3>
-            {selectedDate.toLocaleDateString("en-US", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
+            {selectedDate && selectedDate instanceof Date && !isNaN(selectedDate.getTime())
+              ? selectedDate.toLocaleDateString("en-US", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })
+              : "Select a date"}
           </h3>
         </div>
 

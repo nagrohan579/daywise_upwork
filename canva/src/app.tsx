@@ -349,11 +349,30 @@ export const App = () => {
         sunday: { enabled: false, startTime: '09:00', endTime: '17:00' },
       };
 
+      // Normalize weekly availability data - ensure enabled is explicitly boolean
+      const normalizeWeeklyAvailability = (schedule: any) => {
+        const normalized: Record<string, DayAvailability> = { ...defaultWeeklyAvailability };
+        if (schedule && typeof schedule === 'object') {
+          Object.keys(defaultWeeklyAvailability).forEach((day) => {
+            if (schedule[day] && typeof schedule[day] === 'object') {
+              normalized[day] = {
+                enabled: schedule[day].enabled === true, // Explicitly convert to boolean
+                startTime: schedule[day].startTime || defaultWeeklyAvailability[day as keyof typeof defaultWeeklyAvailability].startTime,
+                endTime: schedule[day].endTime || defaultWeeklyAvailability[day as keyof typeof defaultWeeklyAvailability].endTime,
+              };
+            }
+          });
+        }
+        return normalized;
+      };
+
+      const normalizedWeeklyAvailability = normalizeWeeklyAvailability(availability.weeklySchedule);
+
       setLoadedData({
         businessName: userData.businessName || '',
         timezone: userData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
         appointmentTypes: appointments.appointmentTypes || [],
-        weeklyAvailability: availability.weeklySchedule || defaultWeeklyAvailability,
+        weeklyAvailability: normalizedWeeklyAvailability,
         branding: {
           primary: branding.primary || '#0053F1',
           secondary: branding.secondary || '#64748B',
@@ -377,7 +396,7 @@ export const App = () => {
         isActive: apt.isActive !== undefined ? apt.isActive : true,
       }));
       setServices(loadedServices.length > 0 ? loadedServices : [{ id: 'svc-1', name: '', duration: '', price: '' }]);
-      setWeeklyAvailability(availability.weeklySchedule || defaultWeeklyAvailability);
+      setWeeklyAvailability(normalizedWeeklyAvailability);
       setMainColor(branding.primary || '#0053F1');
       setSecondaryColor(branding.secondary || '#64748B');
       setTextColor(branding.accent || '#121212');
@@ -1638,6 +1657,7 @@ export const App = () => {
               <Title size="medium">Set your weekly availability</Title>
               {days.map((day) => {
                 const availability = weeklyAvailability[day.key];
+                const isEnabled = availability?.enabled === true;
                 return (
                   <Box key={day.key}>
                     <Rows spacing="2u">
@@ -1647,19 +1667,19 @@ export const App = () => {
                         </Column>
                         <Column width="content">
                           <Switch
-                            checked={availability.enabled}
-                            onChange={(checked) => handleDayToggle(day.key, checked)}
+                            value={isEnabled}
+                            onChange={(value) => handleDayToggle(day.key, value)}
                           />
                         </Column>
                       </Columns>
-                      {availability.enabled && (
+                      {isEnabled && (
                         <Columns spacing="2u">
                           <Column>
                             <Rows spacing="1u">
                               <Text size="small" tone="tertiary">Start Time</Text>
                               <Select
                                 stretch
-                                value={availability.startTime}
+                                value={availability?.startTime || '09:00'}
                                 options={timeOptions}
                                 onChange={(value) => handleTimeChange(day.key, 'startTime', value)}
                               />
@@ -1670,7 +1690,7 @@ export const App = () => {
                               <Text size="small" tone="tertiary">End Time</Text>
                               <Select
                                 stretch
-                                value={availability.endTime}
+                                value={availability?.endTime || '17:00'}
                                 options={timeOptions}
                                 onChange={(value) => handleTimeChange(day.key, 'endTime', value)}
                               />

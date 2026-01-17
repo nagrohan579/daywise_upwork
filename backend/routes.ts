@@ -1162,21 +1162,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
 
-      const availability = await storage.getAvailability(user._id);
+      // Get all availability records for this user (returns array of database records)
+      const availabilityRecords = await storage.getAvailabilityByUser(user._id);
 
-      res.json({
-        weeklySchedule: availability?.weeklySchedule || {
-          monday: { enabled: false, startTime: '09:00', endTime: '17:00' },
-          tuesday: { enabled: false, startTime: '09:00', endTime: '17:00' },
-          wednesday: { enabled: false, startTime: '09:00', endTime: '17:00' },
-          thursday: { enabled: false, startTime: '09:00', endTime: '17:00' },
-          friday: { enabled: false, startTime: '09:00', endTime: '17:00' },
-          saturday: { enabled: false, startTime: '09:00', endTime: '17:00' },
-          sunday: { enabled: false, startTime: '09:00', endTime: '17:00' },
-        },
+      console.log('[Canva Availability GET] User:', user._id);
+      console.log('[Canva Availability GET] Raw database records:', availabilityRecords);
+
+      // Default weeklySchedule with all days disabled
+      const defaultSchedule = {
+        monday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+        tuesday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+        wednesday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+        thursday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+        friday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+        saturday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+        sunday: { enabled: false, startTime: '09:00', endTime: '17:00' },
+      };
+
+      // If no availability data, return defaults
+      if (!availabilityRecords || availabilityRecords.length === 0) {
+        console.log('[Canva Availability GET] No availability records, returning defaults');
+        return res.json({ weeklySchedule: defaultSchedule });
+      }
+
+      // Convert database format to Canva format
+      const weeklySchedule = { ...defaultSchedule };
+
+      availabilityRecords.forEach((slot: any) => {
+        if (slot.isAvailable && slot.startTime && slot.endTime) {
+          weeklySchedule[slot.weekday] = {
+            enabled: true,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+          };
+        }
       });
+
+      console.log('[Canva Availability GET] Converted weeklySchedule:', weeklySchedule);
+
+      res.json({ weeklySchedule });
     } catch (error: any) {
-      console.error('Get availability error:', error);
+      console.error('[Canva Availability GET] Error:', error);
       res.status(500).json({ error: 'Failed to fetch availability' });
     }
   });
@@ -1260,6 +1286,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update weekly availability
       if (weeklyAvailability) {
+        console.log('[Batch Update] Received weeklyAvailability from frontend:', weeklyAvailability);
+
         // Convert Canva format to backend format
         // Canva: { monday: { enabled: true, startTime: '09:00', endTime: '17:00' }, ... }
         // Backend: { monday: [{ start: '09:00', end: '17:00' }], ... }
@@ -1288,7 +1316,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
+        console.log('[Batch Update] Converted backendFormat:', backendFormat);
+
         await storage.updateWeeklyAvailability(user._id, backendFormat);
+
+        console.log('[Batch Update] Weekly availability saved successfully');
       }
 
       // Update branding (colors)

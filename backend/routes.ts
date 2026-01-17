@@ -5485,8 +5485,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
       });
 
+      // For admin users, send OTP to hello@daywisebooking.com instead of their registered email
+      const emailDestination = user.isAdmin ? 'hello@daywisebooking.com' : user.email;
+
       // Send OTP email
-      await sendPasswordChangeOtp(user.email, otp);
+      await sendPasswordChangeOtp(emailDestination, otp);
 
       res.json({ message: 'OTP sent successfully' });
     } catch (error) {

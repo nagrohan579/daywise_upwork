@@ -30,6 +30,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 import { Input } from "../../components/index";
 import Select from "../../components/ui/Input/Select";
+import ChangePasswordModal from "../../components/ui/modals/ChangePasswordModal";
 import "./AdminDashboard.css";
 
 const AdminDashboard = () => {
@@ -42,6 +43,7 @@ const AdminDashboard = () => {
   const [showViewUserModal, setShowViewUserModal] = useState(false);
   const [showManageSubscriptionModal, setShowManageSubscriptionModal] = useState(false);
   const [showSuspendModal, setShowSuspendModal] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
@@ -216,9 +218,35 @@ const AdminDashboard = () => {
           <h1>Billing & Subscription</h1>
           <p>Manage your subscription and payment methods</p>
         </div>
-        <button onClick={handleLogout} className="admin-logout-btn">
-          Logout
-        </button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button
+            onClick={() => setShowChangePasswordModal(true)}
+            style={{
+              border: "1px solid #E0E9FE",
+              background: "transparent",
+              color: "#64748B",
+              padding: "8px 16px",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: "500",
+              transition: "all 0.2s"
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = "#F8FAFC";
+              e.target.style.color = "#0053F1";
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = "transparent";
+              e.target.style.color = "#64748B";
+            }}
+          >
+            Change Password
+          </button>
+          <button onClick={handleLogout} className="admin-logout-btn">
+            Logout
+          </button>
+        </div>
       </header>
 
       <div className="admin-dashboard-content">
@@ -744,6 +772,15 @@ const AdminDashboard = () => {
               .then(data => setUsers(data))
               .catch(err => console.error('Error refreshing users:', err));
           }}
+        />
+      )}
+
+      {/* Change Password Modal */}
+      {showChangePasswordModal && (
+        <ChangePasswordModal
+          show={showChangePasswordModal}
+          onClose={() => setShowChangePasswordModal(false)}
+          userEmail="hello@daywisebooking.com"
         />
       )}
     </div>

@@ -1603,6 +1603,12 @@ export const App = () => {
                 </Button>
               </Box>
 
+              <Box paddingTop="2u">
+                <Button variant="secondary" onClick={handleBack} stretch>
+                  Back
+                </Button>
+              </Box>
+
               {error && (
                 <Box paddingStart="4u" paddingEnd="4u">
                   <Text tone="critical" alignment="center">

@@ -1,4 +1,4 @@
-import { Button, Rows, Text, Title, Box, Link, FormField, TextInput, Select, Columns, Column, Switch, OpenInNewIcon, TrashIcon, FileInput } from "@canva/app-ui-kit";
+import { Button, Rows, Text, Title, Box, Link, FormField, TextInput, Select, Columns, Column, Switch, OpenInNewIcon, TrashIcon } from "@canva/app-ui-kit";
 import { auth, type AccessTokenResponse } from "@canva/user";
 import { requestOpenExternalUrl } from "@canva/platform";
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
@@ -75,13 +75,17 @@ export const App = () => {
   const [secondaryColor, setSecondaryColor] = useState('#64748B');
   const [textColor, setTextColor] = useState('#121212');
   const [logoName, setLogoName] = useState('');
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoError, setLogoError] = useState('');
   const logoAcceptTypes = ['image/png', 'image/jpeg', 'image/gif'];
   const mainColorInputRef = useRef<HTMLInputElement | null>(null);
   const secondaryColorInputRef = useRef<HTMLInputElement | null>(null);
   const textColorInputRef = useRef<HTMLInputElement | null>(null);
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
   const [isPro, setIsPro] = useState<boolean | null>(null);
   const planCheckedRef = useRef(false);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoRemoving, setLogoRemoving] = useState(false);
 
   // Phase 2: Data loading state
   const [loadedData, setLoadedData] = useState<{
@@ -400,6 +404,7 @@ export const App = () => {
       setMainColor(branding.primary || '#0053F1');
       setSecondaryColor(branding.secondary || '#64748B');
       setTextColor(branding.accent || '#121212');
+      setLogoUrl(branding.logoUrl || null);
 
     } catch (error) {
       console.error('Failed to load user data:', error);
@@ -427,8 +432,7 @@ export const App = () => {
       secondaryColor !== loadedData.branding.secondary ||
       textColor !== loadedData.branding.accent;
 
-    // Logo changed if logoName is set (new upload)
-    const logoChanged = !!logoName;
+    const logoChanged = (logoUrl ?? null) !== (loadedData?.branding?.logoUrl ?? null);
 
     return businessNameChanged || timezoneChanged || servicesChanged ||
            availabilityChanged || colorsChanged || logoChanged;
@@ -440,7 +444,7 @@ export const App = () => {
       setHasChanges(detectChanges());
     }
   }, [businessName, timezone, services, weeklyAvailability, mainColor,
-      secondaryColor, textColor, logoName, loadedData]);
+      secondaryColor, textColor, logoUrl, loadedData]);
 
   const handleConnect = useCallback(async () => {
     setAuthState('authenticating');
@@ -1336,10 +1340,81 @@ export const App = () => {
     setOnboardingStep('step3');  // Just navigate, don't save
   };
 
-  const handleLogoChange = (files: string[]) => {
+  const triggerLogoUpload = useCallback(() => {
     setLogoError('');
-    setLogoName(files[0] || '');
-  };
+    logoInputRef.current?.click();
+  }, []);
+
+  const handleLogoFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const allowed = ['image/png', 'image/jpeg', 'image/gif'];
+    if (!allowed.includes(file.type)) {
+      setLogoError('Only PNG, JPG, or GIF allowed');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setLogoError('File must be under 5MB');
+      return;
+    }
+    setLogoError('');
+    setLogoUploading(true);
+    try {
+      const token = await auth.getCanvaUserToken();
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`${BACKEND_URL}/logo`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setLogoError(data.message || 'Upload failed');
+        return;
+      }
+      setLogoUrl(data.logoUrl ?? null);
+      setLogoName('');
+      setLoadedData((prev) => prev ? {
+        ...prev,
+        branding: { ...prev.branding, logoUrl: data.logoUrl ?? null },
+      } : null);
+    } catch (err) {
+      console.error('Logo upload error:', err);
+      setLogoError('Upload failed');
+    } finally {
+      setLogoUploading(false);
+    }
+  }, []);
+
+  const handleRemoveLogo = useCallback(async () => {
+    setLogoError('');
+    setLogoRemoving(true);
+    try {
+      const token = await auth.getCanvaUserToken();
+      const res = await fetch(`${BACKEND_URL}/logo`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setLogoError(data.message || 'Remove failed');
+        return;
+      }
+      setLogoUrl(null);
+      setLogoName('');
+      setLoadedData((prev) => prev ? {
+        ...prev,
+        branding: { ...prev.branding, logoUrl: null },
+      } : null);
+    } catch (err) {
+      console.error('Logo remove error:', err);
+      setLogoError('Remove failed');
+    } finally {
+      setLogoRemoving(false);
+    }
+  }, []);
 
   const handleDesignNext = async () => {
     setError('');
@@ -1353,10 +1428,10 @@ export const App = () => {
   };
 
   // Preview Screen - shown initially
+  // External links to Daywise legal pages (outside the app)
   if (authState === 'preview') {
-    const webappUrl = WEBAPP_FRONTEND_URL || '';
-    const termsUrl = webappUrl && isValidCanvaUrl(webappUrl) ? `${webappUrl}/terms` : '';
-    const privacyUrl = webappUrl && isValidCanvaUrl(webappUrl) ? `${webappUrl}/privacy-policy` : '';
+    const termsUrl = 'https://www.daywisebooking.com/terms-of-service';
+    const privacyUrl = 'https://www.daywisebooking.com/privacy-policy';
 
     return (
       <div className={styles.scrollContainer}>
@@ -1417,9 +1492,9 @@ export const App = () => {
                   <Link
                     href={termsUrl}
                     requestOpenExternalUrl={() => openExternalUrl(termsUrl)}
-                    ariaLabel="Terms & Conditions"
+                    ariaLabel="Terms of Service"
                   >
-                    Terms & Conditions
+                    Terms of Service
                   </Link>
                   {' '}and{' '}
                   <Link
@@ -1427,12 +1502,12 @@ export const App = () => {
                     requestOpenExternalUrl={() => openExternalUrl(privacyUrl)}
                     ariaLabel="Privacy Policy"
                   >
-                    Privacy policy
+                    Privacy Policy
                   </Link>
                   {' '}and permissions
                 </>
               ) : (
-                'Terms & Conditions and Privacy policy and permissions'
+                'Terms of Service and Privacy Policy and permissions'
               )}
             </Text>
           </Box>
@@ -1595,7 +1670,7 @@ export const App = () => {
         updates.weeklyAvailability = weeklyAvailability;
       }
 
-      // 4. Branding (colors)
+      // 4. Branding (colors only; logo is persisted via POST/DELETE /api/canva/logo)
       if (mainColor !== loadedData.branding.primary ||
           secondaryColor !== loadedData.branding.secondary ||
           textColor !== loadedData.branding.accent) {
@@ -1605,8 +1680,6 @@ export const App = () => {
           accent: textColor,
         };
       }
-
-      // TODO: Logo upload will be handled separately if needed
 
       // Send batch update to backend
       const response = await fetch(`${BACKEND_URL}/batch-update`, {
@@ -1619,7 +1692,7 @@ export const App = () => {
         throw new Error('Failed to save changes');
       }
 
-      // Update loadedData to reflect saved state
+      // Update loadedData to reflect saved state (preserve current logoUrl)
       setLoadedData({
         businessName,
         timezone,
@@ -1629,7 +1702,7 @@ export const App = () => {
           primary: mainColor,
           secondary: secondaryColor,
           accent: textColor,
-          logoUrl: loadedData?.branding.logoUrl || null,
+          logoUrl: logoUrl ?? loadedData?.branding.logoUrl ?? null,
         },
       });
 
@@ -1823,16 +1896,68 @@ export const App = () => {
                 {renderColorSwatch('Text Color', textColor, setTextColor, textColorInputRef)}
 
                 <Box>
-                  <Title size="small">Logo Upload</Title>
-                  <FileInput
-                    accept={logoAcceptTypes}
-                    onChange={handleLogoChange}
-                    stretch
+                  <Title size="small">Business logo</Title>
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/gif"
+                    onChange={handleLogoFileSelect}
+                    style={{ display: 'none' }}
+                    aria-hidden
                   />
+                  <div
+                    style={{
+                      border: '1px solid var(--color-border-standard)',
+                      borderRadius: '8px',
+                      minHeight: '80px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      backgroundColor: 'var(--color-bg-secondary)',
+                    }}
+                  >
+                    {(logoUrl ?? loadedData?.branding?.logoUrl) ? (
+                      <img
+                        src={logoUrl ?? loadedData?.branding?.logoUrl ?? ''}
+                        alt="Business logo"
+                        style={{
+                          maxWidth: '100%',
+                          maxHeight: '120px',
+                          objectFit: 'contain',
+                        }}
+                      />
+                    ) : (
+                      <Text size="small" tone="tertiary">No logo</Text>
+                    )}
+                  </div>
+                  <Box paddingTop="2u">
+                    <Columns spacing="2u">
+                      <Column>
+                        <Button
+                          variant="secondary"
+                          onClick={triggerLogoUpload}
+                          stretch
+                          disabled={logoUploading || logoRemoving}
+                        >
+                          {logoUploading ? 'Uploading...' : 'Upload'}
+                        </Button>
+                      </Column>
+                      {(logoUrl ?? loadedData?.branding?.logoUrl) && (
+                        <Column>
+                          <Button
+                            variant="secondary"
+                            onClick={handleRemoveLogo}
+                            stretch
+                            disabled={logoUploading || logoRemoving}
+                          >
+                            {logoRemoving ? 'Removing...' : 'Remove'}
+                          </Button>
+                        </Column>
+                      )}
+                    </Columns>
+                  </Box>
                   <Text size="small" tone="tertiary">Maximum file size: 5MB. JPG, PNG, or GIF.</Text>
-                  {logoName && (
-                    <Text size="small">Selected: {logoName}</Text>
-                  )}
                   {logoError && (
                     <Text size="small" tone="critical">{logoError}</Text>
                   )}

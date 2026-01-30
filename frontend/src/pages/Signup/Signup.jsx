@@ -303,13 +303,13 @@ const SignupPage = () => {
             />
             <label htmlFor="terms-checkbox" className="terms-label">
               By creating an account, you agree to our{" "}
-              <Link to="/terms" className="terms-link" target="_blank">
+              <a href="https://www.daywisebooking.com/terms-of-service" className="terms-link" target="_blank" rel="noopener noreferrer">
                 Terms of Service
-              </Link>{" "}
+              </a>{" "}
               and{" "}
-              <Link to="/privacy-policy" className="terms-link" target="_blank">
+              <a href="https://www.daywisebooking.com/privacy-policy" className="terms-link" target="_blank" rel="noopener noreferrer">
                 Privacy Policy
-              </Link>
+              </a>
               .
             </label>
           </div>

@@ -1231,6 +1231,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Canva logo upload (JWT auth; same DO + Convex logic as /api/branding/logo)
+  app.post("/api/canva/logo", canvaJwtMiddleware, upload.single("file"), async (req, res) => {
+    try {
+      const { userId: canvaUserId } = req.canva!;
+      const user = await storage.getUserByCanvaId(canvaUserId);
+      if (!user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const userId = user._id;
+
+      const isEdit = req.body.isEdit === 'true';
+      const file = req.file;
+      if (!isEdit && !file) {
+        return res.status(400).json({ message: "No file provided" });
+      }
+
+      let existingBranding = await storage.getBranding(userId);
+      if (!existingBranding) {
+        existingBranding = await storage.createBranding({
+          userId,
+          primary: '#0053F1',
+          secondary: '#64748B',
+          accent: '#121212',
+          logoUrl: undefined,
+          profilePictureUrl: undefined,
+          displayName: undefined,
+          showDisplayName: true,
+          showProfilePicture: true,
+          usePlatformBranding: true,
+        });
+      }
+
+      let logoUrl = existingBranding?.logoUrl;
+
+      if (file) {
+        if (!["image/png", "image/jpeg", "image/gif"].includes(file.mimetype)) {
+          return res.status(400).json({ message: "Only PNG/JPG/GIF allowed" });
+        }
+        if (existingBranding?.logoUrl && isSpacesUrl(existingBranding.logoUrl)) {
+          await deleteFile(existingBranding.logoUrl);
+        }
+        const ext = file.mimetype === "image/png" ? "png" : file.mimetype === "image/gif" ? "gif" : "jpg";
+        const filename = `logo-${userId}-${Date.now()}.${ext}`;
+        let processedBuffer: Buffer;
+        try {
+          if (file.mimetype === "image/gif") {
+            processedBuffer = file.buffer;
+          } else if (file.mimetype === "image/png") {
+            processedBuffer = await sharp(file.buffer).autoOrient().png().toBuffer();
+          } else {
+            processedBuffer = await sharp(file.buffer).autoOrient().jpeg().toBuffer();
+          }
+        } catch (sharpError: any) {
+          console.error('Error processing logo image orientation:', sharpError);
+          processedBuffer = file.buffer;
+        }
+        logoUrl = await uploadFile({
+          fileBuffer: processedBuffer,
+          fileName: filename,
+          folder: 'business_logos',
+          contentType: file.mimetype,
+        });
+      }
+
+      let logoCropData: any = null;
+      if (req.body.cropData) {
+        try {
+          logoCropData = typeof req.body.cropData === 'string' ? JSON.parse(req.body.cropData) : req.body.cropData;
+        } catch (e) {
+          console.error('Error parsing logo crop data:', e);
+        }
+      }
+
+      await storage.updateBranding(userId, {
+        logoUrl: logoUrl || undefined,
+        logoCropData: logoCropData || undefined,
+        updatedAt: Date.now(),
+      });
+      return res.json({ logoUrl: logoUrl ?? null, logoCropData });
+    } catch (e: any) {
+      console.error('Canva logo upload error:', e);
+      return res.status(500).json({ message: e?.message ?? "Upload failed" });
+    }
+  });
+
+  // Canva logo delete (JWT auth; same DO + Convex logic as /api/branding/logo)
+  app.delete("/api/canva/logo", canvaJwtMiddleware, async (req, res) => {
+    try {
+      const { userId: canvaUserId } = req.canva!;
+      const user = await storage.getUserByCanvaId(canvaUserId);
+      if (!user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const userId = user._id;
+
+      const existing = await storage.getBranding(userId);
+      const currentUrl = existing?.logoUrl;
+      if (currentUrl && isSpacesUrl(currentUrl)) {
+        await deleteFile(currentUrl);
+      }
+      await storage.clearBrandingField(userId, 'logoUrl');
+      return res.json({ success: true });
+    } catch (e: any) {
+      console.error('Canva logo delete error:', e);
+      return res.status(500).json({ message: e?.message ?? "Delete failed" });
+    }
+  });
+
   // Phase 4: Batch update all data
   app.post("/api/canva/batch-update", canvaJwtMiddleware, async (req, res) => {
     try {

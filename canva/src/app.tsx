@@ -448,26 +448,54 @@ export const App = () => {
 
     try {
       const scope = new Set(["openid", "email", "profile"]);
-      
-      // Try to get access token first (if already authorized, this works immediately)
-      let tokenResponse: AccessTokenResponse | null = await oauth.getAccessToken({ scope });
-      
-      // If not authorized, request authorization (this will show Canva's intermediate screen)
-      if (!tokenResponse || !tokenResponse.token) {
-        const authResponse = await oauth.requestAuthorization({ scope });
-        
-        // If user aborted, stop here
-        if (authResponse.status === 'aborted') {
-          setAuthState('connect');
-          return;
-        }
-        
-        // After authorization, get the access token
-        tokenResponse = await oauth.getAccessToken({ scope });
-        if (!tokenResponse || !tokenResponse.token) {
-          throw new Error('Failed to get access token after authorization');
-        }
+
+      // Clear browser storage that might cache account info
+      try {
+        sessionStorage.clear();
+        // Only clear specific keys to avoid breaking other functionality
+        Object.keys(localStorage).forEach(key => {
+          if (key.includes('oauth') || key.includes('google') || key.includes('canva')) {
+            localStorage.removeItem(key);
+          }
+        });
+        console.log('✓ Cleared browser storage');
+      } catch (storageError) {
+        console.log('Storage clear skipped:', storageError);
       }
+
+      // ALWAYS deauthorize first to ensure fresh login and account selection
+      try {
+        await oauth.deauthorize();
+        console.log('✓ Deauthorized - ready for fresh account selection');
+      } catch (deauthError) {
+        // Ignore errors if already deauthorized
+        console.log('Deauthorize skipped (already deauthorized)');
+      }
+
+      // EXPERIMENTAL: Try to pass prompt parameter via queryParams
+      // This may or may not work depending on Canva's implementation
+      const authResponse = await oauth.requestAuthorization({
+        scope,
+        queryParams: {
+          prompt: 'select_account',
+          access_type: 'online'  // Don't need offline, just select account
+        } as Record<string, string>
+      });
+
+      // If user aborted, stop here
+      if (authResponse.status === 'aborted') {
+        console.log('User aborted account selection');
+        setAuthState('connect');
+        return;
+      }
+
+      // Get access token after user selected account
+      const tokenResponse: AccessTokenResponse | null = await oauth.getAccessToken({ scope });
+      if (!tokenResponse || !tokenResponse.token) {
+        throw new Error('Failed to get access token after authorization');
+      }
+
+      console.log('✓ Got access token, exchanging with backend');
 
       // Get Canva user token for backend authentication
       const canvaToken = await auth.getCanvaUserToken();
@@ -493,9 +521,11 @@ export const App = () => {
         throw new Error(data.message || 'Authentication failed');
       }
 
+      console.log('✓ Backend authentication successful');
+
       // After linking, check auth status
       await checkAuthStatus();
-      
+
     } catch (err: any) {
       console.error('Google auth error:', err);
       setError(err.message || 'Authentication failed');
@@ -505,6 +535,16 @@ export const App = () => {
 
   const handleDisconnect = useCallback(async () => {
     try {
+      // Step 1: Deauthorize Canva OAuth first
+      try {
+        await oauth.deauthorize();
+        console.log('✓ Canva OAuth deauthorized');
+      } catch (deauthError) {
+        console.error('Deauthorize failed (non-critical):', deauthError);
+        // Continue anyway - backend disconnect is more important
+      }
+
+      // Step 2: Disconnect from backend
       const token = await auth.getCanvaUserToken();
       const backendHost = BACKEND_HOST || 'http://localhost:3000';
 
@@ -521,16 +561,20 @@ export const App = () => {
         throw new Error(data.message || 'Failed to disconnect');
       }
 
-      // Clear local state so user can reconnect
+      console.log('✓ Backend account unlinked');
+
+      // Step 3: Clear local state so user can reconnect
       setUser(null);
       setError('');
       setOnboardingStep('step2');
       setAuthState('connect');
+
+      console.log('✓ Disconnect complete - ready to reconnect');
     } catch (err: any) {
       console.error('Disconnect error:', err);
       setError(err.message || 'Failed to disconnect');
     }
-  }, []);
+  }, [oauth]);
 
   // Helper function to open external URLs
   const openExternalUrl = async (url: string) => {
@@ -1409,8 +1453,8 @@ export const App = () => {
     );
   }
 
-  // Connect Account Screen
-  if (authState === 'connect' || authState === 'authenticating') {
+  // Connect Account Screen - only show when waiting for user to click Connect
+  if (authState === 'connect') {
     return (
       <div className={styles.scrollContainer}>
         <Rows spacing="3u" align="center">
@@ -1439,10 +1483,9 @@ export const App = () => {
             <Button
               variant="primary"
               onClick={handleConnect}
-              disabled={authState === 'authenticating'}
               stretch
             >
-              {authState === 'authenticating' ? 'Connecting...' : 'Connect'}
+              Connect
             </Button>
           </Box>
           {error && (
@@ -1453,6 +1496,26 @@ export const App = () => {
             </Box>
           )}
           <Box paddingBottom="8u" />
+        </Rows>
+      </div>
+    );
+  }
+
+  // Authenticating Screen - minimal loading state while OAuth modal is open
+  if (authState === 'authenticating') {
+    return (
+      <div className={styles.scrollContainer}>
+        <Rows spacing="3u" align="center">
+          <Box paddingTop="16u" />
+          <Title size="medium" alignment="center">
+            Connecting to your account...
+          </Title>
+          <Box paddingTop="4u">
+            <Text alignment="center" tone="tertiary">
+              Please complete the authorization in the popup window
+            </Text>
+          </Box>
+          <Box paddingBottom="16u" />
         </Rows>
       </div>
     );

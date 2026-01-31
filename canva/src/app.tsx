@@ -1,4 +1,4 @@
-import { Button, Rows, Text, Title, Box, Link, FormField, TextInput, Select, Columns, Column, Switch, OpenInNewIcon, TrashIcon } from "@canva/app-ui-kit";
+import { Button, Rows, Text, Title, Box, Link, FormField, TextInput, Select, Columns, Column, Switch, OpenInNewIcon, TrashIcon, ExportIcon } from "@canva/app-ui-kit";
 import { auth, type AccessTokenResponse } from "@canva/user";
 import { requestOpenExternalUrl } from "@canva/platform";
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
@@ -67,8 +67,17 @@ export const App = () => {
   const [appointmentType, setAppointmentType] = useState('');
   const [duration, setDuration] = useState<string>('');
   const [timezone, setTimezone] = useState<string>('');
-  const [services, setServices] = useState<Array<{ id: string; name: string; duration: string; price: string }>>([
-    { id: 'svc-1', name: '', duration: '', price: '' },
+  const [services, setServices] = useState<Array<{
+    id: string;
+    name: string;
+    duration: string;
+    price: string;
+    description?: string;
+    bufferTime?: number;
+    color?: string;
+    isActive?: boolean;
+  }>>([
+    { id: 'svc-1', name: '', duration: '', price: '', description: '', bufferTime: 0, color: '#F19B11', isActive: true },
   ]);
   // Match frontend Branding defaults
   const [mainColor, setMainColor] = useState('#0053F1');
@@ -372,10 +381,23 @@ export const App = () => {
 
       const normalizedWeeklyAvailability = normalizeWeeklyAvailability(availability.weeklySchedule);
 
+      // Convert appointment types to normalized shape (id, string duration/price, etc.)
+      const loadedServices = (appointments.appointmentTypes || []).map((apt: any) => ({
+        id: apt._id,
+        name: apt.name,
+        description: apt.description || '',
+        duration: apt.duration != null ? String(apt.duration) : '',
+        bufferTime: apt.bufferTime ?? 0,
+        price: apt.price != null ? String(apt.price) : '',
+        color: apt.color || '#F19B11',
+        isActive: apt.isActive !== undefined ? apt.isActive : true,
+      }));
+      const defaultService = { id: 'svc-1', name: '', duration: '', price: '', description: '', bufferTime: 0, color: '#F19B11', isActive: true };
+
       setLoadedData({
         businessName: userData.businessName || '',
         timezone: userData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-        appointmentTypes: appointments.appointmentTypes || [],
+        appointmentTypes: loadedServices,
         weeklyAvailability: normalizedWeeklyAvailability,
         branding: {
           primary: branding.primary || '#0053F1',
@@ -385,21 +407,9 @@ export const App = () => {
         },
       });
 
-      // Pre-populate form fields with loaded data
       setBusinessName(userData.businessName || '');
       setTimezone(userData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
-      // Convert appointment types, mapping _id to id and ensuring proper field types
-      const loadedServices = (appointments.appointmentTypes || []).map((apt: any) => ({
-        id: apt._id,  // Map _id from backend to id for frontend
-        name: apt.name,
-        description: apt.description || '',
-        duration: apt.duration != null ? String(apt.duration) : '',
-        bufferTime: apt.bufferTime || 0,
-        price: apt.price != null ? String(apt.price) : '',
-        color: apt.color || '#F19B11',
-        isActive: apt.isActive !== undefined ? apt.isActive : true,
-      }));
-      setServices(loadedServices.length > 0 ? loadedServices : [{ id: 'svc-1', name: '', duration: '', price: '' }]);
+      setServices(loadedServices.length > 0 ? loadedServices : [defaultService]);
       setWeeklyAvailability(normalizedWeeklyAvailability);
       setMainColor(branding.primary || '#0053F1');
       setSecondaryColor(branding.secondary || '#64748B');
@@ -1311,18 +1321,40 @@ export const App = () => {
     return `${String(hour).padStart(2, '0')}:${minutes}`;
   };
 
-  // Services helpers
-  const handleServiceChange = (id: string, field: 'name' | 'duration' | 'price', value: string) => {
-    setServices(prev => prev.map(s => (s.id === id ? { ...s, [field]: value } : s)));
+  // Service pending delete for confirmation
+  const [serviceToDelete, setServiceToDelete] = useState<{ id: string; name: string } | null>(null);
+
+  const handleServiceChange = (
+    id: string,
+    field: 'name' | 'duration' | 'price' | 'description' | 'bufferTime' | 'color' | 'isActive',
+    value: string | number | boolean
+  ) => {
+    setServices((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, [field]: value } : s))
+    );
   };
 
   const handleAddServiceCard = () => {
     const nextId = `svc-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`;
-    setServices(prev => [...prev, { id: nextId, name: '', duration: '', price: '' }]);
+    setServices((prev) => [
+      ...prev,
+      { id: nextId, name: '', duration: '', price: '', description: '', bufferTime: 0, color: '#F19B11', isActive: true },
+    ]);
   };
 
   const handleDeleteServiceCard = (id: string) => {
-    setServices(prev => (prev.length === 1 ? prev : prev.filter(s => s.id !== id)));
+    setServices((prev) => (prev.length === 1 ? prev : prev.filter((s) => s.id !== id)));
+  };
+
+  const handleDeleteServiceClick = (svc: { id: string; name: string }) => {
+    setServiceToDelete({ id: svc.id, name: svc.name || 'This service' });
+  };
+
+  const handleDeleteServiceConfirm = () => {
+    if (serviceToDelete) {
+      handleDeleteServiceCard(serviceToDelete.id);
+      setServiceToDelete(null);
+    }
   };
 
   const handleServicesNext = () => {
@@ -1626,6 +1658,9 @@ export const App = () => {
       console.log('No changes detected, skipping save');
       return true; // Success, nothing to save
     }
+    if (!loadedData) {
+      return false;
+    }
 
     setSaving(true);
 
@@ -1692,19 +1727,56 @@ export const App = () => {
         throw new Error('Failed to save changes');
       }
 
-      // Update loadedData to reflect saved state (preserve current logoUrl)
-      setLoadedData({
-        businessName,
-        timezone,
-        appointmentTypes: services,
-        weeklyAvailability,
-        branding: {
-          primary: mainColor,
-          secondary: secondaryColor,
-          accent: textColor,
-          logoUrl: logoUrl ?? loadedData?.branding.logoUrl ?? null,
-        },
-      });
+      const data = await response.json();
+      // Sync state with server so new items get real _ids (avoids duplicate creates on next save)
+      if (data.appointmentTypes && Array.isArray(data.appointmentTypes)) {
+        const normalized = data.appointmentTypes.map((apt: any) => ({
+          id: apt._id,
+          name: apt.name,
+          description: apt.description || '',
+          duration: apt.duration != null ? String(apt.duration) : '',
+          bufferTime: apt.bufferTime ?? 0,
+          price: apt.price != null ? String(apt.price) : '',
+          color: apt.color || '#F19B11',
+          isActive: apt.isActive !== undefined ? apt.isActive : true,
+        }));
+        setServices(normalized);
+        setLoadedData((prev) =>
+          prev
+            ? {
+                ...prev,
+                businessName,
+                timezone,
+                appointmentTypes: normalized,
+                weeklyAvailability,
+                branding: {
+                  primary: mainColor,
+                  secondary: secondaryColor,
+                  accent: textColor,
+                  logoUrl: logoUrl ?? prev.branding?.logoUrl ?? null,
+                },
+              }
+            : null
+        );
+      } else {
+        setLoadedData((prev) =>
+          prev
+            ? {
+                ...prev,
+                businessName,
+                timezone,
+                appointmentTypes: services,
+                weeklyAvailability,
+                branding: {
+                  primary: mainColor,
+                  secondary: secondaryColor,
+                  accent: textColor,
+                  logoUrl: logoUrl ?? prev.branding?.logoUrl ?? null,
+                },
+              }
+            : null
+        );
+      }
 
       setHasChanges(false);
       return true;
@@ -1896,7 +1968,7 @@ export const App = () => {
                 {renderColorSwatch('Text Color', textColor, setTextColor, textColorInputRef)}
 
                 <Box>
-                  <Title size="small">Business logo</Title>
+                  <Title size="medium">Logo</Title>
                   <input
                     ref={logoInputRef}
                     type="file"
@@ -1936,6 +2008,7 @@ export const App = () => {
                       <Column>
                         <Button
                           variant="secondary"
+                          icon={ExportIcon}
                           onClick={triggerLogoUpload}
                           stretch
                           disabled={logoUploading || logoRemoving}
@@ -2007,20 +2080,61 @@ export const App = () => {
         <Rows spacing="3u">
           {renderTabs()}
 
+          {serviceToDelete && (
+            <Box
+              padding="3u"
+              borderRadius="standard"
+              border="standard"
+              style={{
+                backgroundColor: '#fef2f2',
+                borderColor: '#fecaca',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              }}
+            >
+              <Rows spacing="2u">
+                <Title size="small">Delete service?</Title>
+                <Text size="small">
+                  This service will be deleted everywhere (your Daywise booking page and here) and
+                  cannot be restored. Are you sure?
+                </Text>
+                <Columns spacing="2u">
+                  <Column>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setServiceToDelete(null)}
+                      stretch
+                    >
+                      Cancel
+                    </Button>
+                  </Column>
+                  <Column>
+                    <Button
+                      variant="primary"
+                      onClick={handleDeleteServiceConfirm}
+                      stretch
+                    >
+                      Yes, delete
+                    </Button>
+                  </Column>
+                </Columns>
+              </Rows>
+            </Box>
+          )}
+
           {activeTab === 'setup' ? (
             <>
               <Title size="medium">Add your appointment/service types</Title>
 
-              {services.map((svc, idx) => (
+              {services.map((svc) => (
                 <Box
                   key={svc.id}
                   padding="2u"
                   borderRadius="standard"
-                  border
+                  border="standard"
                   style={{
                     backgroundColor: '#eef1f6',
                     borderColor: '#cbd4e2',
-                    boxShadow: '0 10px 24px rgba(0,0,0,0.12)'
+                    boxShadow: '0 10px 24px rgba(0,0,0,0.12)',
                   }}
                 >
                   <Rows spacing="2u">
@@ -2032,6 +2146,17 @@ export const App = () => {
                           {...props}
                           placeholder="Enter your appointment/service name"
                           onChange={(value) => handleServiceChange(svc.id, 'name', value)}
+                        />
+                      )}
+                    />
+                    <FormField
+                      label="Description (optional)"
+                      value={svc.description ?? ''}
+                      control={(props) => (
+                        <TextInput
+                          {...props}
+                          placeholder="Short description for clients"
+                          onChange={(value) => handleServiceChange(svc.id, 'description', value)}
                         />
                       )}
                     />
@@ -2051,6 +2176,25 @@ export const App = () => {
                       </Column>
                       <Column>
                         <FormField
+                          label="Buffer (mins)"
+                          value={svc.bufferTime != null ? String(svc.bufferTime) : ''}
+                          control={(props) => (
+                            <TextInput
+                              {...props}
+                              placeholder="0"
+                              onChange={(value) =>
+                                handleServiceChange(
+                                  svc.id,
+                                  'bufferTime',
+                                  value === '' ? 0 : parseInt(value, 10) || 0
+                                )
+                              }
+                            />
+                          )}
+                        />
+                      </Column>
+                      <Column>
+                        <FormField
                           label="Price ($)"
                           value={svc.price}
                           control={(props) => (
@@ -2063,12 +2207,53 @@ export const App = () => {
                         />
                       </Column>
                     </Columns>
-                    <Box display="flex" justifyContent="flex-end">
+                    <Columns spacing="2u" alignY="center">
+                      <Column>
+                        <Text size="small">Color</Text>
+                        <Box paddingTop="0.5u" display="flex" alignItems="center">
+                          <div
+                            onClick={() => {
+                              const el = document.getElementById(`svc-color-${svc.id}`);
+                              el?.click();
+                            }}
+                            aria-label="Service color"
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: '50%',
+                              border: '1px solid #d5d9e2',
+                              backgroundColor: svc.color || '#F19B11',
+                              cursor: 'pointer',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                            }}
+                          />
+                          <input
+                            id={`svc-color-${svc.id}`}
+                            type="color"
+                            value={svc.color || '#F19B11'}
+                            onChange={(e) =>
+                              handleServiceChange(svc.id, 'color', e.target.value)
+                            }
+                            style={{ display: 'none' }}
+                          />
+                        </Box>
+                      </Column>
+                      <Column>
+                        <Text size="small">Active</Text>
+                        <Box paddingTop="0.5u">
+                          <Switch
+                            value={svc.isActive !== false}
+                            onChange={(value) => handleServiceChange(svc.id, 'isActive', value)}
+                          />
+                        </Box>
+                      </Column>
+                    </Columns>
+                    <Box display="flex" justifyContent="end">
                       <Button
                         variant="tertiary"
                         icon={TrashIcon}
                         aria-label="Delete service"
-                        onClick={() => handleDeleteServiceCard(svc.id)}
+                        onClick={() => handleDeleteServiceClick(svc)}
                       >
                         Delete
                       </Button>

@@ -1359,14 +1359,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Update appointment types
+      // Appointment types: delete missing, then update/create
       if (appointmentTypes && Array.isArray(appointmentTypes)) {
+        // Build set of IDs to keep (existing DB ids from payload, not temp svc-*)
+        const keepIds = new Set<string>();
         for (const apt of appointmentTypes) {
-          // Check if this is a real database ID (not a temp client ID like svc-*)
+          if (apt.id && typeof apt.id === 'string' && !apt.id.startsWith('svc-')) {
+            keepIds.add(apt.id);
+          }
+        }
+        // Delete any current appointment type not in the payload
+        const currentTypes = await storage.getAppointmentTypesByUser(user._id);
+        for (const current of currentTypes) {
+          if (!keepIds.has(current._id)) {
+            await storage.deleteAppointmentType(current._id);
+          }
+        }
+        // Update existing or create new
+        for (const apt of appointmentTypes) {
           const isExistingService = apt.id && typeof apt.id === 'string' && !apt.id.startsWith('svc-');
 
           if (isExistingService) {
-            // Update existing service
             await storage.updateAppointmentType(apt.id, {
               name: apt.name,
               description: apt.description || '',
@@ -1377,7 +1390,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               isActive: apt.isActive !== undefined ? apt.isActive : true,
             });
           } else {
-            // Create new service
             await storage.createAppointmentType({
               userId: user._id,
               name: apt.name,
@@ -1436,7 +1448,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateBranding(user._id, branding);
       }
 
-      res.json({ success: true });
+      // Return appointment types so Canva app can sync real _ids (e.g. after creates)
+      const appointmentTypesAfter = await storage.getAppointmentTypesByUser(user._id);
+      res.json({ success: true, appointmentTypes: appointmentTypesAfter });
     } catch (error: any) {
       console.error('Batch update error:', error);
       res.status(500).json({ error: 'Failed to save changes' });

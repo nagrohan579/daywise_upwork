@@ -1,4 +1,4 @@
-import { Button, Rows, Text, Title, Box, Link, FormField, TextInput, Select, Columns, Column, Switch, OpenInNewIcon, TrashIcon, ExportIcon } from "@canva/app-ui-kit";
+import { Alert, Button, Rows, Text, Title, Box, Link, FormField, TextInput, Select, Columns, Column, Switch, OpenInNewIcon, TrashIcon, ExportIcon } from "@canva/app-ui-kit";
 import { auth, type AccessTokenResponse } from "@canva/user";
 import { requestOpenExternalUrl } from "@canva/platform";
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
@@ -121,7 +121,8 @@ export const App = () => {
     label: string,
     color: string,
     setColor: (val: string) => void,
-    inputRef: React.RefObject<HTMLInputElement>
+    inputRef: React.RefObject<HTMLInputElement | null>,
+    disabled?: boolean
   ) => (
     <Box paddingBottom="2u">
       <Columns alignY="center" spacing="2u">
@@ -130,7 +131,7 @@ export const App = () => {
         </Column>
         <Column width="content">
           <div
-            onClick={() => inputRef.current?.click()}
+            onClick={disabled ? undefined : () => inputRef.current?.click()}
             aria-label={label}
             style={{
               width: 32,
@@ -138,8 +139,10 @@ export const App = () => {
               borderRadius: '50%',
               border: '1px solid #d5d9e2',
               backgroundColor: color,
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
+              cursor: disabled ? 'not-allowed' : 'pointer',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+              opacity: disabled ? 0.6 : 1,
+              pointerEvents: disabled ? 'none' : undefined,
             }}
           />
           <input
@@ -148,6 +151,7 @@ export const App = () => {
             value={color}
             onChange={(e) => setColor(e.target.value)}
             style={{ display: 'none' }}
+            disabled={disabled}
           />
         </Column>
       </Columns>
@@ -338,18 +342,22 @@ export const App = () => {
         'Content-Type': 'application/json'
       };
 
-      // Fetch all data in parallel
-      const [userRes, appointmentsRes, availabilityRes, brandingRes] = await Promise.all([
+      // Fetch all data in parallel (including subscription for pro/free plan)
+      const [userRes, appointmentsRes, availabilityRes, brandingRes, subscriptionRes] = await Promise.all([
         fetch(`${BACKEND_URL}/user-data`, { headers }),
         fetch(`${BACKEND_URL}/appointment-types`, { headers }),
         fetch(`${BACKEND_URL}/availability`, { headers }),
         fetch(`${BACKEND_URL}/branding`, { headers }),
+        fetch(`${BACKEND_URL}/user-subscription`, { headers }),
       ]);
 
       const userData = await userRes.json();
       const appointments = await appointmentsRes.json();
       const availability = await availabilityRes.json();
       const branding = await brandingRes.json();
+      const subscriptionData = subscriptionRes.ok ? await subscriptionRes.json() : {};
+      planCheckedRef.current = true;
+      setIsPro(!!subscriptionData?.features?.customBranding);
 
       // Default weekly availability structure
       const defaultWeeklyAvailability = {
@@ -1961,11 +1969,21 @@ export const App = () => {
 
           {activeTab === 'setup' ? (
             <>
+              {isPro === false && (
+                <Box paddingBottom="2u">
+                  <Alert tone="warn" title="Free account — design locked">
+                    Upgrade to a Pro account to change brand colors or add a logo.{" "}
+                    <Link href={UPGRADE_FALLBACK_URL} requestOpenExternalUrl={handleUpgradeToPro} ariaLabel="Upgrade to Pro">
+                      Upgrade to Pro
+                    </Link>
+                  </Alert>
+                </Box>
+              )}
               <Title size="medium">Design</Title>
               <Rows spacing="3u">
-                {renderColorSwatch('Main Color', mainColor, setMainColor, mainColorInputRef)}
-                {renderColorSwatch('Secondary Color', secondaryColor, setSecondaryColor, secondaryColorInputRef)}
-                {renderColorSwatch('Text Color', textColor, setTextColor, textColorInputRef)}
+                {renderColorSwatch('Main Color', mainColor, setMainColor, mainColorInputRef, isPro === false)}
+                {renderColorSwatch('Secondary Color', secondaryColor, setSecondaryColor, secondaryColorInputRef, isPro === false)}
+                {renderColorSwatch('Text Color', textColor, setTextColor, textColorInputRef, isPro === false)}
 
                 <Box>
                   <Title size="medium">Logo</Title>
@@ -2011,7 +2029,7 @@ export const App = () => {
                           icon={ExportIcon}
                           onClick={triggerLogoUpload}
                           stretch
-                          disabled={logoUploading || logoRemoving}
+                          disabled={logoUploading || logoRemoving || isPro === false}
                         >
                           {logoUploading ? 'Uploading...' : 'Upload'}
                         </Button>
@@ -2022,7 +2040,7 @@ export const App = () => {
                             variant="secondary"
                             onClick={handleRemoveLogo}
                             stretch
-                            disabled={logoUploading || logoRemoving}
+                            disabled={logoUploading || logoRemoving || isPro === false}
                           >
                             {logoRemoving ? 'Removing...' : 'Remove'}
                           </Button>
@@ -2123,6 +2141,17 @@ export const App = () => {
 
           {activeTab === 'setup' ? (
             <>
+              {isPro === false && (
+                <Box paddingBottom="2u">
+                  <Alert tone="warn" title="Free account — 1 service type">
+                    You&apos;re limited to one service type on the free plan.{" "}
+                    <Link href={UPGRADE_FALLBACK_URL} requestOpenExternalUrl={handleUpgradeToPro} ariaLabel="Upgrade to Pro">
+                      Upgrade to Pro
+                    </Link>{" "}
+                    to add more.
+                  </Alert>
+                </Box>
+              )}
               <Title size="medium">Add your appointment/service types</Title>
 
               {services.map((svc) => (
@@ -2263,9 +2292,16 @@ export const App = () => {
               ))}
 
               <Box paddingTop="1u">
-                <Button variant="secondary" onClick={handleAddServiceCard} stretch>
-                  Add another
-                </Button>
+                <div style={isPro === false && services.length >= 1 ? { cursor: 'not-allowed' } : undefined}>
+                  <Button
+                    variant="secondary"
+                    onClick={handleAddServiceCard}
+                    stretch
+                    disabled={isPro === false && services.length >= 1}
+                  >
+                    Add another
+                  </Button>
+                </div>
               </Box>
 
               <Box paddingTop="2u">

@@ -2532,17 +2532,30 @@ body:has(.step-two-mobile) .select-dropdown {
 /* ==========================================
    IFRAME EMBED: Fix time slot height for Canva
    ========================================== */
+/* Apply whenever in embed mode (no media query) so step-two-mobile matches document height */
+.booking-steps-container.iframe-embed .step-two-mobile {
+  height: 700px !important;
+  max-height: 700px !important;
+}
+
+.booking-steps-container.iframe-embed .step-two-mobile .containerr {
+  height: 700px !important;
+  max-height: 700px !important;
+}
+
 @media screen and (max-width: 1000px) {
   /* Reduce header padding in iframe to maximize time slot space */
   .booking-steps-container.iframe-embed .step-two-mobile .bottom {
     padding-top: 140px !important;
     padding-bottom: 20px !important;
+    top: 160px !important;
+    height: calc(700px - 160px) !important;
   }
 
   /* Set explicit max-height for time slot container in iframe */
   .booking-steps-container.iframe-embed .step-two-mobile .time-slot-container {
     max-height: calc(700px - 200px) !important;
-    min-height: 450px !important;
+    min-height: 280px !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
   }
@@ -2550,9 +2563,10 @@ body:has(.step-two-mobile) .select-dropdown {
   /* Ensure time slot wrapper allows container to fill space */
   .booking-steps-container.iframe-embed .step-two-mobile .time-slot-wrapper {
     max-height: calc(700px - 180px) !important;
+    min-height: 260px !important;
     display: flex;
     flex-direction: column;
-    overflow-y: visible;
+    overflow-y: auto;
     padding-bottom: 10px;
   }
 }

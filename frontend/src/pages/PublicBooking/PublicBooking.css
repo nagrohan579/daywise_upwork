@@ -2546,10 +2546,15 @@ body:has(.step-two-mobile) .select-dropdown {
 @media screen and (max-width: 1000px) {
   /* Reduce header padding in iframe to maximize time slot space */
   .booking-steps-container.iframe-embed .step-two-mobile .bottom {
-    padding-top: 140px !important;
+    padding-top: 100px !important;
     padding-bottom: 20px !important;
     top: 160px !important;
     height: calc(700px - 160px) !important;
+  }
+
+  /* Reduce top gap above time-slot-wrapper in embed */
+  .booking-steps-container.iframe-embed .step-two-mobile .time-slot-wrapper {
+    margin-top: 8px !important;
   }
 
   /* Set explicit max-height for time slot container in iframe */
@@ -2558,6 +2563,10 @@ body:has(.step-two-mobile) .select-dropdown {
     min-height: 280px !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
+    grid-auto-rows: minmax(52px, auto) !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    flex-shrink: 0;
   }
 
   /* Ensure time slot wrapper allows container to fill space */
@@ -2568,5 +2577,10 @@ body:has(.step-two-mobile) .select-dropdown {
     flex-direction: column;
     overflow-y: auto;
     padding-bottom: 10px;
+  }
+
+  /* Prevent time-slot rows from collapsing so buttons keep full height in embed */
+  .booking-steps-container.iframe-embed .step-two-mobile .time-slot-wrapper .time-slot-container .time-slot-row {
+    min-height: 52px !important;
   }
 }
